@@ -1289,9 +1289,8 @@ def ALNS(EV_dict, EV_assignment, GV_assignment, ALNS_iterations, all_routes):
 
 
 
-
-ALNS_iterations = 100000
-local_search_iterations = 10000
+ALNS_iterations = 100
+local_search_iterations = 500
 num_destroy = max(int(n*0.2),2)
 objective = "miles"  # or "miles"
 EV_assignment_IFB, GV_assignment_IFB, IFB_objective, current_best_local_search = set_ALNS_obj(EV_assignment_IFB, GV_assignment_IFB, objective)

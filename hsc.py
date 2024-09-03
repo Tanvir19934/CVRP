@@ -12,8 +12,8 @@ import random
 
 rnd = np.random
 rnd.seed(10)
-n = 15
-grid_size = 75                                                                        #number of clients
+n = 5
+grid_size = 50                                                                        #number of clients
 xc = np.random.uniform(low=-grid_size/2, high=grid_size/2, size=n+1)
 yc = np.random.uniform(low=-grid_size/2, high=grid_size/2, size=n+1)
 xc[0]=0
@@ -26,7 +26,7 @@ Q_GV = 15                                                                    #ca
 q = {i: rnd.randint(1,7) for i in N}                                         #demand for customers
 q[0] = 0
 total_dem = sum(q)                                                           #total demand
-num_EV = 3               
+num_EV = 3 #int(n*0.2)                
 num_GV = len(N)
 num_TV = num_EV+num_GV 
 K = [i for i in range(1,num_TV+1)]                                           #Set of all vehicles 
@@ -64,7 +64,7 @@ b = mdl.addVars(((item, element) for item in E for element in V), vtype=GRB.CONT
 b0 = mdl.addVars(((item, 0, i) for item in E for i in N), vtype=GRB.CONTINUOUS, name = "b0")
 y = mdl.addVars(((item, 0, i) for item in E for i in N), vtype=GRB.CONTINUOUS, name = "y")
 
-ind = mdl.addVars(((item, element) for item in E for element in V), vtype = GRB.BINARY, name = "ind")
+#ind = mdl.addVars(((item, element) for item in E for element in V), vtype = GRB.BINARY, name = "ind")
 
 
 mdl.addConstrs((x_d[j,(0,j)] + (quicksum(x_e[e,(i,j)] for e in E for i in V if i!=j))== 1) for j in N)

@@ -4,7 +4,6 @@ import numpy as np
 from gurobipy import Model, GRB, quicksum
 import copy
 import heapq
-import pickle
 from itertools import permutations
 
 
@@ -69,6 +68,8 @@ r_set = [[0, node, 0] for node in V if node != 0]
 r_set = r_set + list(degree_2_coalition) #+ list(degree_3_coalition) #+list(degree_4_coalition)+list(degree_5_coalition)
 N.extend(['s','t'])
 new_routes_record = [0,0,0,0,0]
+
+
 while True:
 
     ###########Gurobi model############
@@ -206,11 +207,11 @@ while True:
 
 
 
-#####################labeling######################
-#####################labeling######################
-#####################labeling######################
-#####################labeling######################
-#####################labeling######################
+########################################### labeling / pricing subproblem ############################################
+########################################### labeling / pricing subproblem ############################################
+########################################### labeling / pricing subproblem ############################################
+########################################### labeling / pricing subproblem ############################################
+########################################### labeling / pricing subproblem ############################################
 
 
 
@@ -218,7 +219,6 @@ while True:
     for item in y_r_result:
         if y_r_result[item]>0:
             current_routes.append(list(eval(item.split('[')[1][:-1])))
-
 
     q[0]=0
     arcs ={item: a[item] for item in A}
@@ -258,6 +258,7 @@ while True:
         new_distance = curr_distance + a[(curr_node,extending_node)]
 
         return new_time, new_load, new_battery, new_distance 
+    
     def calculate_reduced_cost(label):
         label_copy = copy.deepcopy(label)
         distance = label.resource_vector[0]
@@ -271,6 +272,7 @@ while True:
         if reduced_cost<0:
             return True
         else: return False
+    
     def partial_path(label,current_node):
 
         node = current_node
@@ -291,6 +293,7 @@ while True:
     initial_resource_vector = (0, 0, 0, 0)  # (distance, load, battery, time)
     initial_label = Label(start_node, initial_resource_vector, None)
     heapq.heappush(U, initial_label)
+    
     # Step 2: Main loop for label setting
     while U:
         # 2a. Remove first label (label with the least resource cost in heap)
@@ -335,6 +338,7 @@ while True:
     sink_node = 't'
     best_label = min(L[sink_node], key=lambda x: x.resource_vector[0]) if L[sink_node] else None
     # Output the path corresponding to the best label
+
     def reconstruct_path(label):
         path = []
         while label:
@@ -355,8 +359,6 @@ while True:
     for item in new_routes:
         item[0]=0
         item[-1]=0
-
-
 
     def calculate_route_distance(route, distances):
         """Calculate the total distance of a given route."""
@@ -399,26 +401,16 @@ while True:
     #    print(f"Route: {route}, Distance: {distance}")
 
     new_routes_to_add = [i[0] for i in best_routes]
-
     new_routes_record.append(new_routes_to_add)
+
+    for item in new_routes_to_add: 
+        r_set.add(tuple(item))
+    print(dual_values)
+    print(sum(dual_values.values()))
 
     if new_routes_record[-1]==new_routes_record[-2]==new_routes_record[-3]==new_routes_record[-4]==new_routes_record[-5]==new_routes_record[-6]:
         break
 
     if not new_routes_to_add:
         break
-
-    
-    for item in new_routes_to_add: 
-        r_set.add(tuple(item))
-    print(dual_values)
-    print(sum(dual_values.values()))
-
-
-    
-
-
-
-
-
 

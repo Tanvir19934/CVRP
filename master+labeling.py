@@ -69,7 +69,7 @@ r_set = r_set + list(degree_2_coalition) #+ list(degree_3_coalition) #+list(degr
 N.extend(['s','t'])
 new_routes_record = [0,0,0,0,0]
 
-
+iteration = 0
 while True:
 
     ###########Gurobi model############
@@ -159,16 +159,16 @@ while True:
     #                mdl.addConstr(individual_cost[r] * y_r[route] <= (gv_node_cost(r)/(gv_node_cost(r)+gv_node_cost(j))) * degree_2_coalition_cost[(0,r,j,0)], name=f"Stability_r{route}_{r}_{j}")
 
 
-    for route1 in r_set:
-        for route2 in r_set:
-            #if route1!=route2:
-                for r1 in route1[1:-1]:
-                    for r2 in route2[1:-1]:
-                        if r1 != r2:
-                            try:
-                                mdl.addConstr(individual_cost[r1] * y_r[route1] + individual_cost[r2] * y_r[route2]<= degree_2_coalition_cost[(0,r1,r2,0)], name=f"Stability_r{r1}_{r2}")
-                            except:
-                                mdl.addConstr(individual_cost[r1] * y_r[route1] + individual_cost[r2] * y_r[route2]<= degree_2_coalition_cost[(0,r2,r1,0)], name=f"Stability_r{r1}_{r2}")
+    #for route1 in r_set:
+    #    for route2 in r_set:
+    #        #if route1!=route2:
+    #            for r1 in route1[1:-1]:
+    #                for r2 in route2[1:-1]:
+    #                    if r1 != r2:
+    #                        try:
+    #                            mdl.addConstr(individual_cost[r1] * y_r[route1] + individual_cost[r2] * y_r[route2]<= degree_2_coalition_cost[(0,r1,r2,0)], name=f"Stability_r{r1}_{r2}")
+    #                        except:
+    #                            mdl.addConstr(individual_cost[r1] * y_r[route1] + individual_cost[r2] * y_r[route2]<= degree_2_coalition_cost[(0,r2,r1,0)], name=f"Stability_r{r1}_{r2}")
 
 
     mdl.update()
@@ -200,9 +200,9 @@ while True:
        return dict(zip(names, values))
     y_r_result = get_vars('y_r',mdl)
 
-    #for item in y_r_result:
-    #    if y_r_result[item]>0:
-    #        print(f"{item}={y_r_result[item]}")
+    for item in y_r_result:
+        if y_r_result[item]>0:
+            print(f"{item}={y_r_result[item]}")
 
 
 
@@ -408,9 +408,21 @@ while True:
     print(dual_values)
     print(sum(dual_values.values()))
 
+    iteration+=1
+
+    def check_values(d):
+        for key, value in d.items():
+            if value != 0 and value!=1:
+                return False
+        return True
+
+    if check_values(y_r_result):
+        print("All non-zero values are 1, breaking the loop.")
+        break
+
     if new_routes_record[-1]==new_routes_record[-2]==new_routes_record[-3]==new_routes_record[-4]==new_routes_record[-5]==new_routes_record[-6]:
         break
 
     if not new_routes_to_add:
         break
-
+print(f"iteration count: {iteration}")

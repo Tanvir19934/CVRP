@@ -50,6 +50,46 @@ def gv_travel_cost(route):
 def gv_node_cost(node):
     return a[(node,0)]*GV_cost*q[node] + a[(0,node)]*GV_cost
 
+def route_feasibility_check(temp_route):
+   if type(temp_route)==str:
+      temp_route = eval(temp_route)
+   battery = 1
+   q[0] = 0
+   current_load = 0
+   op_time = 0
+   score = 0
+   miles = 0
+   for i in range(0,len(temp_route)-1):
+      current_load += q[temp_route[i]]
+      if current_load > Q_EV:
+         return False
+      else:
+         battery = battery - (a[(temp_route[i],temp_route[i+1])]/EV_velocity)*(gamma+gamma_l*current_load)
+         if battery < battery_threshold:
+            return False
+         else:
+            op_time = op_time + (st[temp_route[i]]+(a[(temp_route[i],temp_route[i+1])]/EV_velocity))
+         if op_time > T_max_EV:
+            return False
+   return True  
+
+# Define a label structure
+class Label:
+    def __init__(self, node, resource_vector, parent=None):
+        self.node = node  # Current node
+        self.resource_vector = resource_vector  # Resources consumed up to the current node
+        self.parent = parent  # Parent label (previous node)
+    def __lt__(self, other):
+        # Define less than operator for priority queue (heapq), e.g., based on some resource (distance)
+        return self.resource_vector[0] < other.resource_vector[0]
+    def __repr__(self):
+        return f"Label(node={self.node}, resource_vector={self.resource_vector}, parent={self.parent})"
+
+degree_2_coalition=[]
+for item in degree_2_coalition_initial:
+    if route_feasibility_check(item):
+        degree_2_coalition.append(item)
+
 degree_2_coalition_cost = {}
 for item in degree_2_coalition:
     route = copy.deepcopy(item)
@@ -58,7 +98,7 @@ for item in degree_2_coalition:
         degree_2_coalition_cost[item[::-1]] = cost
     else: degree_2_coalition_cost[item] = cost
 
-degree_2_coalition = tuple(degree_2_coalition_cost)
+
 
 #SETS and PARAMETERS
 r_set = [[0, node, 0] for node in V if node != 0]
@@ -223,23 +263,12 @@ while True:
     q[0]=0
     arcs ={item: a[item] for item in A}
     N.extend(['s','t'])
-    # Define a label structure
-    class Label:
-        def __init__(self, node, resource_vector, parent=None):
-            self.node = node  # Current node
-            self.resource_vector = resource_vector  # Resources consumed up to the current node
-            self.parent = parent  # Parent label (previous node)
 
-        def __lt__(self, other):
-            # Define less than operator for priority queue (heapq), e.g., based on some resource (distance)
-            return self.resource_vector[0] < other.resource_vector[0]
-
-        def __repr__(self):
-            return f"Label(node={self.node}, resource_vector={self.resource_vector}, parent={self.parent})"
 
     def feasibility_check(curr_node, extending_node, curr_time = 0, curr_load = 0, curr_battery = 0, curr_distance = 0):
 
         #new_distance, new_load, new_battery, new_time
+
         if curr_node == 's':
             curr_node=0
         if extending_node == 't':
@@ -321,9 +350,13 @@ while True:
                     neigh.remove('t')
                 if current_node=='t':
                     continue
+                
                 for new_node in neigh:
+
                     if (new_node!='s' and current_node!='t'):
                         new_time, new_load, new_battery, new_distance   = feasibility_check(current_node, new_node, current_label.resource_vector[-1], current_label.resource_vector[1], current_label.resource_vector[2], current_label.resource_vector[0])
+                    if new_node==2 and current_node==10 and new_distance:
+                        pass
                         reduced_cost = False
                     if new_distance:
                         resource_vector = (new_distance, new_load, new_battery, new_time)
@@ -401,6 +434,8 @@ while True:
     #    print(f"Route: {route}, Distance: {distance}")
 
     new_routes_to_add = [i[0] for i in best_routes]
+    if [0,10,2,0] in new_routes_to_add:
+        pass
     new_routes_record.append(new_routes_to_add)
 
     for item in new_routes_to_add: 

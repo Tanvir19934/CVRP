@@ -84,7 +84,7 @@ for item in degree_2_coalition:
         degree_2_coalition_final.append(tuple([item[0],item[2],item[1],item[0]]))
     else: degree_2_coalition_final.append(tuple(item))
 
-degree_2_coalition = copy.deepcopy(degree_2_coalition_final)
+degree_2_coalition_initial = copy.deepcopy(degree_2_coalition_final)
 
 degree_3_coalition = generate_k_degree_coalition(N, 3)
 degree_4_coalition = generate_k_degree_coalition(N, 4)

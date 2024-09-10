@@ -145,10 +145,10 @@ def k_means_2D(node_attr,z,num_cluster):
    dist_values = np.array([entry['dist'] for entry in node_attr.values()])
    X = np.column_stack((dist_values[0:], [1/z[i] for i in range(1, len(z) + 1)]))
    kmeans = KMeans(n_clusters=num_cluster)                   # Number of clusters == 3
-   kmeans = kmeans.fit(X)                          # Fitting the input data
-   labels = kmeans.predict(X)                      # Getting the cluster labels
-   centroids = kmeans.cluster_centers_             # Centroid values
-   # print("Centroids are:", centroids)              # From sci-kit learn
+   kmeans = kmeans.fit(X)                                    # Fitting the input data
+   labels = kmeans.predict(X)                                # Getting the cluster labels
+   centroids = kmeans.cluster_centers_                       # Centroid values
+   # print("Centroids are:", centroids)                      # From sci-kit learn
 
    # Visualize clusters
    plt.scatter(X[:, 0], X[:, 1], c=labels, cmap='viridis', label='Data Points')

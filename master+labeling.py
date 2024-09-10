@@ -434,12 +434,12 @@ while True:
     #    print(f"Route: {route}, Distance: {distance}")
 
     new_routes_to_add = [i[0] for i in best_routes]
-    if [0,10,2,0] in new_routes_to_add:
-        pass
+
     new_routes_record.append(new_routes_to_add)
 
     for item in new_routes_to_add: 
         r_set.add(tuple(item))
+    
     print(dual_values)
     print(sum(dual_values.values()))
 

@@ -1,0 +1,8 @@
+#ignore all images
+*.png
+*.ilp
+*.lp
+*.pkl
+*.csv
+*
+!.gitignore

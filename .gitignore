@@ -4,5 +4,4 @@
 *.lp
 *.pkl
 *.csv
-*
 !.gitignore

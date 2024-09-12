@@ -85,11 +85,24 @@ class Label:
     def __repr__(self):
         return f"Label(node={self.node}, resource_vector={self.resource_vector}, parent={self.parent})"
 
+def generate_k_degree_coalition(N, k):
+    # Generate all combinations of k nodes
+    combinations = list(itertools.combinations(N, k))
+    # Generate all possible routes starting and ending at depot 0
+    degree_k_coalition = [tuple([0] + list(comb) + [0]) for comb in combinations]
+    return degree_k_coalition
+
+degree_2_coalition = generate_k_degree_coalition(N, 2)
+degree_2_coalition_final = []
+for item in degree_2_coalition:
+    if a[item[0],item[1]] + a[item[1],item[2]] + a[item[2],item[0]] > a[item[0],item[2]] + a[item[2],item[1]] + a[item[1],item[0]]:
+        degree_2_coalition_final.append(tuple([item[0],item[2],item[1],item[0]]))
+    else: degree_2_coalition_final.append(tuple(item))
+degree_2_coalition_initial = copy.deepcopy(degree_2_coalition_final)
 degree_2_coalition=[]
 for item in degree_2_coalition_initial:
     if route_feasibility_check(item):
         degree_2_coalition.append(item)
-
 degree_2_coalition_cost = {}
 for item in degree_2_coalition:
     route = copy.deepcopy(item)

@@ -5,7 +5,7 @@ rnd = np.random
 rnd.seed(10)
 
 # Grid and coordinates
-n = 15
+n = 20
 grid_size = 50                                                               #number of clients
 xc = np.random.uniform(low=- grid_size/2, high=grid_size/2, size=n+1)
 yc = np.random.uniform(low=-grid_size/2, high=grid_size/2, size=n+1)
@@ -64,32 +64,33 @@ dist = {(i,j): np.hypot(xc[i]-xc[j], yc[i]- yc[j]) for (i,j) in arc_set}      #e
 
 
 
-def generate_k_degree_coalition(N, k):
-    # Generate all combinations of k nodes
-    combinations = list(itertools.combinations(N, k))
-
-    # Generate all possible routes starting and ending at depot 0
-    degree_k_coalition = [tuple([0] + list(comb) + [0]) for comb in combinations]
-
-    return degree_k_coalition
-
-
-
-
-# Generate all combinations of two nodes
-degree_2_coalition = generate_k_degree_coalition(N, 2)
-degree_2_coalition_final = []
-for item in degree_2_coalition:
-    if a[item[0],item[1]] + a[item[1],item[2]] + a[item[2],item[0]] > a[item[0],item[2]] + a[item[2],item[1]] + a[item[1],item[0]]:
-        degree_2_coalition_final.append(tuple([item[0],item[2],item[1],item[0]]))
-    else: degree_2_coalition_final.append(tuple(item))
-
-degree_2_coalition_initial = copy.deepcopy(degree_2_coalition_final)
-
-degree_3_coalition = generate_k_degree_coalition(N, 3)
-degree_4_coalition = generate_k_degree_coalition(N, 4)
-degree_5_coalition = generate_k_degree_coalition(N, 5)
-
-
-
-2
+#def generate_k_degree_coalition(N, k):
+#    # Generate all combinations of k nodes
+#    combinations = list(itertools.combinations(N, k))
+#
+#    # Generate all possible routes starting and ending at depot 0
+#    degree_k_coalition = [tuple([0] + list(comb) + [0]) for comb in combinations]
+#
+#    return degree_k_coalition
+#
+#
+#
+#
+## Generate all combinations of two nodes
+#degree_2_coalition = generate_k_degree_coalition(N, 2)
+#degree_2_coalition_final = []
+#for item in degree_2_coalition:
+#    if a[item[0],item[1]] + a[item[1],item[2]] + a[item[2],item[0]] > a[item[0],item[2]] + a[item[2],item[1]] + a[item[1],item[0]]:
+#        degree_2_coalition_final.append(tuple([item[0],item[2],item[1],item[0]]))
+#    else: degree_2_coalition_final.append(tuple(item))
+#
+#degree_2_coalition_initial = copy.deepcopy(degree_2_coalition_final)
+#
+#degree_3_coalition = generate_k_degree_coalition(N, 3)
+#degree_4_coalition = generate_k_degree_coalition(N, 4)
+#degree_5_coalition = generate_k_degree_coalition(N, 5)
+#
+#
+#
+#2
+#

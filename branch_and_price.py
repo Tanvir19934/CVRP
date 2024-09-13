@@ -74,71 +74,51 @@ def branching() -> None:
                     for i in range(len(element)-1):
                         flow_vars[(element[i],element[i+1])]+=model_vars[item]
                 
-                branching_arc= {arc:flow_vars[arc] for arc in flow_vars if arc[0]!=0 and arc[1]!=0}
+                branching_arc= {arc:flow_vars[arc] for arc in flow_vars}
+                #branching_arc= {arc:flow_vars[arc] for arc in flow_vars if arc[0]!=0 and arc[1]!=0}
 
                 branching_arc = sorted(branching_arc, key=lambda k: abs(branching_arc[k] - 0.5))[0]
 
-                #branching_arc = None
-                #for item in branching_arcs:
-                #    if f'{item}={1}' not in stack_list:
-                #        branching_arc=item
-                #        break
-
                 if not branching_arc:
-                    print("no fractional arc found")
-                    print('\n')
-                    print(f"length of stack:{len(stack)}")
-                    continue
+                    break
 
                 # Create left branch node
-
                 left_node = Node(node.depth + 1, f'{branching_arc}={0}', [], copy.deepcopy(node.forbidden) ,node)
-                
-
                 left_node.adj = copy.deepcopy(left_node.parent.adj)
-                
                 left_node.adj[branching_arc[0]].remove(branching_arc[1])
-                left_node.adj[branching_arc[1]].remove(branching_arc[0])
 
-                #modified_arcs = copy.deepcopy(a)
+
                 # enforcing branching_arc = 0
-                #del modified_arcs[branching_arc]
-                #del modified_arcs[tuple(list(branching_arc)[::-1])]
                 left_node.forbidden.add(branching_arc)
-                left_node.forbidden.add(tuple(list(branching_arc)[::-1]))
+                #left_node.forbidden.add(tuple(list(branching_arc)[::-1]))
                 
                 stack_list.add(f'{branching_arc}={0}')
-                #modified_arcs[branching_arc] = penalty
-                #modified_arcs[tuple(list(branching_arc)[::-1])] = penalty
+
                 y_r_result, left_not_fractional, master_prob_model, obj_val, status = column_generation(left_node.adj, left_node.forbidden)
+
                 
                 if status!=3:
+                    if left_not_fractional:
+                        left_node.not_fractional = True
                     left_node.obj_val = obj_val
                     left_node.model = master_prob_model # master_prob.model
                     heapq.heappush(stack, left_node)
                     
 
-                # Create right branch nodes
-                right_node = Node(node.depth + 1, f'{branching_arc}={1}', [] , copy.deepcopy(node.forbidden), node)
+                # Create right branch node
+                right_node = Node(node.depth + 1, f'{branching_arc}={0}', [], copy.deepcopy(node.forbidden) ,node)
                 right_node.adj = copy.deepcopy(right_node.parent.adj)
-                modified_adj = copy.deepcopy(right_node.adj)
+
                 # enforcing branching_arc = 1
-                modified_adj_copy = copy.deepcopy(right_node.adj)
-                modified_adj[branching_arc[0]]=[branching_arc[1]]
-                modified_adj[branching_arc[1]]=[branching_arc[0]]
-                for item in modified_adj_copy:
-                    if (item!=branching_arc[1] and item!=branching_arc[0]) or (item!=branching_arc[0] and item!=branching_arc[1]):
-                        if branching_arc[1] in modified_adj[item]:
-                            modified_adj[item].remove(branching_arc[1])
-                            right_node.forbidden.add((item,branching_arc[1]))
-                            right_node.forbidden.add((branching_arc[1],item))
-                        if branching_arc[0] in modified_adj[item]:
-                            modified_adj[item].remove(branching_arc[0])
-                            right_node.forbidden.add((item,branching_arc[0]))
-                            right_node.forbidden.add((branching_arc[0],item))
-                right_node.adj = copy.deepcopy(modified_adj)
+                right_node.adj[branching_arc[0]] = [branching_arc[1]]
+                right_node.adj[branching_arc[1]].remove(branching_arc[0])
+                right_node.forbidden.add(branching_arc)
+
+
                 y_r_result, right_not_fractional, master_prob_model, obj_val, status = column_generation(right_node.adj,right_node.forbidden)
-                if status!=3:  
+                if status!=3:
+                    if right_not_fractional:
+                        right_node.not_fractional = True  
                     right_node.obj_val = obj_val
                     right_node.model = master_prob_model #master_prob.model
                     heapq.heappush(stack, right_node)

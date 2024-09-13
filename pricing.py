@@ -9,10 +9,12 @@ def column_generation(adj,forbidden_set=[], initial = False):
     not_fractional = False
     new_routes_record = [0,0,0,0,0]
     iteration = 1
-    new_routes_to_add=[]
+    new_routes_to_add=set()
 
     master_prob = MasterProblem(adj, forbidden_set)
-    y_r_result = master_prob.relaxedLP()
+    y_r_result, master_prob_model, status = master_prob.relaxedLP(None)
+    if not y_r_result:
+        return None, None, None, None, status
     dual_values = master_prob.getDuals()
     print(dual_values)
     print(sum(dual_values.values()))
@@ -20,13 +22,19 @@ def column_generation(adj,forbidden_set=[], initial = False):
 
     while True:
 
-        new_routes_to_add += sub_problem.dy_prog(dual_values)
+        new = sub_problem.dy_prog(dual_values)
+
+        if not new:
+            break
+        for array in new:
+            new_routes_to_add.add(tuple(array))
         new_routes_record.append(new_routes_to_add)
+
 
         #for item in new_routes_to_add: 
         #    master_prob.r_set.add(tuple(item))
 
-        y_r_result, master_prob_model, adj = master_prob.relaxedLP(new_routes_to_add)
+        y_r_result, master_prob_model, status = master_prob.relaxedLP(new_routes_to_add)
         dual_values = master_prob.getDuals()
         print(dual_values)
         print(sum(dual_values.values()))

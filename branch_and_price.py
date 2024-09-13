@@ -11,7 +11,7 @@ from collections import defaultdict
 import copy
 class Node:
     
-    def __init__(self, depth, name, adj, parent):
+    def __init__(self, depth, name, adj, forbidden, parent):
         #self.model = model
         self.depth = depth
         self.solution = None
@@ -19,6 +19,7 @@ class Node:
         self.name = name
         self.adj = adj
         self.parent = parent
+        self.forbidden = forbidden
         print("depth =",self.depth)  #sanity check
 
     def __lt__(self, other):
@@ -33,9 +34,12 @@ def branching() -> None:
     
     y_r_result, not_fractional, master_prob_model, obj_val, status = column_generation(adj,forbidden_set=[])
     if not_fractional:
+        print("Optimal solution found at the root node: did not need branching")
         return
-    
-    root_node = Node(0, "root_node", adj, None)
+    left_not_fractional = right_not_fractional = False
+    root_node = Node(0, "root_node", adj, set(), None)
+    root_node.obj_val = obj_val
+    root_node.model = master_prob_model
     
     #initialize best node and the stack
     best_node = None
@@ -48,9 +52,8 @@ def branching() -> None:
     while stack:
         
         node = heapq.heappop(stack)
-        node.obj_val = obj_val
-        node.model = master_prob_model
-        if not_fractional==True:
+
+        if left_not_fractional==True or right_not_fractional==True:
             if node.obj_val < best_obj:
                 best_obj = node.obj_val
                 best_node = node
@@ -70,50 +73,50 @@ def branching() -> None:
                     element = eval(item.split('[')[-1][0:-1])
                     for i in range(len(element)-1):
                         flow_vars[(element[i],element[i+1])]+=model_vars[item]
+                
+                branching_arc= {arc:flow_vars[arc] for arc in flow_vars if arc[0]!=0 and arc[1]!=0}
 
-                branching_arcs = sorted(flow_vars, key=lambda k: abs(flow_vars[k] - 0.5))
-                branching_arc = None
-                for item in branching_arcs:
-                    if f'{item}={1}' not in stack_list:
-                        branching_arc=item
-                        break
+                branching_arc = sorted(branching_arc, key=lambda k: abs(branching_arc[k] - 0.5))[0]
+
+                #branching_arc = None
+                #for item in branching_arcs:
+                #    if f'{item}={1}' not in stack_list:
+                #        branching_arc=item
+                #        break
+
                 if not branching_arc:
                     break
 
                 # Create left branch node
-                forbidden_set = []
 
-                left_node = Node(node.depth + 1, f'{branching_arc}={0}', [] ,node)
+                left_node = Node(node.depth + 1, f'{branching_arc}={0}', [], copy.deepcopy(node.forbidden) ,node)
                 
 
                 left_node.adj = copy.deepcopy(left_node.parent.adj)
-                try:
-                    left_node.adj[branching_arc[0]].remove(branching_arc[1])
-                except:pass
-                try:
-                    left_node.adj[branching_arc[1]].remove(branching_arc[0])
-                except:pass
+                
+                left_node.adj[branching_arc[0]].remove(branching_arc[1])
+                left_node.adj[branching_arc[1]].remove(branching_arc[0])
+
                 #modified_arcs = copy.deepcopy(a)
                 # enforcing branching_arc = 0
                 #del modified_arcs[branching_arc]
                 #del modified_arcs[tuple(list(branching_arc)[::-1])]
-                forbidden_set.append(branching_arc)
-                forbidden_set.append(tuple(list(branching_arc)[::-1]))
+                left_node.forbidden.add(branching_arc)
+                left_node.forbidden.add(tuple(list(branching_arc)[::-1]))
                 
                 stack_list.add(f'{branching_arc}={0}')
                 #modified_arcs[branching_arc] = penalty
                 #modified_arcs[tuple(list(branching_arc)[::-1])] = penalty
-                y_r_result, not_fractional, master_prob_model, obj_val, status = column_generation(left_node.adj, forbidden_set)
+                y_r_result, left_not_fractional, master_prob_model, obj_val, status = column_generation(left_node.adj, left_node.forbidden)
+                
                 if status!=3:
                     left_node.obj_val = obj_val
                     left_node.model = master_prob_model # master_prob.model
-                    if f'{branching_arc}={0}' not in stack_list:
-                        heapq.heappush(stack, left_node)
+                    heapq.heappush(stack, left_node)
                     
 
                 # Create right branch nodes
-                forbidden_set = set()
-                right_node = Node(node.depth + 1, f'{branching_arc}={1}', [] , node)
+                right_node = Node(node.depth + 1, f'{branching_arc}={1}', [] , copy.deepcopy(node.forbidden), node)
                 right_node.adj = copy.deepcopy(right_node.parent.adj)
                 modified_adj = copy.deepcopy(right_node.adj)
                 # enforcing branching_arc = 1
@@ -121,17 +124,17 @@ def branching() -> None:
                 modified_adj[branching_arc[0]]=[branching_arc[1]]
                 modified_adj[branching_arc[1]]=[branching_arc[0]]
                 for item in modified_adj_copy:
-                    if item!=branching_arc[1] and item!=branching_arc[0]:
+                    if (item!=branching_arc[1] and item!=branching_arc[0]) or (item!=branching_arc[0] and item!=branching_arc[1]):
                         if branching_arc[1] in modified_adj[item]:
                             modified_adj[item].remove(branching_arc[1])
-                            forbidden_set.add((item,branching_arc[1]))
-                            forbidden_set.add((branching_arc[1],item))
+                            right_node.forbidden.add((item,branching_arc[1]))
+                            right_node.forbidden.add((branching_arc[1],item))
                         if branching_arc[0] in modified_adj[item]:
                             modified_adj[item].remove(branching_arc[0])
-                            forbidden_set.add((item,branching_arc[0]))
-                            forbidden_set.add((branching_arc[0],item))
+                            right_node.forbidden.add((item,branching_arc[0]))
+                            right_node.forbidden.add((branching_arc[0],item))
                 right_node.adj = copy.deepcopy(modified_adj)
-                y_r_result, not_fractional, master_prob_model, obj_val, status = column_generation(right_node.adj,forbidden_set)
+                y_r_result, right_not_fractional, master_prob_model, obj_val, status = column_generation(right_node.adj,right_node.forbidden)
                 if status!=3:  
                     right_node.obj_val = obj_val
                     right_node.model = master_prob_model #master_prob.model

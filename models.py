@@ -218,7 +218,7 @@ class MasterProblem:
         self.forbidden = forbidden
 
 
-    def relaxedLP(self, extended_set = None) -> None:
+    def relaxedLP(self, extended_set) -> None:
 
 
         #override some config parameters
@@ -312,10 +312,10 @@ class MasterProblem:
             else: degree_2_coalition_cost[item] = cost
 
         degree_2_coalition_copy = copy.deepcopy(degree_2_coalition)
-        #if self.forbidden:
-        #    for item in degree_2_coalition_copy:
-        #        if (item[0],item[1]) in self.forbidden or (item[1],item[0]) in self.forbidden or (item[1],item[2]) in self.forbidden or (item[2],item[1]) in self.forbidden or (item[2],item[3]) in self.forbidden or (item[3],item[2]) in self.forbidden:
-        #            degree_2_coalition.remove(item) 
+        if self.forbidden:
+            for item in degree_2_coalition_copy:
+                if (item[0],item[1]) in self.forbidden or (item[1],item[0]) in self.forbidden or (item[1],item[2]) in self.forbidden or (item[2],item[1]) in self.forbidden or (item[2],item[3]) in self.forbidden or (item[3],item[2]) in self.forbidden:
+                    degree_2_coalition.remove(item) 
         #SETS and PARAMETERS
         r_set = [[0, node, 0] for node in V if node != 0]
         #self.adj = {node: [n for n in V if n != node] for node in V}
@@ -435,10 +435,17 @@ class MasterProblem:
         self.model.setObjective((quicksum(c_r[route]*y_r[route] for route in r_set)))
         self.model.write("/Users/tanvirkaisar/Library/CloudStorage/OneDrive-UniversityofSouthernCalifornia/CVRP/Codes/master_prob.lp")
         self.model.optimize()
+
+        try:
+            self.model.computeIIS()
+            self.model.write("/Users/tanvirkaisar/Library/CloudStorage/OneDrive-UniversityofSouthernCalifornia/CVRP/Codes/master_prob_iis.lp")
+        except: pass
         #model.Params.MIPGap = 0.05
         #model.params.NonConvex = 2
         #model.Params.TimeLimit = 2000 #seconds
         # Retrieve dual values and map them to routes
+        if self.model.status!=2:
+            return None, self.model, self.model.status
         dual_values = {}
         for constr in self.model.getConstrs():
             if constr.ConstrName.startswith("delta"):
@@ -460,7 +467,7 @@ class MasterProblem:
                 y_r_result_final[item] = y_r_result[item]
                 print(f"{item}={y_r_result[item]}")
                 
-        return y_r_result_final, self.model, self.adj
+        return y_r_result_final, self.model, self.model.status
 
     def getDuals(self) -> List[int]:
         dual_values = {}

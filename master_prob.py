@@ -173,16 +173,16 @@ mdl.addConstrs(((r_set_ev_cost[route]-r_set_gv_cost[route])*y_r[route] <= 0 for 
 #                mdl.addConstr(individual_cost[r] * y_r[route] <= (gv_node_cost(r)/(gv_node_cost(r)+gv_node_cost(j))) * degree_2_coalition_cost[(0,r,j,0)], name=f"Stability_r{route}_{r}_{j}")
 
 
-for route1 in r_set:
-    for route2 in r_set:
-        #if route1!=route2:
-            for r1 in route1[1:-1]:
-                for r2 in route2[1:-1]:
-                    if r1 != r2:
-                        try:
-                            mdl.addConstr(individual_cost[r1] * y_r[route1] + individual_cost[r2] * y_r[route2]<= degree_2_coalition_cost[(0,r1,r2,0)], name=f"Stability_r{r1}_{r2}")
-                        except:
-                            mdl.addConstr(individual_cost[r1] * y_r[route1] + individual_cost[r2] * y_r[route2]<= degree_2_coalition_cost[(0,r2,r1,0)], name=f"Stability_r{r1}_{r2}")
+#for route1 in r_set:
+#    for route2 in r_set:
+#        #if route1!=route2:
+#            for r1 in route1[1:-1]:
+#                for r2 in route2[1:-1]:
+#                    if r1 != r2:
+#                        try:
+#                            mdl.addConstr(individual_cost[r1] * y_r[route1] + individual_cost[r2] * y_r[route2]<= degree_2_coalition_cost[(0,r1,r2,0)], name=f"Stability_r{r1}_{r2}")
+#                        except:
+#                            mdl.addConstr(individual_cost[r1] * y_r[route1] + individual_cost[r2] * y_r[route2]<= degree_2_coalition_cost[(0,r2,r1,0)], name=f"Stability_r{r1}_{r2}")
 
             
 mdl.update()

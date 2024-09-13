@@ -1,14 +1,11 @@
 from gurobipy import GRB
 import heapq
 from typing import Dict
-import math
-from gurobipy import GRB
-#from initial_RMP import rmp
-import heapq
 from pricing import column_generation
-from config import a, A, N, V
+from config import V
 from collections import defaultdict
 import copy
+import time
 class Node:
     
     def __init__(self, depth, name, adj, forbidden, parent):
@@ -47,6 +44,7 @@ def branching() -> None:
     stack = [root_node]
     tol = 0.01
     heapq.heapify(stack)  #we are going to traverse in best first manner
+    frac_count = 0
     
     #loop through the stack
     while stack:
@@ -54,6 +52,8 @@ def branching() -> None:
         node = heapq.heappop(stack)
 
         if left_not_fractional==True or right_not_fractional==True:
+            frac_count+=1
+            print(f"fractional solution found. length of stack = {len(stack)}")
             if node.obj_val < best_obj:
                 best_obj = node.obj_val
                 best_node = node
@@ -85,7 +85,10 @@ def branching() -> None:
                 #        break
 
                 if not branching_arc:
-                    break
+                    print("no fractional arc found")
+                    print('\n')
+                    print(f"length of stack:{len(stack)}")
+                    continue
 
                 # Create left branch node
 
@@ -139,7 +142,9 @@ def branching() -> None:
                     right_node.obj_val = obj_val
                     right_node.model = master_prob_model #master_prob.model
                     heapq.heappush(stack, right_node)
-
+        if len(stack)==0:
+            print("stack is empty")
+    print(frac_count)
     if best_node:
         print("Optimal solution found:")
         model_vars ={var.VarName: var.X for var in best_node.model.getVars()}
@@ -168,8 +173,10 @@ def retrieve_patterns(model) -> Dict:
     return constraint_coeffs
 
 def main():
-    branching() #here model is the initial rmp obtained by a simple heuristic from initial_rmp.py
-    2
+    start =time.perf_counter()
+    branching()
+    end =time.perf_counter()
+    print(f"execution time = {end-start}")
 
 if __name__ == "__main__":
     main()

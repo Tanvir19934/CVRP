@@ -895,7 +895,7 @@ def ALNS(best_local_solution):
 if __name__ == "__main__":
 
    start =time.perf_counter()
-   repair_iterations = 300*n
+   repair_iterations = 50*n
    ALNS_iterations = 10
    sim = 1
    local_search_iterations = 10000
@@ -953,4 +953,6 @@ if __name__ == "__main__":
    print(f"execution time: {end-start} seconds")
    print('\n')
    print(f"number of clusters: {num_clusters}")
+   print('\n')
+   print(f"Optimal routes after subtour optimization: {best_optimized_EV_dict}")
    print('\n')

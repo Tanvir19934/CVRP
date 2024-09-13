@@ -4,7 +4,7 @@ import numpy as np
 from gurobipy import Model, GRB, quicksum
 import copy
 import heapq
-from itertools import permutations
+import itertools
 
 
 rnd = np.random
@@ -423,7 +423,7 @@ while True:
             min_distance = float('inf')
             best_permutation = None
 
-            for perm in permutations(middle_nodes):
+            for perm in itertools.permutations(middle_nodes):
                 # Form the full route with current permutation
                 full_route = [0] + list(perm) + [0]
                 distance = calculate_route_distance(full_route, distances)

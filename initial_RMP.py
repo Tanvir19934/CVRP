@@ -117,24 +117,29 @@ def rmp():
             degree_2_coalition_cost[item[::-1]] = cost
         else: degree_2_coalition_cost[item] = cost
     forbidden = []
+    branching = None
     degree_2_coalition_copy = copy.deepcopy(degree_2_coalition)
     if forbidden:
         for item in degree_2_coalition_copy:
-            if (item[1],item[2])==forbidden or (item[2],item[1])==forbidden:
+            if (item[0],item[1]) in forbidden or (item[1],item[0]) in forbidden or (item[1],item[2]) in forbidden or (item[2],item[1]) in forbidden or (item[2],item[3]) in forbidden or (item[3],item[2]) in forbidden:
                 degree_2_coalition.remove(item) 
     #SETS and PARAMETERS
     r_set = [[0, node, 0] for node in V if node != 0]
+    for item in forbidden:
+        if item[0]==0 or item[1]==0:
+            if [0,item[0],0] in r_set:
+                r_set.remove([0,item[0],0])
+            if [0,item[1],0] in r_set:
+                r_set.remove([0,item[1],0])
     adj = {node: [n for n in V if n != node] for node in V}
     if forbidden:
-        adj[forbidden[0]].remove(forbidden[1])
-        adj[forbidden[1]].remove(forbidden[0])
-    #r_set[0].insert(2,6)
-    #r_set.remove([0,6,0])
-    #r_set = [[0,2,4,0],[0,10,0],[0,7,0],[0,1,8,0],[0,9,5,0],[0,3,0],[0,6,0]]
+        adj[branching[0]].remove(branching[1])
+        adj[branching[1]].remove(branching[0])
+
     r_set = r_set  + list(degree_2_coalition) #+ list(degree_3_coalition) #+list(degree_4_coalition)+list(degree_5_coalition)
     N.extend(['s','t'])
     new_routes_record = [0,0,0,0,0]
-
+    #r_set.append((0,14,0))
     iteration = 0
     while True:
 
@@ -247,6 +252,11 @@ def rmp():
         #mdl.Params.MIPGap = 0.05
         #mdl.params.NonConvex = 2
         #mdl.Params.TimeLimit = 2000 #seconds
+        try:
+            mdl.computeIIS()
+            mdl.write("/Users/tanvirkaisar/Library/CloudStorage/OneDrive-UniversityofSouthernCalifornia/CVRP/Codes/master_prob_iis.lp")
+        except: pass
+
 
 
         # Retrieve dual values and map them to routes
@@ -470,9 +480,9 @@ def rmp():
 
         new_routes_to_add = [i[0] for i in best_routes]
 
-        new_routes_record.append(new_routes_to_add)
+        new_routes_record.append(new_routes)
 
-        for item in new_routes_to_add: ########################not optimizaing the tours to avoid adding nodes from forbidden set###########
+        for item in new_routes: ########################not optimizaing the tours to avoid adding nodes from forbidden set###########
             r_set.add(tuple(item))
 
         print(dual_values)
@@ -494,7 +504,7 @@ def rmp():
         if new_routes_record[-1]==new_routes_record[-2]==new_routes_record[-3]==new_routes_record[-4]==new_routes_record[-5]==new_routes_record[-6]:
             break
 
-        if not new_routes_to_add:
+        if not new_routes:
             break
     #print(f"iteration count: {iteration}")
     return y_r_result, not_fractional, mdl, mdl.ObjVal, mdl.status

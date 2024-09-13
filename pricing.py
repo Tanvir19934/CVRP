@@ -1,7 +1,5 @@
 from models import SubProblem, MasterProblem
-#from initial_RMP import r_set
-import copy
-from config import a
+
 
 def column_generation(adj,forbidden_set=[], initial = False):
 
@@ -21,15 +19,12 @@ def column_generation(adj,forbidden_set=[], initial = False):
     sub_problem = SubProblem(adj, forbidden_set)
 
     while True:
-
         new = sub_problem.dy_prog(dual_values)
-
         if not new:
             break
         for array in new:
             new_routes_to_add.add(tuple(array))
         new_routes_record.append(new_routes_to_add)
-
 
         #for item in new_routes_to_add: 
         #    master_prob.r_set.add(tuple(item))
@@ -66,6 +61,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-#

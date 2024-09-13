@@ -1,11 +1,10 @@
-import gurobipy as gp
 from gurobipy import GRB, Model, quicksum
 from typing import List
 from config import *
-#from initial_RMP import degree_2_coalition
 import heapq
 from collections import defaultdict
-from itertools import permutations
+import itertools
+import copy
 
 # Define a label structure
 class Label:
@@ -183,7 +182,7 @@ class SubProblem:
                 min_distance = float('inf')
                 best_permutation = None
 
-                for perm in permutations(middle_nodes):
+                for perm in itertools.permutations(middle_nodes):
                     # Form the full route with current permutation
                     full_route = [0] + list(perm) + [0]
                     distance = calculate_route_distance(full_route, distances)
@@ -197,18 +196,18 @@ class SubProblem:
                     unique_routes[middle_nodes] = (best_permutation, min_distance)
 
             # Extract and return the list of best routes
-            N.remove('s')
-            N.remove('t')
+
             return [(route, distance) for route, distance in unique_routes.values()]
 
         # Finding the best routes
-        best_routes = find_best_routes(new_routes, a)
+        #best_routes = find_best_routes(new_routes, a)
 
         # Print the result
         #for route, distance in best_routes:
         #    print(f"Route: {route}, Distance: {distance}")
 
-        new_routes_to_add = [i[0] for i in best_routes]
+        N.remove('s')
+        N.remove('t')
         return new_routes ########################not optimizaing the tours to avoid adding nodes from forbidden set###########
 
 class MasterProblem:
@@ -220,11 +219,8 @@ class MasterProblem:
 
     def relaxedLP(self, extended_set) -> None:
 
-
         #override some config parameters
         q[0] = 0
-        #T_max_EV = 700
-        #print(T_max_EV)
 
         def ev_travel_cost(route):
             rev=False
@@ -318,13 +314,6 @@ class MasterProblem:
                     degree_2_coalition.remove(item) 
         #SETS and PARAMETERS
         r_set = [[0, node, 0] for node in V if node != 0]
-        #self.adj = {node: [n for n in V if n != node] for node in V}
-        #if self.forbidden:
-        #    self.adj[self.forbidden[0]].remove(self.forbidden[1])
-        #    self.adj[self.forbidden[1]].remove(self.forbidden[0])
-        #r_set[0].insert(2,6)
-        #r_set.remove([0,6,0])
-        #r_set = [[0,2,4,0],[0,10,0],[0,7,0],[0,1,8,0],[0,9,5,0],[0,3,0],[0,6,0]]
         for item in self.forbidden:
             if item[0]==0 or item[1]==0:
                 if [0,item[0],0] in r_set:
@@ -339,10 +328,6 @@ class MasterProblem:
         if extended_set:
             r_set+=extended_set
         self.model = Model('master_problem')
-        #try:
-        #    N.remove('s')
-        #    N.remove('t')
-        #except: pass
         r_set_ev_cost = {}
         r_set_gv_cost = {}
         arc_set_Ar = {}
@@ -359,7 +344,6 @@ class MasterProblem:
             cost, rev = ev_travel_cost(route)
             if rev:
                 r_set_ev_cost[tuple(item)] = cost
-                #r_set_ev_cost[tuple(item[::-1])] = cost
             else: r_set_ev_cost[tuple(item)] = cost
             r_set_gv_cost[tuple(item)]  = gv_travel_cost(route)
 
@@ -383,8 +367,6 @@ class MasterProblem:
             for i in range(1,len(V)+1):  # Nodes from 0 to 10
                 # Set delta_i,r = 1 if node i is in route r, otherwise 0
                 delta[(i, route)] = 1 if i in route else 0
-        #NEED ==> r_set, individual cost, degree_2_coalition_cost, degree_2_coalition,
-        #         r_set_ev_cost, r_set_gv_cost, intermediate_arcs
 
 
         #DECISION VARIABLES
@@ -440,12 +422,10 @@ class MasterProblem:
             self.model.computeIIS()
             self.model.write("/Users/tanvirkaisar/Library/CloudStorage/OneDrive-UniversityofSouthernCalifornia/CVRP/Codes/master_prob_iis.lp")
         except: pass
-        #model.Params.MIPGap = 0.05
-        #model.params.NonConvex = 2
-        #model.Params.TimeLimit = 2000 #seconds
-        # Retrieve dual values and map them to routes
+  
         if self.model.status!=2:
             return None, self.model, self.model.status
+        # Retrieve dual values and map them to routes
         dual_values = {}
         for constr in self.model.getConstrs():
             if constr.ConstrName.startswith("delta"):
@@ -495,5 +475,3 @@ class MasterProblem:
     def get_RMP_cost(self) -> int:
         obj = self.model.getObjective()
         return obj.getValue()
-    
-

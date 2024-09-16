@@ -5,6 +5,7 @@ import heapq
 from collections import defaultdict
 import itertools
 import copy
+import cProfile
 
 # Define a label structure
 class Label:
@@ -23,9 +24,14 @@ class SubProblem:
         #self.subproblem_model = model
         self.adj= adj
         self.forbidden_set = forbidden_set
-
-    @staticmethod
-    def feasibility_check(curr_node, extending_node, curr_time = 0, curr_load = 0, curr_battery = 0, curr_distance = 0):
+        self.memo={}
+    #@staticmethod
+    def feasibility_check(self, curr_node, extending_node, curr_time = 0, curr_load = 0, curr_battery = 0, curr_distance = 0):
+        key = (curr_node, extending_node, curr_time, curr_load, curr_battery, curr_distance)
+        
+        # Check if the result is already in the memoization cache
+        if key in self.memo:
+            return self.memo[key]
 
         #new_distance, new_load, new_battery, new_time
 
@@ -45,11 +51,11 @@ class SubProblem:
                 if new_time + (st[extending_node]+(a[(0,extending_node)]/EV_velocity)) > T_max_EV:
                     return None, None, None, None
         new_distance = curr_distance + a[(curr_node,extending_node)]
+        self.memo[key] = (new_time, new_load, new_battery, new_distance)
 
         return new_time, new_load, new_battery, new_distance 
 
     def calculate_reduced_cost(self, label, dual_values):
-        label_copy = copy.deepcopy(label)
         distance = label.resource_vector[0]
         reduced_cost = distance
         path = []
@@ -83,9 +89,12 @@ class SubProblem:
         initial_resource_vector = (0, 0, 0, 0)  # (distance, load, battery, time)
         initial_label = Label(start_node, initial_resource_vector, None)
         heapq.heappush(U, initial_label)
+        cutoff = len(N)*5
         
         # Step 2: Main loop for label setting
         while U:
+            if len(L['t'])>=cutoff:
+                break
             # 2a. Remove first label (label with the least resource cost in heap)
             current_label = heapq.heappop(U)
             current_node = current_label.node
@@ -115,8 +124,6 @@ class SubProblem:
                         continue
                     
                     for new_node in neigh:
-                        if new_node==24 and current_node==0:
-                            pass
                         if new_node=='t' or new_node=='s':
                             new_node_converted = 0
                         else: new_node_converted=new_node
@@ -141,7 +148,7 @@ class SubProblem:
 
         # Step 3: Select the best label in L_t (sink node)
         sink_node = 't'
-        best_label = min(L[sink_node], key=lambda x: x.resource_vector[0]) if L[sink_node] else None
+        #best_label = min(L[sink_node], key=lambda x: x.resource_vector[0]) if L[sink_node] else None
         # Output the path corresponding to the best label
 
         def reconstruct_path(label):
@@ -290,7 +297,7 @@ class MasterProblem:
                 degree_2_coalition_final.append(tuple([item[0],item[2],item[1],item[0]]))
             else: degree_2_coalition_final.append(tuple(item))
 
-        degree_2_coalition_initial = copy.deepcopy(degree_2_coalition_final)
+        degree_2_coalition_initial = copy.copy(degree_2_coalition_final)
 
         degree_2_coalition=[]
         for item in degree_2_coalition_initial:
@@ -409,6 +416,8 @@ class MasterProblem:
 
 
         self.model.update()
+        #self.model.setParam('Threads', 8)  # Use 8 threads for solving
+
         self.model.modelSense = GRB.MINIMIZE
         #SET OBJECTIVE
         self.model.setObjective((quicksum(c_r[route]*y_r[route] for route in r_set)))

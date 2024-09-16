@@ -1,5 +1,5 @@
 from models import SubProblem, MasterProblem
-
+import cProfile
 
 def column_generation(adj,forbidden_set=[], initial = False):
 
@@ -47,7 +47,7 @@ def column_generation(adj,forbidden_set=[], initial = False):
             not_fractional = True
             break
 
-        if new_routes_record[-1]==new_routes_record[-2]==new_routes_record[-3]==new_routes_record[-4]:
+        if new_routes_record[-1]==new_routes_record[-2]==new_routes_record[-3]:
             break
 
         if not new_routes_to_add:

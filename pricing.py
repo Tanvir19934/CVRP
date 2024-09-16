@@ -5,7 +5,7 @@ def column_generation(adj,forbidden_set=[], initial = False):
 
     #if initial:
     not_fractional = False
-    new_routes_record = [0,0,0,0,0]
+    new_routes_record = [0,0,0]
     iteration = 1
     new_routes_to_add=set()
 
@@ -47,7 +47,7 @@ def column_generation(adj,forbidden_set=[], initial = False):
             not_fractional = True
             break
 
-        if new_routes_record[-1]==new_routes_record[-2]==new_routes_record[-3]==new_routes_record[-4]==new_routes_record[-5]==new_routes_record[-6]:
+        if new_routes_record[-1]==new_routes_record[-2]==new_routes_record[-3]==new_routes_record[-4]:
             break
 
         if not new_routes_to_add:

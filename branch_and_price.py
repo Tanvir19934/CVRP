@@ -17,24 +17,30 @@ class Node:
         self.adj = adj
         self.parent = parent
         self.forbidden = forbidden
+        self.not_fractional = False
+        self.solution = None
         print("depth =",self.depth)  #sanity check
 
     def __lt__(self, other):
         return self.obj_val > other.obj_val  # For heap implementation. The heapq.heapify() will heapify the list based on this criteria.
         
 def branching() -> None:
+
+    global_stack = []
     
     adj = {node: [n for n in V if n != node] for node in V}
 
-    stack_list = set()
     # Create the root node by solving the initial rmp
-    
     y_r_result, not_fractional, master_prob_model, obj_val, status = column_generation(adj,forbidden_set=[])
+
     if not_fractional:
         print("Optimal solution found at the root node: did not need branching")
         return
+    
     left_not_fractional = right_not_fractional = False
     root_node = Node(0, "root_node", adj, set(), None)
+    root_node.solution = y_r_result
+    root_node.not_fractional = not_fractional
     root_node.obj_val = obj_val
     root_node.model = master_prob_model
     
@@ -50,10 +56,9 @@ def branching() -> None:
     while stack:
         
         node = heapq.heappop(stack)
-
-        if left_not_fractional==True or right_not_fractional==True:
+        if node.not_fractional==True:
             frac_count+=1
-            print(f"fractional solution found. length of stack = {len(stack)}")
+            print(f"fractional solution found so far = {frac_count}. length of stack = {len(stack)}")
             if node.obj_val < best_obj:
                 best_obj = node.obj_val
                 best_node = node
@@ -77,51 +82,57 @@ def branching() -> None:
                 branching_arc= {arc:flow_vars[arc] for arc in flow_vars}
                 #branching_arc= {arc:flow_vars[arc] for arc in flow_vars if arc[0]!=0 and arc[1]!=0}
 
-                branching_arc = sorted(branching_arc, key=lambda k: abs(branching_arc[k] - 0.5))[0]
 
+                branching_arc = sorted(branching_arc, key=lambda k: abs(branching_arc[k] - 0.5))[0]
+                if branching_arc==(0,7):
+                    pass
                 if not branching_arc:
                     break
 
                 # Create left branch node
                 left_node = Node(node.depth + 1, f'{branching_arc}={0}', [], copy.deepcopy(node.forbidden) ,node)
                 left_node.adj = copy.deepcopy(left_node.parent.adj)
-                left_node.adj[branching_arc[0]].remove(branching_arc[1])
-
+                try:
+                    left_node.adj[branching_arc[0]].remove(branching_arc[1])
+                except: pass
 
                 # enforcing branching_arc = 0
                 left_node.forbidden.add(branching_arc)
                 #left_node.forbidden.add(tuple(list(branching_arc)[::-1]))
-                
-                stack_list.add(f'{branching_arc}={0}')
-
+                print(f"branching {branching_arc}={0}")
                 y_r_result, left_not_fractional, master_prob_model, obj_val, status = column_generation(left_node.adj, left_node.forbidden)
-
-                
                 if status!=3:
                     if left_not_fractional:
                         left_node.not_fractional = True
                     left_node.obj_val = obj_val
-                    left_node.model = master_prob_model # master_prob.model
+                    left_node.model = master_prob_model
+                    left_node.solution = y_r_result
                     heapq.heappush(stack, left_node)
+                    global_stack.append(left_node.name)
                     
-
+                    
                 # Create right branch node
-                right_node = Node(node.depth + 1, f'{branching_arc}={0}', [], copy.deepcopy(node.forbidden) ,node)
+                right_node = Node(node.depth + 1, f'{branching_arc}={1}', [], copy.deepcopy(node.forbidden) ,node)
                 right_node.adj = copy.deepcopy(right_node.parent.adj)
 
                 # enforcing branching_arc = 1
                 right_node.adj[branching_arc[0]] = [branching_arc[1]]
-                right_node.adj[branching_arc[1]].remove(branching_arc[0])
-                right_node.forbidden.add(branching_arc)
-
-
+                try:
+                    right_node.adj[branching_arc[1]].remove(branching_arc[0])
+                except: pass
+                for item in V:
+                    if item!=branching_arc[1] and item!=branching_arc[0]:
+                        right_node.forbidden.add((branching_arc[0],item))
+                print(f"branching {branching_arc}={1}")
                 y_r_result, right_not_fractional, master_prob_model, obj_val, status = column_generation(right_node.adj,right_node.forbidden)
                 if status!=3:
                     if right_not_fractional:
                         right_node.not_fractional = True  
                     right_node.obj_val = obj_val
-                    right_node.model = master_prob_model #master_prob.model
+                    right_node.model = master_prob_model
+                    right_node.solution = y_r_result
                     heapq.heappush(stack, right_node)
+                    global_stack.append(right_node.name)
         if len(stack)==0:
             print("stack is empty")
     print(frac_count)

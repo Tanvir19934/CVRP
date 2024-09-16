@@ -262,8 +262,6 @@ class MasterProblem:
             q[0] = 0
             current_load = 0
             op_time = 0
-            score = 0
-            miles = 0
             for i in range(0,len(temp_route)-1):
                 current_load += q[temp_route[i]]
                 if current_load > Q_EV:
@@ -310,7 +308,7 @@ class MasterProblem:
         degree_2_coalition_copy = copy.deepcopy(degree_2_coalition)
         if self.forbidden:
             for item in degree_2_coalition_copy:
-                if (item[0],item[1]) in self.forbidden or (item[1],item[0]) in self.forbidden or (item[1],item[2]) in self.forbidden or (item[2],item[1]) in self.forbidden or (item[2],item[3]) in self.forbidden or (item[3],item[2]) in self.forbidden:
+                if (item[0],item[1]) in self.forbidden  or (item[1],item[2]) in self.forbidden  or (item[2],item[3]) in self.forbidden:
                     degree_2_coalition.remove(item) 
         #SETS and PARAMETERS
         r_set = [[0, node, 0] for node in V if node != 0]
@@ -323,7 +321,6 @@ class MasterProblem:
 
         r_set = r_set  + list(degree_2_coalition) #+ list(degree_3_coalition) #+list(degree_4_coalition)+list(degree_5_coalition)
         #N.extend(['s','t'])
-
         new_routes_record = [0,0,0,0,0]
         if extended_set:
             r_set+=extended_set

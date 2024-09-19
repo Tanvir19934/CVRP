@@ -2,7 +2,7 @@ from gurobipy import GRB
 import heapq
 from typing import Dict
 from pricing import column_generation
-from config import V
+from config import V, Q_EV, q
 from collections import defaultdict
 import copy
 import time
@@ -28,10 +28,23 @@ def branching() -> None:
 
     global_stack = []
     
-    adj = {node: [n for n in V if n != node] for node in V}
-
+    #adj = {node: [n for n in V if n != node] for node in V}
+    
+    adj = {}
+    q[0] = 0
+    forbidden_set = set()
+    #avg_dist = sum(list(a.values()))/len(a)
+    for node in V:
+        adj[node] = []
+        for n in V:
+            if n != node:
+                if q[node] + q[n] <= Q_EV:
+                    adj[node].append(n)  # Add valid arcs to adj
+                else:
+                    forbidden_set.add((node, n))  # Add violating arcs to forbidden_set
+                    forbidden_set.add((n,node))  # Add violating arcs to forbidden_set
     # Create the root node by solving the initial rmp
-    y_r_result, not_fractional, master_prob_model, obj_val, status = column_generation(adj,forbidden_set=[])
+    y_r_result, not_fractional, master_prob_model, obj_val, status = column_generation(adj,forbidden_set)
 
     if not_fractional:
         print("Optimal solution found at the root node: did not need branching")

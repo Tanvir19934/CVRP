@@ -89,7 +89,7 @@ class SubProblem:
         initial_resource_vector = (0, 0, 0, 0)  # (distance, load, battery, time)
         initial_label = Label(start_node, initial_resource_vector, None)
         heapq.heappush(U, initial_label)
-        cutoff = len(N)*5
+        cutoff = len(N)*500000
         
         # Step 2: Main loop for label setting
         while U:

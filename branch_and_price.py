@@ -139,7 +139,8 @@ def branching() -> None:
                     for item in V:
                         if item!=branching_arc[1] and item!=branching_arc[0]:
                             right_node.forbidden.add((branching_arc[0],item))
-                
+                if branching_arc==(9,17):
+                    pass
                 y_r_result, right_not_fractional, master_prob_model, obj_val, status = column_generation(right_node.adj,right_node.forbidden)
                 if status!=3:
                     if right_not_fractional:

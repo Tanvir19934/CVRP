@@ -45,6 +45,7 @@ def branching() -> None:
                     forbidden_set.add((n,node))  # Add violating arcs to forbidden_set
     # Create the root node by solving the initial rmp
     y_r_result, not_fractional, master_prob_model, obj_val, status = column_generation(adj,forbidden_set)
+    relaxed_lp_obj = obj_val
 
     if not_fractional:
         print("Optimal solution found at the root node: did not need branching")
@@ -93,12 +94,12 @@ def branching() -> None:
                         flow_vars[(element[i],element[i+1])]+=model_vars[item]
                 
                 branching_arc= {arc:flow_vars[arc] for arc in flow_vars}
+                branching_arc = {key:branching_arc[key] for key in branching_arc if key[0]!=0}
                 #branching_arc= {arc:flow_vars[arc] for arc in flow_vars if arc[0]!=0 and arc[1]!=0}
 
 
                 branching_arc = sorted(branching_arc, key=lambda k: abs(branching_arc[k] - 0.5))[0]
-                if branching_arc==(0,7):
-                    pass
+
                 if not branching_arc:
                     break
 
@@ -127,16 +128,18 @@ def branching() -> None:
                 # Create right branch node
                 right_node = Node(node.depth + 1, f'{branching_arc}={1}', [], copy.deepcopy(node.forbidden) ,node)
                 right_node.adj = copy.deepcopy(right_node.parent.adj)
-
-                # enforcing branching_arc = 1
-                right_node.adj[branching_arc[0]] = [branching_arc[1]]
-                try:
-                    right_node.adj[branching_arc[1]].remove(branching_arc[0])
-                except: pass
-                for item in V:
-                    if item!=branching_arc[1] and item!=branching_arc[0]:
-                        right_node.forbidden.add((branching_arc[0],item))
                 print(f"branching {branching_arc}={1}")
+
+                if (branching_arc[0]!=0 and branching_arc[0]!=0) or (branching_arc[0]!=0 and branching_arc[1]==0):
+                    right_node.adj[branching_arc[0]] = [branching_arc[1]]
+                    try:
+                        right_node.adj[branching_arc[1]].remove(branching_arc[0])
+                    except: pass
+                    right_node.forbidden.add((branching_arc[1],branching_arc[0]))
+                    for item in V:
+                        if item!=branching_arc[1] and item!=branching_arc[0]:
+                            right_node.forbidden.add((branching_arc[0],item))
+                
                 y_r_result, right_not_fractional, master_prob_model, obj_val, status = column_generation(right_node.adj,right_node.forbidden)
                 if status!=3:
                     if right_not_fractional:
@@ -146,6 +149,19 @@ def branching() -> None:
                     right_node.solution = y_r_result
                     heapq.heappush(stack, right_node)
                     global_stack.append(right_node.name)
+                
+                left = []
+                while left_node.parent:
+                    if left_node.parent.name not in left:
+                        left.append(left_node.parent.name)
+                    else: pass
+                    left_node = left_node.parent
+                right = []
+                while right_node.parent:
+                    if right_node.parent.name not in right:
+                        right.append(right_node.parent.name)
+                    else:pass
+                    right_node = right_node.parent
         if len(stack)==0:
             print("stack is empty")
     print(frac_count)
@@ -159,7 +175,7 @@ def branching() -> None:
                 print(f"{var}: {best_node.model.getVarByName(var).x}")
             sol.append(best_node.model.getVarByName(var).x)
         print(f"Objective value: {best_node.obj_val}")
-        constraint_coeffs = retrieve_patterns(best_node.model)
+        #constraint_coeffs = retrieve_patterns(best_node.model)
         #for item in constraint_coeffs:
         #    print(constraint_coeffs[item])
     else:

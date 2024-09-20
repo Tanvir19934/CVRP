@@ -1,9 +1,9 @@
 import numpy as np
 rnd = np.random
-rnd.seed(10)
+rnd.seed(19)
 
 # Grid and coordinates
-n = 14
+n = 20
 grid_size = 50                                                               #number of clients
 xc = np.random.uniform(low=- grid_size/2, high=grid_size/2, size=n+1)
 yc = np.random.uniform(low=-grid_size/2, high=grid_size/2, size=n+1)

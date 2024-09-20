@@ -1,6 +1,6 @@
 import numpy as np
 rnd = np.random
-rnd.seed(19)
+rnd.seed(10)
 
 # Grid and coordinates
 n = 20

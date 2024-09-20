@@ -3,7 +3,7 @@ rnd = np.random
 rnd.seed(10)
 
 # Grid and coordinates
-n = 27
+n = 14
 grid_size = 50                                                               #number of clients
 xc = np.random.uniform(low=- grid_size/2, high=grid_size/2, size=n+1)
 yc = np.random.uniform(low=-grid_size/2, high=grid_size/2, size=n+1)

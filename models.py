@@ -5,7 +5,6 @@ import heapq
 from collections import defaultdict
 import itertools
 import copy
-import cProfile
 
 # Define a label structure
 class Label:
@@ -89,12 +88,12 @@ class SubProblem:
         initial_resource_vector = (0, 0, 0, 0)  # (distance, load, battery, time)
         initial_label = Label(start_node, initial_resource_vector, None)
         heapq.heappush(U, initial_label)
-        #cutoff = len(N)*500000
+        cutoff = len(N)*500000
         
         # Step 2: Main loop for label setting
         while U:
-            #if len(L['t'])>=cutoff:
-            #    break
+            if len(L['t'])>=cutoff:
+                break
             # 2a. Remove first label (label with the least resource cost in heap)
             current_label = heapq.heappop(U)
             current_node = current_label.node
@@ -179,49 +178,18 @@ class SubProblem:
                 total_distance += distances.get((route[i], route[i + 1]), float('inf'))
             return total_distance
 
-        def find_best_routes(routes, distances):
-            unique_routes = {}
-            for route in routes:
-                # Remove the start and end (0), work with middle nodes
-                middle_nodes = tuple(sorted(route[1:-1]))
-
-                # Generate all permutations of the middle nodes
-                min_distance = float('inf')
-                best_permutation = None
-
-                for perm in itertools.permutations(middle_nodes):
-                    # Form the full route with current permutation
-                    full_route = [0] + list(perm) + [0]
-                    distance = calculate_route_distance(full_route, distances)
-
-                    if distance < min_distance:
-                        min_distance = distance
-                        best_permutation = full_route
-
-                # Store the best route for the unique set of middle nodes
-                if middle_nodes not in unique_routes or min_distance < unique_routes[middle_nodes][1]:
-                    unique_routes[middle_nodes] = (best_permutation, min_distance)
-
-            # Extract and return the list of best routes
-
-            return [(route, distance) for route, distance in unique_routes.values()]
-
-        # Finding the best routes
-        #best_routes = find_best_routes(new_routes, a)
-
-        # Print the result
-        #for route, distance in best_routes:
-        #    print(f"Route: {route}, Distance: {distance}")
-
         N.remove('s')
         N.remove('t')
         return new_routes ########################not optimizaing the tours to avoid adding nodes from forbidden set###########
 
 class MasterProblem:
 
-    def __init__(self, adj, forbidden=[]):
+    def __init__(self, adj, forbidden=[], enforce_1=[]):
         self.adj = adj
         self.forbidden = forbidden
+        if enforce_1:
+            self.enforce_1 = enforce_1
+        else: self.enforce_1 = False
 
 
     def relaxedLP(self, extended_set) -> None:
@@ -372,63 +340,97 @@ class MasterProblem:
                 # Set delta_i,r = 1 if node i is in route r, otherwise 0
                 delta[(i, route)] = 1 if i in route else 0
 
+        if self.enforce_1:
+            delta_2 = {}
+            delta_2_set = set()
+            # Iterate over all routes in the route set
+            for route in r_set:
+                for i in range(len(route) - 1):  # Loop through consecutive node pairs
+                    arc = (route[i], route[i + 1])
+                    # Set delta_2[(arc, route)] = 1 if arc matches (24, 0)
+                    if arc == (self.enforce_1[0], self.enforce_1[1]):
+                        delta_2[((self.enforce_1[0], self.enforce_1[1]), route)] = 1
+                        delta_2_set.add(route)
+                        break
+                    else: 
+                        delta_2[((self.enforce_1[0], self.enforce_1[1]), route)] = 0 
+            delta_2 = {item:delta_2[item] for item in delta_2 if delta_2[item]!=0}
+        
+        def main_engine(r_set):
+            #DECISION VARIABLES
+            y_r = {}
+            for item in r_set:
+                y_r[tuple(item)] = self.model.addVar(vtype=GRB.CONTINUOUS, name=f"y_r[{item}]", lb=0, ub=1)
+            
+            #CONSTRAINTS
+            self.model.addConstrs((quicksum(delta[(i, route)] * y_r[route] for route in r_set) == 1 for i in N), name=f"delta")
+            self.model.addConstrs(((r_set_ev_cost[route]-r_set_gv_cost[route])*y_r[route] <= 0 for route in r_set), name=f"IR")
 
-        #DECISION VARIABLES
-        y_r = {}
-        for item in r_set:
-            y_r[tuple(item)] = self.model.addVar(vtype=GRB.CONTINUOUS, name=f"y_r[{item}]", lb=0, ub=1)
-        self.model.update()
-
-
-        #CONSTRAINTS
-        self.model.addConstrs((quicksum(delta[(i, route)] * y_r[route] for route in r_set) == 1 for i in N), name=f"delta")
-        self.model.addConstrs(((r_set_ev_cost[route]-r_set_gv_cost[route])*y_r[route] <= 0 for route in r_set), name=f"IR")
-        #for route in r_set:
-        #    for r in arc_set_Ar[route]:
-        #        for (o,i,j,o) in degree_2_coalition:
-        #            if r[0] == i and j not in route:
-        #                model.addConstr((individual_cost[r[0]] + individual_cost[r[1]]) * y_r[route] <= degree_2_coalition_cost[(0,r[0],j,0)], name=f"Stability_{r[0]}_{r[1]}_{r[0]}_{j}")
-        #            if r[0] == j and i not in route:
-        #                model.addConstr((individual_cost[r[0]] + individual_cost[r[1]]) * y_r[route] <= degree_2_coalition_cost[(0,i,r[0],0)], name=f"Stability_{r[0]}_{r[1]}_{i}_{r[0]}")
-        #            if r[1] == i and j not in route:
-        #                model.addConstr((individual_cost[r[0]] + individual_cost[r[1]]) * y_r[route] <= degree_2_coalition_cost[(0,r[1],j,0)], name=f"Stability_{r[0]}_{r[1]}_{r[1]}_{j}")
-        #            if r[1] == j and i not in route:
-        #                model.addConstr((individual_cost[r[0]] + individual_cost[r[1]]) * y_r[route] <= degree_2_coalition_cost[(0,i,r[1],0)], name=f"Stability_{r[0]}_{r[1]}_{i}_{r[1]}")
-
-
-        #for route in r_set:
-        #    for r in route[1:-1]:
-        #        for (o,i,j,o) in degree_2_coalition:
-        #            if r == i:
-        #                model.addConstr(individual_cost[r] * y_r[route] <= (gv_node_cost(r)/(gv_node_cost(r)+gv_node_cost(j))) * degree_2_coalition_cost[(0,r,j,0)], name=f"Stability_r{route}_{r}_{j}")
-
-
-        #for route1 in r_set:
-        #    for route2 in r_set:
-        #        #if route1!=route2:
-        #            for r1 in route1[1:-1]:
-        #                for r2 in route2[1:-1]:
-        #                    if r1 != r2:
-        #                        try:
-        #                            model.addConstr(individual_cost[r1] * y_r[route1] + individual_cost[r2] * y_r[route2]<= degree_2_coalition_cost[(0,r1,r2,0)], name=f"Stability_r{r1}_{r2}")
-        #                        except:
-        #                            model.addConstr(individual_cost[r1] * y_r[route1] + individual_cost[r2] * y_r[route2]<= degree_2_coalition_cost[(0,r2,r1,0)], name=f"Stability_r{r1}_{r2}")
+            #for route in r_set:
+            #    for r in arc_set_Ar[route]:
+            #        for (o,i,j,o) in degree_2_coalition:
+            #            if r[0] == i and j not in route:
+            #                model.addConstr((individual_cost[r[0]] + individual_cost[r[1]]) * y_r[route] <= degree_2_coalition_cost[(0,r[0],j,0)], name=f"Stability_{r[0]}_{r[1]}_{r[0]}_{j}")
+            #            if r[0] == j and i not in route:
+            #                model.addConstr((individual_cost[r[0]] + individual_cost[r[1]]) * y_r[route] <= degree_2_coalition_cost[(0,i,r[0],0)], name=f"Stability_{r[0]}_{r[1]}_{i}_{r[0]}")
+            #            if r[1] == i and j not in route:
+            #                model.addConstr((individual_cost[r[0]] + individual_cost[r[1]]) * y_r[route] <= degree_2_coalition_cost[(0,r[1],j,0)], name=f"Stability_{r[0]}_{r[1]}_{r[1]}_{j}")
+            #            if r[1] == j and i not in route:
+            #                model.addConstr((individual_cost[r[0]] + individual_cost[r[1]]) * y_r[route] <= degree_2_coalition_cost[(0,i,r[1],0)], name=f"Stability_{r[0]}_{r[1]}_{i}_{r[1]}")
 
 
-        self.model.update()
-        #self.model.setParam('Threads', 8)  # Use 8 threads for solving
+            #for route in r_set:
+            #    for r in route[1:-1]:
+            #        for (o,i,j,o) in degree_2_coalition:
+            #            if r == i:
+            #                model.addConstr(individual_cost[r] * y_r[route] <= (gv_node_cost(r)/(gv_node_cost(r)+gv_node_cost(j))) * degree_2_coalition_cost[(0,r,j,0)], name=f"Stability_r{route}_{r}_{j}")
 
-        self.model.modelSense = GRB.MINIMIZE
-        #SET OBJECTIVE
-        self.model.setObjective((quicksum(c_r[route]*y_r[route] for route in r_set)))
-        self.model.write("/Users/tanvirkaisar/Library/CloudStorage/OneDrive-UniversityofSouthernCalifornia/CVRP/Codes/master_prob.lp")
-        self.model.optimize()
+
+            #for route1 in r_set:
+            #    for route2 in r_set:
+            #        #if route1!=route2:
+            #            for r1 in route1[1:-1]:
+            #                for r2 in route2[1:-1]:
+            #                    if r1 != r2:
+            #                        try:
+            #                            model.addConstr(individual_cost[r1] * y_r[route1] + individual_cost[r2] * y_r[route2]<= degree_2_coalition_cost[(0,r1,r2,0)], name=f"Stability_r{r1}_{r2}")
+            #                        except:
+            #                            model.addConstr(individual_cost[r1] * y_r[route1] + individual_cost[r2] * y_r[route2]<= degree_2_coalition_cost[(0,r2,r1,0)], name=f"Stability_r{r1}_{r2}")
+
+
+            self.model.update()
+            #self.model.setParam('Threads', 8)  # Use 8 threads for solving
+
+            self.model.modelSense = GRB.MINIMIZE
+            #SET OBJECTIVE
+            self.model.setObjective((quicksum(c_r[route]*y_r[route] for route in r_set)))
+            self.model.write("/Users/tanvirkaisar/Library/CloudStorage/OneDrive-UniversityofSouthernCalifornia/CVRP/Codes/master_prob.lp")
+            self.model.optimize()
+            return self.model
+
+        if self.enforce_1==False or not delta_2:
+            self.model = main_engine(r_set)
+        else:
+            all_routes = []
+            res = []
+            for item in delta_2:
+                all_routes.append(item[1])
+            for item in all_routes:
+                r_set_copy = copy.deepcopy(r_set)
+                remv = set(all_routes)-{item} 
+                for elem in remv:
+                    r_set_copy.remove(elem)
+                res.append(main_engine(r_set_copy))
+            self.model = min((model for model in res if model.Status == GRB.OPTIMAL), key=lambda model: model.getObjective().getValue(), default=None)
+                
 
         try:
             self.model.computeIIS()
             self.model.write("/Users/tanvirkaisar/Library/CloudStorage/OneDrive-UniversityofSouthernCalifornia/CVRP/Codes/master_prob_iis.lp")
         except: pass
   
+        if not self.model:
+            return None, self.model, 3 
         if self.model.status!=2:
             return None, self.model, self.model.status
         # Retrieve dual values and map them to routes

@@ -6,3 +6,4 @@
 *.csv
 !.gitignore
 .DS_Store
+*copy*

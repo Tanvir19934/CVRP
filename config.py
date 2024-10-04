@@ -3,8 +3,8 @@ rnd = np.random
 rnd.seed(12)
 
 # Grid and coordinates
-n = 10
-grid_size = 80                                                               #number of clients
+n = 9
+grid_size = 50                                                               #number of clients
 xc = np.random.uniform(low=- grid_size/2, high=grid_size/2, size=n+1)
 yc = np.random.uniform(low=-grid_size/2, high=grid_size/2, size=n+1)
 xc[0]=0
@@ -23,7 +23,7 @@ q = {i: rnd.randint(1,7) for i in N}                                         #de
 total_dem = sum(q)                                                           #total demand
 
 #Other parameters
-num_EV = 3 #int(n*0.4) 
+num_EV = 2 #int(n*0.4) 
 num_clusters = 3 #int(0.5*(total_dem/(num_EV*Q_EV)))           
 num_GV = len(N)
 num_TV = num_EV+num_GV 
@@ -52,7 +52,7 @@ GV_velocity = 0.67
 GV_cost = 0.58 #4.5/6.5  #0.58 #0.25 per ton mile
 EV_cost = 0.38 # 0.3    #0.38  #$/kWh   or 0.035 per ton mile
 M = 4
-battery_threshold = 0.1
+battery_threshold = 0.0
 alpha = 0.1
 
 arc_set = [(i,j) for i in N for j in N  if i!=j]

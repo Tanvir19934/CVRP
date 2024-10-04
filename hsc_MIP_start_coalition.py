@@ -20,7 +20,7 @@ rnd.seed(10)
 q[0] = 0
 #T_max_EV = 700
 #print(T_max_EV)
-adjustment = 0.1 #artificially make degree 2 coalition lucrative to get unstable results
+adjustment = 0.8 #artificially make degree 2 coalition lucrative to get unstable results
 
 ###########Gurobi model############
 mdl = Model('hsc')
@@ -171,12 +171,12 @@ mdl.addConstrs((quicksum(x_e[e,(j,0)]* (z[e,j]+y[e,(j,0)]+(a[(j,0)]/EV_velocity)
 mdl.addConstrs((p[i]<=a[i,0]*GV_cost*q[i]+a[i,0]*GV_cost+e_IR[i]) for i in N)
 
 #BB
-mdl.addConstr(quicksum(p[i] for i in N)<=(quicksum(e_IR[i] for i in N)) + (quicksum(e_S[i] for i in N))+ e_BB + (quicksum((1-b0[e,(i,0)])*260*EV_cost*x_e[e,(i,0)] for i in N for e in E)))
+mdl.addConstr(quicksum(p[i] for i in N)+(quicksum(e_IR[i] for i in N)) + (quicksum(e_S[i] for i in N))+ e_BB >= (quicksum((1-b0[e,(i,0)])*260*EV_cost*x_e[e,(i,0)] for i in N for e in E)))
 
 for i in N:
    for j in N:
       if i!=j:
-         mdl.addConstr(p[i]-e_S[i]<=standalone_cost_degree_2[i,j][i],name="stability")
+         mdl.addConstr(p[i]<=standalone_cost_degree_2[i,j][i]+e_S[i],name="stability")
 
 #no payment if someone uses GV
 for d in D:
@@ -194,14 +194,8 @@ for d in D:
 #   for i in N:
 #      mdl.addConstr(p[i] * sc_e[e] == a[0,i]*GV_cost*rc_e[e])
 
-
-
-
-#mdl.addConstrs((p[j]*a[i,0]*q[i]*x_e[e,(i,j)]==p[i]*a[j,0]*q[j]*x_e[e,(i,j)]) for e in E for i in N for j in N if i!=j)
-
 mdl.addConstrs((p[i]*x_e[e,(j,i)]>=(a[(i,j)]/EV_velocity)*(gamma+gamma_l*q[i])*260*EV_cost*x_e[e,(j,i)] ) for e in E for i in N for j in V if i!=j)
 
-#mdl.addConstr(quicksum(x_d[d,(0,j)] for d in D for j in N) <=3)
 
 
 
@@ -299,7 +293,7 @@ mdl.modelSense = GRB.MINIMIZE
 
 #mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)] for j in N for d in D )) + (quicksum(x_d[d,(j,0)]*a[(j,0)] for j in N for d in D))+(quicksum(x_e[e,(i,j)]*a[(i,j)] for i in V for j in V for e in E if i!=j)))
 
-mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)]*3 for j in N for d in D )) +0.1*(e_BB + (quicksum(e_IR[i] for i in N)) + (quicksum(e_S[i] for i in N)))+(quicksum(x_e[e,(i,j)]*a[(i,j)] for i in V for j in V for e in E if i!=j)))
+mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)]*2 for j in N for d in D )) +0.1*(e_BB + (quicksum(e_IR[i] for i in N)) + (quicksum(e_S[i] for i in N)))+(quicksum(x_e[e,(i,j)]*a[(i,j)] for i in V for j in V for e in E if i!=j)))
 
 #mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)]*GV_cost for j in N for d in D ))+ (e_BB + (quicksum(e_IR[i] for i in N)) + (quicksum(e_S[i] for i in N))) + (quicksum(x_d[d,(j,0)]*a[(j,0)] for j in N for d in D))+(quicksum(x_e[e,(i,j)]*a[(i,j)] for i in V for j in V for e in E if i!=j)))
 

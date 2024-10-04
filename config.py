@@ -3,7 +3,7 @@ rnd = np.random
 rnd.seed(12)
 
 # Grid and coordinates
-n = 8
+n = 10
 grid_size = 80                                                               #number of clients
 xc = np.random.uniform(low=- grid_size/2, high=grid_size/2, size=n+1)
 yc = np.random.uniform(low=-grid_size/2, high=grid_size/2, size=n+1)
@@ -15,7 +15,7 @@ N = [i for i in range(1,n+1)]                                                #se
 V = [0] + N                                                                  #set of all nodes (customer+depot)
 
 # Demands and capacities
-Q_EV = 10                                                                    #capacity of each EV
+Q_EV = 8                                                                    #capacity of each EV
 Q_GV = 10                                                                    #capacity of each GV
 q = {i: rnd.randint(1,7) for i in N}                                         #demand for customers
 
@@ -49,7 +49,7 @@ T_max_EV = 600                                                               #ma
 T_max_GV = 600                                                               #max operation time per GV
 EV_velocity = 0.67
 GV_velocity = 0.67
-GV_cost = .58 #4.5/6.5  #0.58 #0.25 per ton mile
+GV_cost = 0.58 #4.5/6.5  #0.58 #0.25 per ton mile
 EV_cost = 0.38 # 0.3    #0.38  #$/kWh   or 0.035 per ton mile
 M = 4
 battery_threshold = 0.1

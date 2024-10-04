@@ -72,12 +72,12 @@ for item in degree_2_coalition:
     else: degree_2_coalition_cost[tuple([item[1],item[2]])] = cost
 
 standalone_cost_degree_2 = {}
-
+adjustment = 0.3 #artificaially make degree 2 coalition lucrative to get unstable results
 for item in degree_2_coalition_cost:
    standalone_cost_degree_2[item] = {}
 for item in degree_2_coalition_cost:
-   standalone_cost_degree_2[item][item[0]] = degree_2_coalition_cost[item]* (a[item[0],0]*GV_cost+a[item[0],0]*GV_cost*q[item[0]])/((a[item[0],0]*GV_cost+a[item[0],0]*GV_cost*q[item[0]])+(a[item[1],0]*GV_cost+a[item[1],0]*GV_cost*q[item[1]]))
-   standalone_cost_degree_2[item][item[1]] = degree_2_coalition_cost[item]* (a[item[1],0]*GV_cost+a[item[1],0]*GV_cost*q[item[1]])/((a[item[0],0]*GV_cost+a[item[0],0]*GV_cost*q[item[0]])+(a[item[1],0]*GV_cost+a[item[1],0]*GV_cost*q[item[1]]))
+   standalone_cost_degree_2[item][item[0]] = adjustment*degree_2_coalition_cost[item]* (a[item[0],0]*GV_cost+a[item[0],0]*GV_cost*q[item[0]])/((a[item[0],0]*GV_cost+a[item[0],0]*GV_cost*q[item[0]])+(a[item[1],0]*GV_cost+a[item[1],0]*GV_cost*q[item[1]]))
+   standalone_cost_degree_2[item][item[1]] = adjustment*degree_2_coalition_cost[item]* (a[item[1],0]*GV_cost+a[item[1],0]*GV_cost*q[item[1]])/((a[item[0],0]*GV_cost+a[item[0],0]*GV_cost*q[item[0]])+(a[item[1],0]*GV_cost+a[item[1],0]*GV_cost*q[item[1]]))
 
 
 
@@ -143,7 +143,7 @@ for j in N:
 mdl.addConstrs((z[e,j]*x_e[e,(i,j)] == x_e[e,(i,j)]*(z[e,i]+st[i]+(a[(i,j)]/EV_velocity))) for i in V for j in N for e in E if i!=j)
 mdl.addConstrs((b0[e,(j,0)]*x_e[e,(j,0)] == x_e[e,(j,0)] * (b[e,j] - (a[(j,0)]/EV_velocity)*(gamma+gamma_l*l[(e,j)]))) for j in N for e in E)
 #mdl.addConstrs((b0[e,(j,0)]*x_e[e,(j,0)] >= battery_threshold*x_e[e,(j,0)]) for j in N for e in E)
-mdl.addConstrs((b0[e,(j,0)] >= battery_threshold) for j in N for e in E)
+mdl.addConstrs((b0[e,(j,0)]*x_e[e,(j,0)] >= battery_threshold*x_e[e,(j,0)] ) for j in N for e in E)
 mdl.addConstrs((z[d,0] == 0) for d in D)
 mdl.addConstrs((z[e,0] == 0) for e in E)
 mdl.addConstrs((quicksum(z[d,j]*x_d[d,(0,j)] for j in N)<= T_max_GV) for d in D)
@@ -171,15 +171,18 @@ mdl.addConstrs((p[i]<=2*a[i,0]*GV_cost*q[i]+e_IR[i]) for i in N)
 #BB
 mdl.addConstr(quicksum(p[i] for i in N)==(quicksum(e_IR[i] for i in N)) + (quicksum(e_S[i] for i in N))+ e_BB + (quicksum((1-b0[e,(i,0)])*260*EV_cost*x_e[e,(i,0)] for i in N for e in E)))
 
-
-
 for i in N:
    for j in N:
-      if i!=j:
-         try:
-            mdl.addConstr(p[i]<=standalone_cost_degree_2[i,j][i]+e_S[i])
-         except:
-            mdl.addConstr(p[i]<=standalone_cost_degree_2[j,i][i]+e_S[i])
+      for e in E:
+         if i!=j:
+            try:
+               mdl.addConstr(p[i]*x_e[e,(0,i)]<=standalone_cost_degree_2[i,j][i]+e_S[i])
+            except:
+               mdl.addConstr(p[i]*x_e[e,(0,i)]<=standalone_cost_degree_2[j,i][i]+e_S[i])
+
+#no payment if someone uses GV
+mdl.addConstrs((p[j]*x_d[d,(0,j)]<=1-x_d[d,(0,j)]) for d in D for j in N)
+
 
 #proportional cost allocation
 
@@ -193,8 +196,7 @@ for i in N:
 
 
 
-mdl.addConstrs((p[j]*a[i,0]*q[i]==p[i]*a[j,0]*q[j]) for i in N for j in N if i!=j)
-#mdl.addConstrs((p[i]*a[i,0]*q[i]-p[j]*a[j,0]*q[j]<=-tol) for i in N for j in N if i!=j)
+mdl.addConstrs((p[j]*a[i,0]*q[i]*x_e[e,(i,j)]==p[i]*a[j,0]*q[j]*x_e[e,(i,j)]) for e in E for i in N for j in N if i!=j)
 
 
 

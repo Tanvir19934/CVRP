@@ -98,6 +98,8 @@ b = mdl.addVars(((item, element) for item in E for element in V), vtype=GRB.CONT
 b0 = mdl.addVars(((item, (i, 0)) for item in E for i in N), vtype=GRB.CONTINUOUS, name = "b0")
 y = mdl.addVars(((item, (i, 0)) for item in E for i in N), vtype=GRB.CONTINUOUS, name = "y")
 e_BB = mdl.addVar(vtype=GRB.CONTINUOUS, name = "e_BB")
+tol = mdl.addVar(vtype=GRB.CONTINUOUS, name = "tol")
+
 for i in N:
    p[i] = mdl.addVar(vtype=GRB.CONTINUOUS, name = f"p{i}")
    e_IR[i] = mdl.addVar(vtype=GRB.CONTINUOUS, name = f"e_IR{i}")
@@ -161,8 +163,12 @@ mdl.addConstrs((quicksum(x_e[e,(j,0)]* (z[e,j]+y[e,(j,0)]+(a[(j,0)]/EV_velocity)
 #mdl.addConstrs(((x_e[e,(i,j)] - b[e,j]) >= 0) for e in E for i in V for j in N  if i!=j)
 
 #coalition constraints
+
+
+#IR
 mdl.addConstrs((p[i]<=2*a[i,0]*GV_cost*q[i]+e_IR[i]) for i in N)
 
+#BB
 mdl.addConstr(quicksum(p[i] for i in N)==(quicksum(e_IR[i] for i in N)) + (quicksum(e_S[i] for i in N))+ e_BB + (quicksum((1-b0[e,(i,0)])*260*EV_cost*x_e[e,(i,0)] for i in N for e in E)))
 
 
@@ -177,22 +183,18 @@ for i in N:
 
 #proportional cost allocation
 
-for e in E:
-   mdl.addConstr(sc_e[e] == quicksum(x_e[e,(j,i)]*a[j,i]*GV_cost*q[i] +  x_e[e,(j,i)]*a[j,i]*GV_cost for i in N for j in V if i!=j))
-   mdl.addConstr(rc_e[e] == quicksum((1-b0[e,(i,0)])*260*EV_cost*x_e[e,(i,0)] for i in N))
-
-for e in E:
-   for i in N:
-      mdl.addConstr(p[i] * sc_e[e] == a[0,i]*GV_cost*rc_e[e])
-
-
+#for e in E:
+#   mdl.addConstr(sc_e[e] == quicksum(x_e[e,(j,i)]*a[j,i]*GV_cost*q[i] +  x_e[e,(j,i)]*a[j,i]*GV_cost for i in N for j in V if i!=j))
+#   mdl.addConstr(rc_e[e] == quicksum((1-b0[e,(i,0)])*260*EV_cost*x_e[e,(i,0)] for i in N))
+#
+#for e in E:
+#   for i in N:
+#      mdl.addConstr(p[i] * sc_e[e] == a[0,i]*GV_cost*rc_e[e])
 
 
 
-
-
-
-
+mdl.addConstrs((p[j]*a[i,0]*q[i]==p[i]*a[j,0]*q[j]) for i in N for j in N if i!=j)
+#mdl.addConstrs((p[i]*a[i,0]*q[i]-p[j]*a[j,0]*q[j]<=-tol) for i in N for j in N if i!=j)
 
 
 
@@ -290,7 +292,11 @@ mdl.modelSense = GRB.MINIMIZE
 #Set objective
 #mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)]*GV_cost for d in D for j in V if j!=0))+(quicksum(x_d[d,(j,0)]*a[(j,0)]*GV_cost for j in V for d in D if j!=0))+(quicksum(x_e[e,(i,j)]*a[(i,j)]*EV_cost for i in V for j in V for e in E if i!=j))+ 0*quicksum(z[e,j] for e in E for j in N) + 0*quicksum(x_e[e,(0,j)]*e for e in E for j in N))
 
-mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)] for j in N for d in D ))+ e_BB + (quicksum(e_IR[i] for i in N)) + (quicksum(e_S[i] for i in N)) + (quicksum(x_d[d,(j,0)]*a[(j,0)] for j in N for d in D))+(quicksum(x_e[e,(i,j)]*a[(i,j)] for i in V for j in V for e in E if i!=j)))
+#mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)] for j in N for d in D )) + (quicksum(x_d[d,(j,0)]*a[(j,0)] for j in N for d in D))+(quicksum(x_e[e,(i,j)]*a[(i,j)] for i in V for j in V for e in E if i!=j)))
+
+mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)] for j in N for d in D ))+ 0.1*(e_BB + (quicksum(e_IR[i] for i in N)) + (quicksum(e_S[i] for i in N))) + (quicksum(x_d[d,(j,0)]*a[(j,0)] for j in N for d in D))+(quicksum(x_e[e,(i,j)]*a[(i,j)] for i in V for j in V for e in E if i!=j)))
+
+#mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)]*GV_cost for j in N for d in D ))+ (e_BB + (quicksum(e_IR[i] for i in N)) + (quicksum(e_S[i] for i in N))) + (quicksum(x_d[d,(j,0)]*a[(j,0)] for j in N for d in D))+(quicksum(x_e[e,(i,j)]*a[(i,j)] for i in V for j in V for e in E if i!=j)))
 
 #mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)]*q[j]*GV_cost for d in D for j in N))+(quicksum(x_d[d,(j,0)]*a[(j,0)]*GV_cost for j in V for d in D if j!=0))+(quicksum((1-b0[e,(j,0)])*260*EV_cost*x_e[e,(j,0)] for j in N for e in E)))
 

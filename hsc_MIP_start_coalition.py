@@ -302,7 +302,7 @@ mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)]*2 for j in N for d in D )) +0.1
 
 mdl.write("/Users/tanvirkaisar/Library/CloudStorage/OneDrive-UniversityofSouthernCalifornia/CVRP/Codes/hsc.lp")
 
-mdl.Params.MIPGap = 0.05
+mdl.Params.MIPGap = 0.01
 mdl.params.NonConvex = 2
 #mdl.Params.TimeLimit = 2000 #seconds
 mdl.optimize()

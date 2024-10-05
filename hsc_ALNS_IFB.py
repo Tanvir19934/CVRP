@@ -11,7 +11,7 @@ from config import *
 from gurobipy import Model, GRB, quicksum
 
 rnd = np.random
-rnd.seed(10)
+rnd.seed(12)
 
 def visualize_routes(EV_dict):
    G = nx.DiGraph(directed=True)
@@ -322,13 +322,14 @@ def IFB(labels, centroids, X, node_attr):
                         
                         if ev!=len(EV_dict):
                            potential_cluster = list(ordered_cluster.keys())
-                           potential_cluster.remove(potential_cluster[item])
+                           
                            dist = {}
                            for j in potential_cluster:
                               dist[j] = np.hypot(cluster_info[j]["centroid"][0]-node_attr[element]["transformed_coord"][0],cluster_info[j]["centroid"][1]-node_attr[element]["transformed_coord"][1])
                               #dist[j] = np.hypot(0-node_attr[element]["actual_coord"][0],0-node_attr[element]["actual_coord"][1])
                            dist = dict(sorted(dist.items(), key=lambda x: x[1]))
                            nodes[list(dist.keys())[0]].append(element)
+                           potential_cluster.remove(potential_cluster[item])
 
 
    for item in EV_dict:

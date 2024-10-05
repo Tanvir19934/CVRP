@@ -1,9 +1,9 @@
 import numpy as np
 rnd = np.random
-rnd.seed(12)
+rnd.seed(10)
 
 # Grid and coordinates
-n = 12
+n = 10
 grid_size = 50                                                               #number of clients
 xc = np.random.uniform(low=- grid_size/2, high=grid_size/2, size=n+1)
 yc = np.random.uniform(low=-grid_size/2, high=grid_size/2, size=n+1)
@@ -23,8 +23,8 @@ q = {i: rnd.randint(1,7) for i in N}                                         #de
 total_dem = sum(q)                                                           #total demand
 
 #Other parameters
-num_EV = 3 #int(n*0.4) 
-num_clusters = 3 #int(0.5*(total_dem/(num_EV*Q_EV)))           
+num_EV = int(n*0.3) 
+num_clusters = int(0.5*(total_dem/(num_EV*Q_EV)))           
 num_GV = len(N)
 num_TV = num_EV+num_GV 
 K = [i for i in range(1,num_TV+1)]                                           #Set of all vehicles 

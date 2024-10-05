@@ -7,6 +7,8 @@ from matplotlib.lines import Line2D
 import random
 import pickle
 from config import *
+import itertools
+import copy
 #import subprocess
 #import json
 #import hsc_ALNS_IFB
@@ -22,7 +24,6 @@ q[0] = 0
 ###########Gurobi model############
 mdl = Model('hsc')
 
-
 # Decision variables
 x_e = {}
 for item in E:
@@ -32,8 +33,8 @@ x_d = mdl.addVars(((item, element) for item in D for element in A), vtype = GRB.
 z = mdl.addVars(((item, element) for item in K for element in V), vtype = GRB.CONTINUOUS, name = "z")
 l = mdl.addVars(((item, element) for item in K for element in V), vtype = GRB.INTEGER, name = "l")
 b = mdl.addVars(((item, element) for item in E for element in V), vtype=GRB.CONTINUOUS, lb = 0, ub = 1, name = "b")
-b0 = mdl.addVars(((item, 0, i) for item in E for i in N), vtype=GRB.CONTINUOUS, name = "b0")
-y = mdl.addVars(((item, 0, i) for item in E for i in N), vtype=GRB.CONTINUOUS, name = "y")
+b0 = mdl.addVars(((item, (i, 0)) for item in E for i in N), vtype=GRB.CONTINUOUS, name = "b0")
+y = mdl.addVars(((item, (i, 0)) for item in E for i in N), vtype=GRB.CONTINUOUS, name = "y")
 
 mdl.update()
 #ind = mdl.addVars(((item, element) for item in E for element in V), vtype = GRB.BINARY, name = "ind")
@@ -65,11 +66,12 @@ mdl.addConstrs((z[d,j]*x_d[d,(0,j)] == 2*x_d[d,(0,j)]*(st[j]+(a[0,j]/GV_velocity
 
 for j in N:
       for e in E:
-         mdl.addGenConstrPWL(b0[e,0,j], y[e,0,j], [0, 0.8, 1], [300, 120, 0],  "myPWLConstr")
+         mdl.addGenConstrPWL(b0[e,(j,0)], y[e,(j,0)], [0, 0.8, 1], [300, 120, 0],  "myPWLConstr")
 
 mdl.addConstrs((z[e,j]*x_e[e,(i,j)] == x_e[e,(i,j)]*(z[e,i]+st[i]+(a[(i,j)]/EV_velocity))) for i in V for j in N for e in E if i!=j)
-mdl.addConstrs((b0[e,0,j]*x_e[e,(j,0)] == x_e[e,(j,0)] * (b[e,j] - (a[(j,0)]/EV_velocity)*(gamma+gamma_l*l[(e,j)]))) for j in N for e in E)
-mdl.addConstrs((b0[e,0,j]*x_e[e,(j,0)] >= battery_threshold*x_e[e,(j,0)]) for j in N for e in E)
+mdl.addConstrs((b0[e,(j,0)]*x_e[e,(j,0)] == x_e[e,(j,0)] * (b[e,j] - (a[(j,0)]/EV_velocity)*(gamma+gamma_l*l[(e,j)]))) for j in N for e in E)
+#mdl.addConstrs((b0[e,(j,0)]*x_e[e,(j,0)] >= battery_threshold*x_e[e,(j,0)]) for j in N for e in E)
+mdl.addConstrs((b0[e,(j,0)]*x_e[e,(j,0)] >= battery_threshold*x_e[e,(j,0)] ) for j in N for e in E)
 mdl.addConstrs((z[d,0] == 0) for d in D)
 mdl.addConstrs((z[e,0] == 0) for e in E)
 mdl.addConstrs((quicksum(z[d,j]*x_d[d,(0,j)] for j in N)<= T_max_GV) for d in D)
@@ -79,7 +81,7 @@ mdl.addConstrs((quicksum(z[d,j]*x_d[d,(0,j)] for j in N)<= T_max_GV) for d in D)
 #mdl.addConstrs((h[e]==gp.max_((z[e,j]) for j in V)) for e in E)
 #mdl.addConstrs((h[e] <= T_max) for e in E)
 #mdl.addConstrs((z[e,i] -z[e,0]<= T_max_EV) for e in E for i in V  if i!=0)
-mdl.addConstrs((quicksum(x_e[e,(j,0)]* (z[e,j]+y[e,0,j]+(a[(j,0)]/EV_velocity)) for j in N) <= T_max_EV) for e in E)
+mdl.addConstrs((quicksum(x_e[e,(j,0)]* (z[e,j]+y[e,(j,0)]+(a[(j,0)]/EV_velocity)) for j in N) <= T_max_EV) for e in E)
 
 
 #mdl.addConstrs((quicksum(x_e[e,(0,j)] for j in N) <= (quicksum(x_e[e-1,(0,j)] for j in N)) for e in E if e!=min(E)))       #var_elim constraint. employ smaller labeled EV first
@@ -179,22 +181,26 @@ mdl.modelSense = GRB.MINIMIZE
 #Set objective
 #mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)]*GV_cost for d in D for j in V if j!=0))+(quicksum(x_d[d,(j,0)]*a[(j,0)]*GV_cost for j in V for d in D if j!=0))+(quicksum(x_e[e,(i,j)]*a[(i,j)]*EV_cost for i in V for j in V for e in E if i!=j))+ 0*quicksum(z[e,j] for e in E for j in N) + 0*quicksum(x_e[e,(0,j)]*e for e in E for j in N))
 
-mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)] for j in N for d in D ))+(quicksum(x_d[d,(j,0)]*a[(j,0)] for j in N for d in D))+(quicksum(x_e[e,(i,j)]*a[(i,j)] for i in V for j in V for e in E if i!=j)))
+#mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)] for j in N for d in D )) + (quicksum(x_d[d,(j,0)]*a[(j,0)] for j in N for d in D))+(quicksum(x_e[e,(i,j)]*a[(i,j)] for i in V for j in V for e in E if i!=j)))
 
-#mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)]*q[j]*GV_cost for d in D for j in N))+(quicksum(x_d[d,(j,0)]*a[(j,0)]*GV_cost for j in V for d in D if j!=0))+(quicksum((1-b0[e,0,j])*260*EV_cost*x_e[e,(j,0)] for j in N for e in E)))
+mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)]*2 for j in N for d in D )) +(quicksum(x_e[e,(i,j)]*a[(i,j)] for i in V for j in V for e in E if i!=j)))
+
+#mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)]*GV_cost for j in N for d in D ))+ (e_BB + (quicksum(e_IR[i] for i in N)) + (quicksum(e_S[i] for i in N))) + (quicksum(x_d[d,(j,0)]*a[(j,0)] for j in N for d in D))+(quicksum(x_e[e,(i,j)]*a[(i,j)] for i in V for j in V for e in E if i!=j)))
+
+#mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)]*q[j]*GV_cost for d in D for j in N))+(quicksum(x_d[d,(j,0)]*a[(j,0)]*GV_cost for j in V for d in D if j!=0))+(quicksum((1-b0[e,(j,0)])*260*EV_cost*x_e[e,(j,0)] for j in N for e in E)))
 
 
 mdl.write("/Users/tanvirkaisar/Library/CloudStorage/OneDrive-UniversityofSouthernCalifornia/CVRP/Codes/hsc.lp")
 
 mdl.Params.MIPGap = 0.05
-#mdl.params.NonConvex = 2
+mdl.params.NonConvex = 2
 #mdl.Params.TimeLimit = 2000 #seconds
 mdl.optimize()
 
-# try:
-#     mdl.computeIIS()
-#     mdl.write("model.ilp")
-# except: 2
+#try:
+#    mdl.computeIIS()
+#    mdl.write("model.ilp")
+#except: 2
 
 def get_vars(item):
    vars = [var for var in mdl.getVars() if f"{item}" in var.VarName]
@@ -209,12 +215,16 @@ b_result = get_vars('b')
 b0_result = get_vars('b0')
 l_result = get_vars('l')
 y_result = get_vars('y')
-
+p_result = get_vars('p')
+e_S_result = get_vars('e_S')
+e_BB_result = get_vars('e_BB')
+e_IR_result = get_vars('e_IR')
+rc_e_result = get_vars('rc_e')
 def visualize_routes():
    G = nx.DiGraph(directed=True)
    label_pos_dict={}
    pos_dict = {}
-   offset = 2
+   offset = 3
    legend_elements_ev = []
    legend_elements_gv = []
 
@@ -233,7 +243,8 @@ def visualize_routes():
          #nx.draw_networkx_labels(G, pos=label_pos_dict, labels={temp[2]: int(l_result[s])}, font_color='red', font_weight='bold',font_size=8)
          #nx.draw_networkx_labels(G, pos=label_pos_dict, labels={temp[2]: int(z_result[f"z[{temp[0]},{temp[2]}]"])}, font_color='black', font_weight='bold',font_size=8)
          #nx.draw_networkx_labels(G, pos=label_pos_dict, labels={temp[2]: round((y_result[f"y[{temp[0]},({temp[1]}, {temp[2]})]"]),4)}, font_color='red', font_weight='bold',font_size=8)
-         nx.draw_networkx_labels(G, pos=label_pos_dict, labels={temp[2]: round((b_result[f"b[{temp[0]},{temp[2]}]"]),3)}, font_color='red', font_weight='bold',font_size=8)
+         if temp[-1]==0:
+            nx.draw_networkx_labels(G, pos=label_pos_dict, labels={temp[1]: round((b0_result[f"b0[{temp[0]},{temp[1],0}]"]),3)}, font_color='red', font_weight='bold',font_size=8)
 
          if color_dict[temp[0]] not in legend_elements_ev:
             legend_elements_ev.append(color_dict[temp[0]])
@@ -305,15 +316,17 @@ def cost_calculation(x_e_result,x_d_result,b0_result):
    #   for i in range(0,num_nodes-1):
    #      2
    battery_consumed = 0
-   for item in b0_result:
-      if b0_result[item]!=0.0 and b0_result[item]!=0.8:
-         battery_consumed+= (1-b0_result[item])
+   for item in x_e_result:
+      if x_e_result[item]>0.99:
+         temp = [int(match.group()) for match in re.finditer(r'\b\d+\b', item)]
+         if temp[-1]==0:
+            battery_consumed+= (1-b0_result[f"b0{item[3:]}"])
    cost_EV = 260*EV_cost*battery_consumed
    cost_GV = 0
    for item in x_d_result:
       if x_d_result[item]>0.99:
          temp = [int(match.group()) for match in re.finditer(r'\b\d+\b', item)]
-         if temp[1]==0:
+         if temp[-1]==0:
             cost_GV+= a[temp[1],temp[2]]*GV_cost
          else:
             cost_GV+=a[temp[1],temp[2]]*GV_cost*q[temp[1]]
@@ -325,14 +338,10 @@ def cost_calculation(x_e_result,x_d_result,b0_result):
       
    cost_saved = no_collab_total_cost-total_cost
    percentage_cost_saved = (cost_saved/no_collab_total_cost)*100
-   2
-   
+   return cost_EV 
 
-
-
-
-   return miles_saved, percentage_miles_saved, cost_saved, percentage_cost_saved 
-
+cost_EV = cost_calculation(x_e_result,x_d_result,b0_result)
 visualize_routes()
 
+2
 #miles_saved, percentage_miles_saved, cost_saved, percentage_cost_saved =  cost_calculation(x_e_result,x_d_result,b0_result)

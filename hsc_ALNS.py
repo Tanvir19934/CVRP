@@ -4,6 +4,7 @@ import copy
 import time
 import random
 import math
+import pickle
 from itertools import combinations
 from config import n, Q_EV, q, num_clusters, E, a, st, gamma, gamma_l, T_max_EV, EV_velocity, GV_cost, EV_cost, battery_threshold, dist 
 #from config import n, grid_size, xc, yc, N, V, Q_EV, Q_GV, q, total_dem, num_EV, num_clusters, num_GV, num_TV, K, D, E, A, a, r, st, time_limit, MIP_start, gamma, gamma_l, b, T_max_EV, T_max_GV, EV_velocity, GV_velocity, GV_cost, EV_cost, M, battery_threshold, alpha, arc_set, dist 
@@ -11,7 +12,7 @@ from hsc_ALNS_IFB import IFB, get_node_att, EV_GV_assignment, cost_calculation, 
 from tqdm.auto import tqdm
 
 rnd = np.random
-rnd.seed(10)
+#rnd.seed(12)
 
 def convert_solution_to_EVdict(solution:dict)->dict:
 
@@ -896,9 +897,9 @@ if __name__ == "__main__":
 
    start =time.perf_counter()
    repair_iterations = 200*n
-   ALNS_iterations = 20
+   ALNS_iterations = 10
    sim = 1
-   local_search_iterations = 100000
+   local_search_iterations = 10000
    num_destroy = 2 #max(int(n*0.05),2)
    objective = "miles"  # or "miles"
    result = [0]*sim
@@ -956,3 +957,16 @@ if __name__ == "__main__":
    print('\n')
    print(f"Optimal routes after subtour optimization: {best_optimized_EV_dict}")
    print('\n')
+
+
+   #for LP
+   ev_routes = []
+   
+   for item in best_optimized_EV_dict:
+      for elements in best_optimized_EV_dict[item]['route']:
+         ev_routes.append(elements)
+   dataframes = {'data':ev_routes}
+
+   for filename, dataframe in dataframes.items():
+      with open(f'{filename}.pkl', 'wb') as file:
+         pickle.dump(dataframe, file)

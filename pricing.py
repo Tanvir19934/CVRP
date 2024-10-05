@@ -13,6 +13,10 @@ def column_generation(adj,forbidden_set=[], initial = False):
     y_r_result, master_prob_model, status = master_prob.relaxedLP(None)
     if not y_r_result:
         return None, None, None, None, status
+    for item in y_r_result:
+        if y_r_result[item]==0:
+            break
+        return y_r_result, True, master_prob_model, master_prob_model.getObjective().getValue(), status
     dual_values = master_prob.getDuals()
     print(dual_values)
     print(sum(dual_values.values()))

@@ -7,3 +7,4 @@
 !.gitignore
 .DS_Store
 *copy*
+*.pyc

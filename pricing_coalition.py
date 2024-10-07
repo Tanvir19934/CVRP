@@ -18,8 +18,7 @@ def column_generation(adj,forbidden_set=[], initial = False):
             not_fractional = False
             break
     if not_fractional==True:
-        return y_r_result, True, master_prob_model, master_prob_model.getObjective().getValue(), status
-    
+        return y_r_result, False, master_prob_model, master_prob_model.getObjective().getValue(), status
     dual_values = master_prob.getDuals()
     print(dual_values)
     print(sum(dual_values.values()))

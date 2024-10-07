@@ -47,9 +47,9 @@ def branching() -> None:
     y_r_result, not_fractional, master_prob_model, obj_val, status = column_generation(adj,forbidden_set)
     relaxed_lp_obj = obj_val
 
-    #if not_fractional:
-    #    print("Optimal solution found at the root node: did not need branching")
-    #    return
+    if not_fractional:
+        print("Optimal solution found at the root node: did not need branching")
+        return
     
     left_not_fractional = right_not_fractional = False
     root_node = Node(0, "root_node", adj, set(), None)

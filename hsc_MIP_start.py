@@ -12,7 +12,7 @@ import copy
 #import subprocess
 #import json
 #import hsc_ALNS_IFB
-
+from utils import ev_travel_cost
 rnd = np.random
 rnd.seed(10)
 
@@ -149,7 +149,7 @@ mdl.update()
 #subprocess.run(['python3', 'hsc_ALNS_IFB.py'], check=True)  #or you could import hsc_ALNS_IFB in this file and change
 # __name__ == "__main__" in the hsc_ALNS_IFB file to __name__ == "hsc_ALNS_IFB"
 
-if MIP_start:
+if not MIP_start:
   
   filenames = ['x_d_df.pkl', 'x_e_df.pkl', 'l_df.pkl']
   # Dictionary to hold the loaded dataframes
@@ -179,20 +179,14 @@ mdl.update()
 mdl.modelSense = GRB.MINIMIZE
 
 #Set objective
-#mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)]*GV_cost for d in D for j in V if j!=0))+(quicksum(x_d[d,(j,0)]*a[(j,0)]*GV_cost for j in V for d in D if j!=0))+(quicksum(x_e[e,(i,j)]*a[(i,j)]*EV_cost for i in V for j in V for e in E if i!=j))+ 0*quicksum(z[e,j] for e in E for j in N) + 0*quicksum(x_e[e,(0,j)]*e for e in E for j in N))
 
-#mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)] for j in N for d in D )) + (quicksum(x_d[d,(j,0)]*a[(j,0)] for j in N for d in D))+(quicksum(x_e[e,(i,j)]*a[(i,j)] for i in V for j in V for e in E if i!=j)))
-
-mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)]*2 for j in N for d in D )) +(quicksum(x_e[e,(i,j)]*a[(i,j)] for i in V for j in V for e in E if i!=j)))
-
-#mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)]*GV_cost for j in N for d in D ))+ (e_BB + (quicksum(e_IR[i] for i in N)) + (quicksum(e_S[i] for i in N))) + (quicksum(x_d[d,(j,0)]*a[(j,0)] for j in N for d in D))+(quicksum(x_e[e,(i,j)]*a[(i,j)] for i in V for j in V for e in E if i!=j)))
-
-#mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)]*q[j]*GV_cost for d in D for j in N))+(quicksum(x_d[d,(j,0)]*a[(j,0)]*GV_cost for j in V for d in D if j!=0))+(quicksum((1-b0[e,(j,0)])*260*EV_cost*x_e[e,(j,0)] for j in N for e in E)))
+#mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)]*2.05 for j in N for d in D )) +(quicksum(x_e[e,(i,j)]*a[(i,j)] for i in V for j in V for e in E if i!=j)))
+mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)]*2.0 for j in N for d in D )) +(quicksum(x_e[e,(i,j)]*a[(i,j)] for i in V for j in V for e in E if i!=j)))
 
 
 mdl.write("/Users/tanvirkaisar/Library/CloudStorage/OneDrive-UniversityofSouthernCalifornia/CVRP/Codes/hsc.lp")
 
-mdl.Params.MIPGap = 0.05
+mdl.Params.MIPGap = 0.01
 mdl.params.NonConvex = 2
 #mdl.Params.TimeLimit = 2000 #seconds
 mdl.optimize()
@@ -341,7 +335,42 @@ def cost_calculation(x_e_result,x_d_result,b0_result):
    return cost_EV 
 
 cost_EV = cost_calculation(x_e_result,x_d_result,b0_result)
-visualize_routes()
+#visualize_routes()
 
-2
-#miles_saved, percentage_miles_saved, cost_saved, percentage_cost_saved =  cost_calculation(x_e_result,x_d_result,b0_result)
+def route_construction(x_e_result):
+   routes = {}
+   for item in E:
+      routes[f"{item}"] = []
+   for item in x_e_result:
+      if x_e_result[item]>0.99:
+         temp = [int(match.group()) for match in re.finditer(r'\b\d+\b', item)]
+         if temp[1]==0:
+            routes[f"{temp[0]}"].append([temp[1],temp[2]])
+   for item in routes:
+      for elem in routes[item]:
+         while elem[-1]!=0:
+            for res in x_e_result:
+               if x_e_result[res]>0.99:
+                  temp =  [int(match.group()) for match in re.finditer(r'\b\d+\b', res)]
+                  if temp[0]==int(item) and temp[1]==elem[-1]:
+                     elem.append(temp[-1])
+   return routes
+
+
+
+ev_routes = route_construction(x_e_result)
+ev_routes_list = []
+for item in ev_routes:
+   for elem in ev_routes[item]:
+      ev_routes_list.append(elem)
+cost_EV=0
+for item in ev_routes_list:
+   if len(item)!=3:
+      cost,_ = ev_travel_cost(item)
+      cost_EV+=cost
+
+print(ev_routes_list)
+dataframes = {'data':ev_routes_list}
+for filename, dataframe in dataframes.items():
+   with open(f'{filename}.pkl', 'wb') as file:
+      pickle.dump(dataframe, file)

@@ -12,76 +12,18 @@ import copy
 #import subprocess
 #import json
 #import hsc_ALNS_IFB
-
+from utils import standalone_cost_degree_2, ev_travel_cost
 rnd = np.random
-rnd.seed(10)
+#rnd.seed(10)
 
 #override some config parameters
 q[0] = 0
 #T_max_EV = 700
 #print(T_max_EV)
-adjustment = 0.8 #artificially make degree 2 coalition lucrative to get unstable results
+adjustment = 1 #artificially make degree 2 coalition lucrative to get unstable results
 
 ###########Gurobi model############
 mdl = Model('hsc')
-
-def generate_k_degree_coalition(N, k):
-    # Generate all combinations of k nodes
-    combinations = list(itertools.combinations(N, k))
-    # Generate all possible routes starting and ending at depot 0
-    degree_k_coalition = [tuple([0] + list(comb) + [0]) for comb in combinations]
-    return degree_k_coalition
-
-degree_2_coalition = generate_k_degree_coalition(N, 2)
-degree_2_coalition_final = []
-degree_2_coalition_route = []
-
-for item in degree_2_coalition:
-    if a[item[0],item[1]] + a[item[1],item[2]] + a[item[2],item[0]] > a[item[0],item[2]] + a[item[2],item[1]] + a[item[1],item[0]]:
-        degree_2_coalition_route.append(tuple([item[0],item[2],item[1],item[0]]))
-        degree_2_coalition_final.append(tuple([item[2],item[1]]))
-    else:
-      degree_2_coalition_route.append(tuple([item[0],item[1],item[2],item[0]]))
-      degree_2_coalition_final.append(tuple([item[1],item[2]]))
-
-def ev_travel_cost(route):
-    rev=False
-    b = 1
-    l = 0
-    for i in range(len(route)-1):
-        l+=q[route[i]]
-        b = b - (a[route[i],route[i+1]]/EV_velocity)*(gamma+gamma_l*l) 
-    clockwise_cost = 260*EV_cost*(1-b)
-    b = 1
-    l = 0
-    route = list(route)
-    route.reverse()
-    for i in range(len(route)-1):
-        l+=q[route[i]]
-        b = b - (a[route[i],route[i+1]]/EV_velocity)*(gamma+gamma_l*l) 
-    counter_clockwise_cost = 260*EV_cost*(1-b)
-    if clockwise_cost>counter_clockwise_cost:
-        rev=True
-    return min(clockwise_cost,counter_clockwise_cost),rev
-
-degree_2_coalition_cost = {}
-for item in degree_2_coalition:
-    route = copy.deepcopy(item)
-    cost, rev = ev_travel_cost(route)
-    if rev:
-        degree_2_coalition_cost[tuple([item[2],item[1]])] = cost
-    else: degree_2_coalition_cost[tuple([item[1],item[2]])] = cost
-
-standalone_cost_degree_2 = {}
-for item in degree_2_coalition_cost:
-   standalone_cost_degree_2[item] = {}
-for item in degree_2_coalition_cost:
-   standalone_cost_degree_2[item][item[0]] = adjustment*degree_2_coalition_cost[item]* (a[item[0],0]*GV_cost+a[item[0],0]*GV_cost*q[item[0]])/((a[item[0],0]*GV_cost+a[item[0],0]*GV_cost*q[item[0]])+(a[item[1],0]*GV_cost+a[item[1],0]*GV_cost*q[item[1]]))
-   standalone_cost_degree_2[item][item[1]] = adjustment*degree_2_coalition_cost[item]* (a[item[1],0]*GV_cost+a[item[1],0]*GV_cost*q[item[1]])/((a[item[0],0]*GV_cost+a[item[0],0]*GV_cost*q[item[0]])+(a[item[1],0]*GV_cost+a[item[1],0]*GV_cost*q[item[1]]))
-standalone_cost_degree_2_copy = copy.deepcopy(standalone_cost_degree_2)
-for item in standalone_cost_degree_2_copy:
-   standalone_cost_degree_2[(item[1],item[0])]=standalone_cost_degree_2[item]
-
 
 # Decision variables
 x_e = {}
@@ -171,7 +113,7 @@ mdl.addConstrs((quicksum(x_e[e,(j,0)]* (z[e,j]+y[e,(j,0)]+(a[(j,0)]/EV_velocity)
 mdl.addConstrs((p[i]<=a[i,0]*GV_cost*q[i]+a[i,0]*GV_cost+e_IR[i]) for i in N)
 
 #BB
-mdl.addConstr(quicksum(p[i] for i in N)+(quicksum(e_IR[i] for i in N)) + (quicksum(e_S[i] for i in N))+ e_BB >= (quicksum((1-b0[e,(i,0)])*260*EV_cost*x_e[e,(i,0)] for i in N for e in E)))
+mdl.addConstr(quicksum(p[i] for i in N)+(quicksum(e_IR[i] for i in N)) + (quicksum(e_S[i] for i in N))+ e_BB == (quicksum((1-b0[e,(i,0)])*260*EV_cost*x_e[e,(i,0)] for i in N for e in E)))
 
 for i in N:
    for j in N:
@@ -184,6 +126,7 @@ for d in D:
       mdl.addConstr(p[j]*x_d[d,(0,j)]<=1-x_d[d,(0,j)],name="no_payment")
 
 
+#mdl.addConstr(quicksum(x_d[d,(0,j)] for d in D for j in N)>=2)
 #proportional cost allocation
 
 #for e in E:
@@ -194,8 +137,9 @@ for d in D:
 #   for i in N:
 #      mdl.addConstr(p[i] * sc_e[e] == a[0,i]*GV_cost*rc_e[e])
 
-mdl.addConstrs((p[i]*x_e[e,(j,i)]>=(a[(i,j)]/EV_velocity)*(gamma+gamma_l*q[i])*260*EV_cost*x_e[e,(j,i)] ) for e in E for i in N for j in V if i!=j)
 
+#mdl.addConstrs((p[i]*x_e[e,(j,i)]<=(a[(i,j)]/EV_velocity)*(gamma+gamma_l*q[i])*260*EV_cost*x_e[e,(j,i)] ) for e in E for i in N for j in V if i!=j)
+mdl.addConstrs((p[i]*x_e[e,(j,i)]<=(a[(i,0)]/EV_velocity)*(gamma+gamma_l*q[i])*260*EV_cost*x_e[e,(j,i)] + (a[(i,0)]/EV_velocity)*(gamma+gamma_l*0)*260*EV_cost*x_e[e,(j,i)]) for e in E for i in N for j in V if i!=j)
 
 
 
@@ -289,15 +233,9 @@ mdl.update()
 mdl.modelSense = GRB.MINIMIZE
 
 #Set objective
-#mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)]*GV_cost for d in D for j in V if j!=0))+(quicksum(x_d[d,(j,0)]*a[(j,0)]*GV_cost for j in V for d in D if j!=0))+(quicksum(x_e[e,(i,j)]*a[(i,j)]*EV_cost for i in V for j in V for e in E if i!=j))+ 0*quicksum(z[e,j] for e in E for j in N) + 0*quicksum(x_e[e,(0,j)]*e for e in E for j in N))
+#mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)]*2 for j in N for d in D )) +0.1*(e_BB + (quicksum(e_IR[i] for i in N)) + (quicksum(e_S[i] for i in N)))+(quicksum(x_e[e,(i,j)]*a[(i,j)] for i in V for j in V for e in E if i!=j)))
 
-#mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)] for j in N for d in D )) + (quicksum(x_d[d,(j,0)]*a[(j,0)] for j in N for d in D))+(quicksum(x_e[e,(i,j)]*a[(i,j)] for i in V for j in V for e in E if i!=j)))
-
-mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)]*2 for j in N for d in D )) +0.1*(e_BB + (quicksum(e_IR[i] for i in N)) + (quicksum(e_S[i] for i in N)))+(quicksum(x_e[e,(i,j)]*a[(i,j)] for i in V for j in V for e in E if i!=j)))
-
-#mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)]*GV_cost for j in N for d in D ))+ (e_BB + (quicksum(e_IR[i] for i in N)) + (quicksum(e_S[i] for i in N))) + (quicksum(x_d[d,(j,0)]*a[(j,0)] for j in N for d in D))+(quicksum(x_e[e,(i,j)]*a[(i,j)] for i in V for j in V for e in E if i!=j)))
-
-#mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)]*q[j]*GV_cost for d in D for j in N))+(quicksum(x_d[d,(j,0)]*a[(j,0)]*GV_cost for j in V for d in D if j!=0))+(quicksum((1-b0[e,(j,0)])*260*EV_cost*x_e[e,(j,0)] for j in N for e in E)))
+mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)]*2.05 for j in N for d in D )) + 0.01*(e_BB + (quicksum(e_IR[i] for i in N)) + (quicksum(e_S[i] for i in N)))+(quicksum(x_e[e,(i,j)]*a[(i,j)]*1.001 for i in V for j in V for e in E if i!=j)))
 
 
 mdl.write("/Users/tanvirkaisar/Library/CloudStorage/OneDrive-UniversityofSouthernCalifornia/CVRP/Codes/hsc.lp")
@@ -456,15 +394,49 @@ def cost_calculation(x_e_result,x_d_result,b0_result):
 
    return cost_EV 
 
-cost_EV = cost_calculation(x_e_result,x_d_result,b0_result)
-visualize_routes()
+def route_construction(x_e_result):
+   routes = {}
+   for item in E:
+      routes[f"{item}"] = []
+   for item in x_e_result:
+      if x_e_result[item]>0.99:
+         temp = [int(match.group()) for match in re.finditer(r'\b\d+\b', item)]
+         if temp[1]==0:
+            routes[f"{temp[0]}"].append([temp[1],temp[2]])
+   for item in routes:
+      for elem in routes[item]:
+         while elem[-1]!=0:
+            for res in x_e_result:
+               if x_e_result[res]>0.99:
+                  temp =  [int(match.group()) for match in re.finditer(r'\b\d+\b', res)]
+                  if temp[0]==int(item) and temp[1]==elem[-1]:
+                     elem.append(temp[-1])
+   return routes
 
+
+
+ev_routes = route_construction(x_e_result)
+ev_routes_list = []
+for item in ev_routes:
+   for elem in ev_routes[item]:
+      ev_routes_list.append(elem)
+cost_EV=0
+for item in ev_routes_list:
+   if True:#len(item)!=30:
+      cost,_ = ev_travel_cost(item)
+      cost_EV+=cost
+
+#visualize_routes()
+#cost_EV = cost_calculation(x_e_result,x_d_result,b0_result)
 print(f"total payment= {sum(p_result.values()),cost_EV}")
 print(f"stability subsidy= {sum(e_S_result.values())}")
 print(f"IR subsidy= {sum(e_IR_result.values())}")
 print(f"BB subsidy= {sum(e_BB_result.values())}")
+print(f"Total subsidy= {sum(e_BB_result.values())+sum(e_IR_result.values())+sum(e_S_result.values())}")
 print(f"payments= {p_result}")
 print(f"stability= {e_S_result}")
+print(ev_routes_list)
 
 2
+
 #miles_saved, percentage_miles_saved, cost_saved, percentage_cost_saved =  cost_calculation(x_e_result,x_d_result,b0_result)

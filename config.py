@@ -3,7 +3,7 @@ rnd = np.random
 rnd.seed(10)
 
 # Grid and coordinates
-n = 13
+n = 7
 grid_size = 50                                                               #number of clients
 xc = np.random.uniform(low=- grid_size/2, high=grid_size/2, size=n+1)
 yc = np.random.uniform(low=-grid_size/2, high=grid_size/2, size=n+1)
@@ -16,7 +16,7 @@ V = [0] + N                                                                  #se
 
 # Demands and capacities
 Q_EV = 10                                                                    #capacity of each EV
-Q_GV = 10                                                                    #capacity of each GV
+Q_GV = 15                                                                    #capacity of each GV
 q = {i: rnd.randint(1,7) for i in N}                                         #demand for customers
 
 #q = {i: np.random.choice([1, 20]) for i in N}

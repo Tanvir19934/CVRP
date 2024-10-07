@@ -180,8 +180,8 @@ mdl.modelSense = GRB.MINIMIZE
 
 #Set objective
 
-#mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)]*2.05 for j in N for d in D )) +(quicksum(x_e[e,(i,j)]*a[(i,j)] for i in V for j in V for e in E if i!=j)))
-mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)]*2.0 for j in N for d in D )) +(quicksum(x_e[e,(i,j)]*a[(i,j)] for i in V for j in V for e in E if i!=j)))
+mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)]*2.05 for j in N for d in D )) +(quicksum(x_e[e,(i,j)]*a[(i,j)] for i in V for j in V for e in E if i!=j)))
+#mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)]*2.0 for j in N for d in D )) +(quicksum(x_e[e,(i,j)]*a[(i,j)] for i in V for j in V for e in E if i!=j)))
 
 
 mdl.write("/Users/tanvirkaisar/Library/CloudStorage/OneDrive-UniversityofSouthernCalifornia/CVRP/Codes/hsc.lp")

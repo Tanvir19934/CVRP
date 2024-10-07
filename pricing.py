@@ -4,7 +4,7 @@ import cProfile
 def column_generation(adj,forbidden_set=[], initial = False):
 
     #if initial:
-    not_fractional = True
+    not_fractional = False
     new_routes_record = [0,0,0]
     iteration = 1
     new_routes_to_add=set()
@@ -13,13 +13,6 @@ def column_generation(adj,forbidden_set=[], initial = False):
     y_r_result, master_prob_model, status = master_prob.relaxedLP(None)
     if not y_r_result:
         return None, None, None, None, status
-    for item in y_r_result:
-        if y_r_result[item]!=0 and y_r_result[item]!=1:
-            not_fractional = False
-            break
-    if not_fractional==True:
-        return y_r_result, True, master_prob_model, master_prob_model.getObjective().getValue(), status
-    
     dual_values = master_prob.getDuals()
     print(dual_values)
     print(sum(dual_values.values()))

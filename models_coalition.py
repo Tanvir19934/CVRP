@@ -5,7 +5,9 @@ import heapq
 from collections import defaultdict
 import itertools
 import copy
-import cProfile
+from utils import standalone_cost_degree_2
+from config import a, q, N
+from coalition_lp import lp
 
 # Define a label structure
 class Label:
@@ -64,7 +66,7 @@ class SubProblem:
             reduced_cost -= dual_values.get(label.node,0)
             label = label.parent     
         path = path[::-1]
-        if reduced_cost<0:
+        if reduced_cost<=0.01:
             return True
         else: return False
     
@@ -89,16 +91,29 @@ class SubProblem:
         initial_resource_vector = (0, 0, 0, 0)  # (distance, load, battery, time)
         initial_label = Label(start_node, initial_resource_vector, None)
         heapq.heappush(U, initial_label)
-        cutoff = len(N)*500000
+        #cutoff = len(N)*5000000000000
         
         # Step 2: Main loop for label setting
         while U:
-            if len(L['t'])>=cutoff:
-                break
+            #if len(L['t'])>=cutoff:
+            #    break
             # 2a. Remove first label (label with the least resource cost in heap)
             current_label = heapq.heappop(U)
             current_node = current_label.node
+            
+            #c_l = copy.deepcopy(current_label)
+            #r = []
+            #while c_l.parent:
+            #    r.append(c_l.parent.node)
+            #    c_l = c_l.parent
+            #r = r[::-1]
+            #r.append(current_node)
+            
 
+            #if r==['s', 3, 7, 9, 8]:
+            #    pass
+            #check = [[0, 3, 7, 9, 8, 0], [0, 11, 1, 0], [0, 2, 5, 0], [0, 6, 4, 0], [0, 10, 0]]
+  
             # 2c. Check for dominance and add label to the set of labels if not dominated
             is_dominated = False
             for label in L[current_node]:
@@ -120,6 +135,8 @@ class SubProblem:
                     neigh = list(set(N)-set([current_node]))
                     if current_node=='s':
                         neigh.remove('t')
+                    if current_node!='s':
+                        neigh.remove('s')
                     if current_node=='t':
                         continue
                     
@@ -145,6 +162,8 @@ class SubProblem:
                             if reduced_cost:
                                 # 2c3. Add all feasible extensions to U (if no constraint violation)
                                 heapq.heappush(U, new_label)
+                                if new_node=='t':
+                                    L[new_node].append(new_label)
 
         # Step 3: Select the best label in L_t (sink node)
         sink_node = 't'
@@ -222,6 +241,7 @@ class MasterProblem:
     def __init__(self, adj, forbidden=[]):
         self.adj = adj
         self.forbidden = forbidden
+        self.e_S, self.e_S_total , self.p , self.p_total , self.e_BB , self.e_BB_total ,self.e_IR ,self.e_IR_total  = {},{},{},{},{},{},{},{}
 
 
     def relaxedLP(self, extended_set) -> None:
@@ -297,7 +317,7 @@ class MasterProblem:
                 degree_2_coalition_final.append(tuple([item[0],item[2],item[1],item[0]]))
             else: degree_2_coalition_final.append(tuple(item))
 
-        degree_2_coalition_initial = copy.copy(degree_2_coalition_final)
+        degree_2_coalition_initial = copy.deepcopy(degree_2_coalition_final)
 
         degree_2_coalition=[]
         for item in degree_2_coalition_initial:
@@ -364,6 +384,18 @@ class MasterProblem:
             l = len(item)
             for i in range(l-1):
                 c_r[item] += a[(item[i],item[i+1])]
+        
+        #check = [[0, 3, 7, 9, 8, 0], [0, 6, 4, 0]]
+        #flag = 1
+        #for item in check:
+        #    if tuple(item) not in r_set:
+        #        flag = 0
+        #    break
+        #if flag:
+        #    pass
+
+        #if (0, 2, 5, 0) in r_set and (0, 11, 1, 0) and (0, 10, 0) and (0, 6, 4, 0) in r_set and (0, 3, 7, 9, 8, 0) in r_set:
+        #    pass
 
         delta = {}
         # Iterate over all routes and nodes
@@ -371,18 +403,51 @@ class MasterProblem:
             for i in range(1,len(V)+1):  # Nodes from 0 to 10
                 # Set delta_i,r = 1 if node i is in route r, otherwise 0
                 delta[(i, route)] = 1 if i in route else 0
+        
+        if len(self.p)==0:
+            for route in r_set:
+                self.p[route] = {}
+                self.p_total[route] = {}
+                self.e_S[route] = {}
+                self.e_S_total[route] = {}
+                self.e_BB[route] = {}
+                self.e_BB_total[route] = {}
+                self.e_IR[route] = {}
+                self.e_IR_total[route] = {}
+        elif extended_set: 
+            for route in extended_set:
+                self.p[route] = {}
+                self.p_total[route] = {}
+                self.e_S[route] = {}
+                self.e_S_total[route] = {}
+                self.e_BB[route] = {}
+                self.e_BB_total[route] = {}
+                self.e_IR[route] = {}
+                self.e_IR_total[route] = {}
+        for route in r_set:
+            if not self.p[route]:
+                self.p[route], self.e_S[route], self.e_BB[route], self.e_IR[route] = lp(route, standalone_cost_degree_2, N)
+                self.p_total[route] = sum(self.p[route].values())
+                self.e_S_total[route] = sum(self.e_S[route].values())
+                self.e_BB_total[route] = sum(self.e_BB[route].values())
+                self.e_IR_total[route] = sum(self.e_IR[route].values())
 
+                
 
         #DECISION VARIABLES
         y_r = {}
         for item in r_set:
             y_r[tuple(item)] = self.model.addVar(vtype=GRB.CONTINUOUS, name=f"y_r[{item}]", lb=0, ub=1)
+
+        
         self.model.update()
+
+
 
 
         #CONSTRAINTS
         self.model.addConstrs((quicksum(delta[(i, route)] * y_r[route] for route in r_set) == 1 for i in N), name=f"delta")
-        self.model.addConstrs(((r_set_ev_cost[route]-r_set_gv_cost[route])*y_r[route] <= 0 for route in r_set), name=f"IR")
+        #self.model.addConstrs(((r_set_ev_cost[route]-r_set_gv_cost[route])*y_r[route] <= 0 for route in r_set), name=f"IR")
         #for route in r_set:
         #    for r in arc_set_Ar[route]:
         #        for (o,i,j,o) in degree_2_coalition:
@@ -420,7 +485,7 @@ class MasterProblem:
 
         self.model.modelSense = GRB.MINIMIZE
         #SET OBJECTIVE
-        self.model.setObjective((quicksum(c_r[route]*y_r[route] for route in r_set)))
+        self.model.setObjective((quicksum(c_r[route]*y_r[route] for route in r_set))*1.025 + 0.1*quicksum((self.e_BB_total[route]+self.e_IR_total[route]+self.e_S_total[route])*y_r[route] for route in r_set if len(route)>3))
         self.model.write("/Users/tanvirkaisar/Library/CloudStorage/OneDrive-UniversityofSouthernCalifornia/CVRP/Codes/master_prob.lp")
         self.model.optimize()
 

@@ -1,12 +1,8 @@
 from gurobipy import GRB, Model, quicksum
-import random
 import pickle
 from config import *
-import itertools
-import copy
 import time
 from utils import ev_travel_cost, standalone_cost_degree_2
-
 
 def load_routes():
     filenames = ['data.pkl']
@@ -17,7 +13,10 @@ def load_routes():
         with open(filename, 'rb') as file:
             loaded_dataframes[filename[:-4]] = pickle.load(file)  # Remove .pkl extension for key
     # Access the loaded dataframes
-    ev_routes = loaded_dataframes['data']
+    if 'data' in loaded_dataframes:
+        ev_routes = loaded_dataframes['data']
+    else:
+        raise KeyError("The key 'data' was not found in the loaded dataframes.")
     return ev_routes
 
 
@@ -43,6 +42,8 @@ def lp(route, standalone_cost_degree_2,N_whole):
 
     #IR
     mdl.addConstrs((p[i]<=a[i,0]*GV_cost*q[i]+a[i,0]*GV_cost+e_IR[i]) for i in N_lp)
+    #mdl.addConstrs((p[i]<=(a[(i,0)]/EV_velocity)*(gamma+gamma_l*q[i])*260*EV_cost+(a[(i,0)]/EV_velocity)*(gamma+gamma_l*0)*260*EV_cost) for i in N_lp)
+
 
     #BB
     mdl.addConstr(quicksum(p[i] for i in N_lp)+(quicksum(e_IR[i] for i in N_lp)) + (quicksum(e_S[i] for i in N_lp))+ e_BB == C_route)
@@ -54,7 +55,6 @@ def lp(route, standalone_cost_degree_2,N_whole):
                 mdl.addConstr(p[i]<=standalone_cost_degree_2[i,j][i]+e_S[i],name="stability")
 
     #mdl.addConstrs((p[i]<=(a[(i,j)]/EV_velocity)*(gamma+gamma_l*q[i])*260*EV_cost) for i in N_lp for j in N_lp if i!=j and immediate[i]==j)
-    mdl.addConstrs((p[i]<=(a[(i,0)]/EV_velocity)*(gamma+gamma_l*q[i])*260*EV_cost+(a[(i,0)]/EV_velocity)*(gamma+gamma_l*0)*260*EV_cost) for i in N_lp)
 
 
 
@@ -104,6 +104,7 @@ if __name__ == "__main__":
         ev_cost, _ = ev_travel_cost(route)
         total_ev_cost +=  ev_cost
     end = time.perf_counter()
+    print(ev_routes)
     print(f"total payment = {total_p,total_ev_cost}")
     print(f"total stability = {total_S}")
     print(f"total IR = {total_IR}")
@@ -111,6 +112,7 @@ if __name__ == "__main__":
     print(f"total subsidy = {total_BB+total_IR+total_S}")
     print(f"Execution time = {end-start}")
     print(p_result_dict)
+    print(e_S_result_dict)
 
     node = 8
     l = []

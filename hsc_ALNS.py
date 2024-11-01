@@ -896,8 +896,8 @@ def ALNS(best_local_solution):
 if __name__ == "__main__":
 
    start =time.perf_counter()
-   repair_iterations = 200*n
-   ALNS_iterations = 5
+   repair_iterations = 100*n
+   ALNS_iterations = 2
    sim = 1
    local_search_iterations = 10000
    num_destroy = 2 #max(int(n*0.05),2)

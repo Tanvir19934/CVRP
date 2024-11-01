@@ -20,7 +20,6 @@ rnd = np.random
 q[0] = 0
 #T_max_EV = 700
 #print(T_max_EV)
-adjustment = 1 #artificially make degree 2 coalition lucrative to get unstable results
 
 ###########Gurobi model############
 mdl = Model('hsc')
@@ -111,6 +110,7 @@ mdl.addConstrs((quicksum(x_e[e,(j,0)]* (z[e,j]+y[e,(j,0)]+(a[(j,0)]/EV_velocity)
 
 #IR
 mdl.addConstrs((p[i]<=a[i,0]*GV_cost*q[i]+a[i,0]*GV_cost+e_IR[i]) for i in N)
+#mdl.addConstrs((p[i]<=(a[(i,0)]/EV_velocity)*(gamma+gamma_l*q[i])*260*EV_cost+(a[(i,0)]/EV_velocity)*(gamma+gamma_l*0)*260*EV_cost) for i in N)
 
 #BB
 mdl.addConstr(quicksum(p[i] for i in N)+(quicksum(e_IR[i] for i in N)) + (quicksum(e_S[i] for i in N))+ e_BB == (quicksum((1-b0[e,(i,0)])*260*EV_cost*x_e[e,(i,0)] for i in N for e in E)))
@@ -235,11 +235,7 @@ mdl.modelSense = GRB.MINIMIZE
 #Set objective
 #mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)]*2 for j in N for d in D )) +0.1*(e_BB + (quicksum(e_IR[i] for i in N)) + (quicksum(e_S[i] for i in N)))+(quicksum(x_e[e,(i,j)]*a[(i,j)] for i in V for j in V for e in E if i!=j)))
 
-mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)]*2.05 for j in N for d in D )) + 0.01*(e_BB + (quicksum(e_IR[i] for i in N)) + (quicksum(e_S[i] for i in N)))+(quicksum(x_e[e,(i,j)]*a[(i,j)]*1.001 for i in V for j in V for e in E if i!=j)))
-
-
-mdl.write("/Users/tanvirkaisar/Library/CloudStorage/OneDrive-UniversityofSouthernCalifornia/CVRP/Codes/hsc.lp")
-
+mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)]*2.000 for j in N for d in D )) - 0.00000*(quicksum(-p[i] for i in N)) + 0.00001*(e_BB + (quicksum(e_IR[i] for i in N)) + (quicksum(e_S[i] for i in N)))+1.0000005*(quicksum(x_e[e,(i,j)]*a[(i,j)] for i in V for j in V for e in E if i!=j)))
 mdl.Params.MIPGap = 0.01
 mdl.params.NonConvex = 2
 #mdl.Params.TimeLimit = 2000 #seconds

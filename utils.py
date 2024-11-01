@@ -10,7 +10,6 @@ rnd = np.random
 #override some config parameters
 q[0] = 0
 
-adjustment = 1 #artificially make degree 2 coalition lucrative to get unstable results
 
 
 def generate_k_degree_coalition(N, k):

@@ -57,16 +57,16 @@ class SubProblem:
 
         return new_time, new_load, new_battery, new_distance 
 
-    def calculate_reduced_cost(self, label, dual_values,dual_values_BB):
+    def calculate_reduced_cost(self, label, dual_values,dual_values_BB, dual_values_IR, dual_values_stability):
         distance = label.resource_vector[0]
         reduced_cost = distance
         path = []
         while label:
             path.append(label.node)
-            reduced_cost -= dual_values.get(label.node,0)
+            reduced_cost = reduced_cost -  dual_values.get(label.node,0) - 0.00001*( dual_values_IR.get(label.node,0)  + dual_values_stability.get(label.node,0))
             label = label.parent     
         path = path[::-1]
-        if reduced_cost-0.1*dual_values_BB<=0.01:
+        if reduced_cost-0.00001*dual_values_BB<=0.01:
             return True
         else: 
             return False
@@ -82,7 +82,7 @@ class SubProblem:
             return True
         else: return False
     
-    def dy_prog(self, dual_values,dual_values_BB):
+    def dy_prog(self, dual_values,dual_values_BB, dual_values_IR, dual_values_stability):
         # Initialize the sets of labels
         U = []  # Priority queue for undominated labels
         L = defaultdict(list)  # Dictionary to store the sets of labels at each node
@@ -109,11 +109,6 @@ class SubProblem:
             #    c_l = c_l.parent
             #r = r[::-1]
             #r.append(current_node)
-            
-
-            #if r==['s', 3, 7, 9, 8]:
-            #    pass
-            #check = [[0, 3, 7, 9, 8, 0], [0, 11, 1, 0], [0, 2, 5, 0], [0, 6, 4, 0], [0, 10, 0]]
   
             # 2c. Check for dominance and add label to the set of labels if not dominated
             is_dominated = False
@@ -159,7 +154,7 @@ class SubProblem:
                             resource_vector = (new_distance, new_load, new_battery, new_time)
                             #new_resource_vector = tuple(map(sum, zip(current_label.resource_vector, resources)))
                             new_label = Label(new_node, resource_vector, current_label)
-                            reduced_cost = self.calculate_reduced_cost(new_label, dual_values,dual_values_BB)
+                            reduced_cost = self.calculate_reduced_cost(new_label, dual_values, dual_values_BB, dual_values_IR, dual_values_stability)
                             if reduced_cost:
                                 # 2c3. Add all feasible extensions to U (if no constraint violation)
                                 heapq.heappush(U, new_label)
@@ -199,49 +194,17 @@ class SubProblem:
                 total_distance += distances.get((route[i], route[i + 1]), float('inf'))
             return total_distance
 
-        def find_best_routes(routes, distances):
-            unique_routes = {}
-            for route in routes:
-                # Remove the start and end (0), work with middle nodes
-                middle_nodes = tuple(sorted(route[1:-1]))
-
-                # Generate all permutations of the middle nodes
-                min_distance = float('inf')
-                best_permutation = None
-
-                for perm in itertools.permutations(middle_nodes):
-                    # Form the full route with current permutation
-                    full_route = [0] + list(perm) + [0]
-                    distance = calculate_route_distance(full_route, distances)
-
-                    if distance < min_distance:
-                        min_distance = distance
-                        best_permutation = full_route
-
-                # Store the best route for the unique set of middle nodes
-                if middle_nodes not in unique_routes or min_distance < unique_routes[middle_nodes][1]:
-                    unique_routes[middle_nodes] = (best_permutation, min_distance)
-
-            # Extract and return the list of best routes
-
-            return [(route, distance) for route, distance in unique_routes.values()]
-
-        # Finding the best routes
-        #best_routes = find_best_routes(new_routes, a)
-
-        # Print the result
-        #for route, distance in best_routes:
-        #    print(f"Route: {route}, Distance: {distance}")
-
         N.remove('s')
         N.remove('t')
+
         return new_routes ########################not optimizaing the tours to avoid adding nodes from forbidden set###########
 
 class MasterProblem:
 
-    def __init__(self, adj, forbidden=[]):
+    def __init__(self, adj, forbidden=[], allowed=[]):
         self.adj = adj
         self.forbidden = forbidden
+        self.allowed = allowed
         self.e_S, self.e_S_total , self.p , self.p_total , self.e_BB , self.e_BB_total ,self.e_IR ,self.e_IR_total  = {},{},{},{},{},{},{},{}
 
 
@@ -357,6 +320,34 @@ class MasterProblem:
         r_set_gv_cost = {}
         arc_set_Ar = {}
         r_set = set(tuple(route) for route in r_set)
+        #r_set_d = copy.deepcopy(r_set)
+        #for item in r_set_d:
+        #    r_set.add(tuple(item[::-1]))
+
+        if self.allowed:
+            for item in self.allowed:
+                if item[0]!=0 and item[1]!=0:
+                    s=list(item)
+                    s.append(0)
+                    s.insert(0,0)
+                    r_set.add(tuple(s))
+                elif item[0]==0 and item[1]!=0:
+                    s=list(item)
+                    s.append(0)
+                    r_set.add(tuple(s))
+                elif item[0]!=0 and item[1]==0:
+                    s=list(item)
+                    s.insert(0,0)
+                    r_set.add(tuple(s))
+        #r_set.add((0, 5, 4, 0))
+        #r_set.add((0, 7, 9, 3, 0))
+        #r_set.add((0, 6, 2, 1, 0))
+        
+        #[[0, 1, 5, 0], [0, 4, 6, 2, 0], [0, 7, 9, 0], [0, 8, 3, 0]] for N=10
+
+        if (0,4,6,0) in r_set and (0,3,7,9,8,0) in r_set and (0,1,11,0) in r_set and (0,5,2,0) in r_set:
+            pass
+
         for item in r_set:
             arr = []
             if len(item)>3:
@@ -400,9 +391,7 @@ class MasterProblem:
         for route in r_set:
             if route not in c_route:
                 c_route[route]= ev_travel_cost(route)[0]
-
-
-                
+       
 
         #DECISION VARIABLES
         y_r = {}
@@ -433,20 +422,27 @@ class MasterProblem:
 
 
         #BB
-        self.model.addConstr(quicksum(p[i] for i in N)+(quicksum(e_IR[i] for i in N)) + (quicksum(e_S[i] for i in N))+ e_BB == (quicksum(y_r[r]*c_route[route] for r in c_route if len(r)>3)),name="BB")
-
+        #self.model.addConstr(quicksum(p[i] for i in N)+(quicksum(e_IR[i] for i in N)) + (quicksum(e_S[i] for i in N))+ e_BB == (quicksum(y_r[r]*c_route[r] for r in c_route if len(r)>3)),name="BB")
+        self.model.addConstr(
+            quicksum(p[i] for i in N) +
+            quicksum(e_IR[i] for i in N) +
+            quicksum(e_S[i] for i in N) +
+            e_BB ==
+            quicksum(y_r[r] * c_route[r] for r in c_route if len(r) > 3),
+            name="BB"
+        )
         #Stability
         for i in N:
             for j in N:
                 if i!=j:
-                    self.model.addConstr(p[i]<=standalone_cost_degree_2[i,j][i]+e_S[i],name="stability")
+                    self.model.addConstr(p[i]<=standalone_cost_degree_2[i,j][i]+e_S[i],name=f"stability_{i}_{j}")
             self.model.update()
 
         #self.model.setParam('Threads', 8)  # Use 8 threads for solving
 
         self.model.modelSense = GRB.MINIMIZE
         #SET OBJECTIVE
-        self.model.setObjective((quicksum(c_r[route]*y_r[route] for route in r_set))*1.025 + 0.1*(e_BB + (quicksum(e_IR[i] for i in N)) + (quicksum(e_S[i] for i in N))))
+        self.model.setObjective((quicksum(c_r[route]*y_r[route] for route in r_set))*1.0000 + 0.0000*(quicksum(-p[i] for i in N)) + 0.00001*(e_BB + (quicksum(e_IR[i] for i in N)) + (quicksum(e_S[i] for i in N))))
         self.model.write("/Users/tanvirkaisar/Library/CloudStorage/OneDrive-UniversityofSouthernCalifornia/CVRP/Codes/master_prob.lp")
         self.model.optimize()
 
@@ -476,6 +472,8 @@ class MasterProblem:
     def getDuals(self) -> List[int]:
         dual_values = {}
         dual_values_BB=0
+        dual_values_IR = {}
+        dual_values_stability = defaultdict(int)
         for constr in self.model.getConstrs():
             if constr.ConstrName.startswith("delta"):
                 # Extract the route and node index from the constraint name
@@ -486,10 +484,12 @@ class MasterProblem:
                 if constr.ConstrName.startswith("BB"):
                     dual_values_BB += constr.Pi
                 if constr.ConstrName.startswith("stability"):
-                    dual_values_BB += constr.Pi
+                    name = constr.ConstrName.split('_')
+                    dual_values_stability[int(name[1])] += constr.Pi
                 if constr.ConstrName.startswith("IR"):
-                    dual_values_BB += constr.Pi
-        return dual_values,dual_values_BB
+                    i = int(constr.ConstrName.split('[')[1][:-1])
+                    dual_values_IR[i] += constr.Pi
+        return dual_values,dual_values_BB, dual_values_IR, dual_values_stability
 
     def get_RMP_solution(self) -> List[int]:
        

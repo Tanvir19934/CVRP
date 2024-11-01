@@ -64,7 +64,7 @@ class SubProblem:
             reduced_cost -= dual_values.get(label.node,0)
             label = label.parent     
         path = path[::-1]
-        if reduced_cost<0:
+        if reduced_cost<=0.01:
             return True
         else: return False
     

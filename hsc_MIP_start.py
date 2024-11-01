@@ -14,7 +14,7 @@ import copy
 #import hsc_ALNS_IFB
 from utils import ev_travel_cost
 rnd = np.random
-rnd.seed(10)
+#rnd.seed(10)
 
 #override some config parameters
 q[0] = 0
@@ -75,6 +75,7 @@ mdl.addConstrs((b0[e,(j,0)]*x_e[e,(j,0)] >= battery_threshold*x_e[e,(j,0)] ) for
 mdl.addConstrs((z[d,0] == 0) for d in D)
 mdl.addConstrs((z[e,0] == 0) for e in E)
 mdl.addConstrs((quicksum(z[d,j]*x_d[d,(0,j)] for j in N)<= T_max_GV) for d in D)
+
 
 
 #h = mdl.addVars((item for item in E), vtype=GRB.CONTINUOUS, name = "h")
@@ -369,8 +370,15 @@ for item in ev_routes_list:
       cost,_ = ev_travel_cost(item)
       cost_EV+=cost
 
-print(ev_routes_list)
+print(ev_routes_list,cost_EV)
+dataframes = {'data':[[0, 3, 8, 0],[0, 2, 6, 4, 0],[0, 5, 1, 0],[0, 9, 7, 0],[0, 10, 0]]}
+#dataframes = {'data':[[0, 8, 3, 0],[0, 4, 6, 2, 0],[0, 1, 5, 0],[0, 7, 9, 0],[0, 10, 0]]}
+
 dataframes = {'data':ev_routes_list}
+
+
 for filename, dataframe in dataframes.items():
    with open(f'{filename}.pkl', 'wb') as file:
       pickle.dump(dataframe, file)
+
+

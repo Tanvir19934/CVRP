@@ -130,7 +130,7 @@ class SubProblem:
                     in_path_already = self.partial_path(current_label,current_node)
                     if in_path_already:
                         continue
-                    L[current_node].append(current_label)
+                    L[current_node].append(current_label)   #DO WE NEED THIS??
                     # 2c2. Extend the label along all arcs leaving the current node
                     neigh = list(set(N)-set([current_node]))
                     if current_node=='s':

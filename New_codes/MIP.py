@@ -6,31 +6,28 @@ import re
 from matplotlib.lines import Line2D
 import random
 import pickle
-from config import *
-import itertools
-import copy
-#import subprocess
-#import json
-#import hsc_ALNS_IFB
-from utils import standalone_cost_degree_2, ev_travel_cost
+from config_new import *
+from utils_new import generate_all_possible_routes, ev_travel_cost, tsp_tour
 rnd = np.random
 #rnd.seed(10)
 
 #override some config parameters
 q[0] = 0
 #T_max_EV = 700
-#print(T_max_EV)
 
 ###########Gurobi model############
-mdl = Model('hsc')
+mdl = Model('mip')
 
 # Decision variables
 x_e = {}
 p = {}
-e_IR = {}
-e_S = {}
-sc_e = {}
-rc_e = {}
+
+all_routes = generate_all_possible_routes(N)
+mr = {}
+for item in all_routes:
+   mr[item] = tsp_tour(item)
+
+
 for item in E:
     for element in A:
         x_e[item,element] = mdl.addVar(vtype=GRB.BINARY, name=f"x_e[{item},{element}]")
@@ -45,11 +42,7 @@ tol = mdl.addVar(vtype=GRB.CONTINUOUS, name = "tol")
 
 for i in N:
    p[i] = mdl.addVar(vtype=GRB.CONTINUOUS, name = f"p{i}")
-   e_IR[i] = mdl.addVar(vtype=GRB.CONTINUOUS, name = f"e_IR{i}")
-   e_S[i] = mdl.addVar(vtype=GRB.CONTINUOUS, name = f"e_S{i}")
-for e in E:
-   sc_e[e] = mdl.addVar(vtype=GRB.CONTINUOUS, name=f"sc_e[{e}]")
-   rc_e[e] = mdl.addVar(vtype=GRB.CONTINUOUS, name=f"rc_e[{e}]")
+
 
 mdl.update()
 #ind = mdl.addVars(((item, element) for item in E for element in V), vtype = GRB.BINARY, name = "ind")
@@ -92,56 +85,28 @@ mdl.addConstrs((z[e,0] == 0) for e in E) #starts at time 0
 mdl.addConstrs((quicksum(z[d,j]*x_d[d,(0,j)] for j in N)<= T_max_GV) for d in D) #daily working time limitation for GV
 
 
-#h = mdl.addVars((item for item in E), vtype=GRB.CONTINUOUS, name = "h")
-#mdl.addConstrs((h[e]==gp.max_((z[e,j]) for j in V)) for e in E)
-#mdl.addConstrs((h[e] <= T_max) for e in E)
-#mdl.addConstrs((z[e,i] -z[e,0]<= T_max_EV) for e in E for i in V  if i!=0)
 mdl.addConstrs((quicksum(x_e[e,(j,0)]* (z[e,j]+y[e,(j,0)]+(a[(j,0)]/EV_velocity)) for j in N) <= T_max_EV) for e in E)
 
+# To ensure singleton cannot be an EV
+mdl.addConstrs(x_e[e,(j,0)] + x_e[e,(0,j)] <= 1 for e in E for j in N) 
 
-#mdl.addConstrs((quicksum(x_e[e,(0,j)] for j in N) <= (quicksum(x_e[e-1,(0,j)] for j in N)) for e in E if e!=min(E)))       #var_elim constraint. employ smaller labeled EV first
-#mdl.addConstrs((quicksum(x_d[d,(0,j)] for j in N) <= (quicksum(x_d[d-1,(0,j)] for j in N)) for d in D if d!=min(D)))      #might be incorrect. var_elim constraint. employ smaller labeled GV first
-
-
-#mdl.addConstrs(((x_e[e,(i,j)] - b[e,j]) >= 0) for e in E for i in V for j in N  if i!=j)
 
 #coalition constraints
 
-
 #IR
-mdl.addConstrs((p[i]<=a[i,0]*GV_cost*q[i]+a[i,0]*GV_cost+e_IR[i]) for i in N)
-#mdl.addConstrs((p[i]<=(a[(i,0)]/EV_velocity)*(gamma+gamma_l*q[i])*260*EV_cost+(a[(i,0)]/EV_velocity)*(gamma+gamma_l*0)*260*EV_cost) for i in N)
+mdl.addConstrs((p[i]<=a[i,0]*GV_cost*q[i]+a[i,0]*GV_cost) for i in N)
+
 
 #BB
-mdl.addConstr(quicksum(p[i] for i in N)+(quicksum(e_IR[i] for i in N)) + (quicksum(e_S[i] for i in N))+ e_BB == (quicksum((1-b0[e,(i,0)])*260*EV_cost*x_e[e,(i,0)] for i in N for e in E)))
-
-for i in N:
-   for j in N:
-      if i!=j:
-         mdl.addConstr(p[i]<=standalone_cost_degree_2[i,j][i]+e_S[i],name="stability")
-
+mdl.addConstr(quicksum(p[i] for i in N) <= (quicksum((1-b0[e,(i,0)])*260*EV_cost*x_e[e,(i,0)] for i in N for e in E)))
 #no payment if someone uses GV
 for d in D:
    for j in N:
       mdl.addConstr(p[j]*x_d[d,(0,j)]<=1-x_d[d,(0,j)],name="no_payment")
 
 
-#mdl.addConstr(quicksum(x_d[d,(0,j)] for d in D for j in N)>=2)
-#proportional cost allocation
-
-#for e in E:
-#   mdl.addConstr(sc_e[e] == quicksum(x_e[e,(j,i)]*a[j,i]*GV_cost*q[i] +  x_e[e,(j,i)]*a[j,i]*GV_cost for i in N for j in V if i!=j))
-#   mdl.addConstr(rc_e[e] == quicksum((1-b0[e,(i,0)])*260*EV_cost*x_e[e,(i,0)] for i in N))
-#
-#for e in E:
-#   for i in N:
-#      mdl.addConstr(p[i] * sc_e[e] == a[0,i]*GV_cost*rc_e[e])
-
-
-#mdl.addConstrs((p[i]*x_e[e,(j,i)]<=(a[(i,j)]/EV_velocity)*(gamma+gamma_l*q[i])*260*EV_cost*x_e[e,(j,i)] ) for e in E for i in N for j in V if i!=j)
-mdl.addConstrs((p[i]*x_e[e,(j,i)]<=(a[(i,0)]/EV_velocity)*(gamma+gamma_l*q[i])*260*EV_cost*x_e[e,(j,i)] + (a[(i,0)]/EV_velocity)*(gamma+gamma_l*0)*260*EV_cost*x_e[e,(j,i)]) for e in E for i in N for j in V if i!=j)
-
-
+# Stability
+mdl.addConstrs((quicksum(p[i] for i in N if i in route) <= mr[route][0]) for route in all_routes if len(route)>3)
 
 
 def variable_elimination():
@@ -200,8 +165,6 @@ valid_inequality()
 mdl.NumStart = 1
 mdl.update()
 
-#subprocess.run(['python3', 'hsc_ALNS_IFB.py'], check=True)  #or you could import hsc_ALNS_IFB in this file and change
-# __name__ == "__main__" in the hsc_ALNS_IFB file to __name__ == "hsc_ALNS_IFB"
 
 if not MIP_start:
   
@@ -235,8 +198,11 @@ mdl.modelSense = GRB.MINIMIZE
 #Set objective
 #mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)]*2 for j in N for d in D )) +0.1*(e_BB + (quicksum(e_IR[i] for i in N)) + (quicksum(e_S[i] for i in N)))+(quicksum(x_e[e,(i,j)]*a[(i,j)] for i in V for j in V for e in E if i!=j)))
 
-mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)]*2.000 for j in N for d in D )) - 0.00000*(quicksum(-p[i] for i in N)) + 0.00001*(e_BB + (quicksum(e_IR[i] for i in N)) + (quicksum(e_S[i] for i in N)))+1.0000005*(quicksum(x_e[e,(i,j)]*a[(i,j)] for i in V for j in V for e in E if i!=j)))
-mdl.Params.MIPGap = 0.01
+mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)]*2 for j in N for d in D ))*w_dv + (quicksum(x_e[e,(i,j)]*a[(i,j)] for i in V for j in V for e in E if i!=j))*w_ev \
+                 +  theta * ((quicksum((1-b0[e,(i,0)])*260*EV_cost*x_e[e,(i,0)] for i in N for e in E)) - quicksum(p[i] for i in N)))
+
+
+mdl.Params.MIPGap = 0.05
 mdl.params.NonConvex = 2
 #mdl.Params.TimeLimit = 2000 #seconds
 mdl.optimize()
@@ -260,10 +226,10 @@ b0_result = get_vars('b0')
 l_result = get_vars('l')
 y_result = get_vars('y')
 p_result = get_vars('p')
-e_S_result = get_vars('e_S')
-e_BB_result = get_vars('e_BB')
-e_IR_result = get_vars('e_IR')
-rc_e_result = get_vars('rc_e')
+
+for item in p_result:
+   p_result[item] = round(p_result[item],2)
+
 def visualize_routes():
    G = nx.DiGraph(directed=True)
    label_pos_dict={}
@@ -338,6 +304,10 @@ def cost_calculation(x_e_result,x_d_result,b0_result):
          miles_GV += a[(temp[1],temp[2])]
 
    total_miles = miles_EV + miles_GV
+
+   print(f"total miles= {total_miles}")
+   print(f"miles_EV= {miles_EV}")
+   print(f"miles_GV= {miles_GV}")
    
    no_collab_total_miles = 0
    for i in range(1,n+1):
@@ -384,11 +354,7 @@ def cost_calculation(x_e_result,x_d_result,b0_result):
    percentage_cost_saved = (cost_saved/no_collab_total_cost)*100
    2
    
-
-
-
-
-   return cost_EV 
+   return cost_EV, miles_EV, miles_GV
 
 def route_construction(x_e_result):
    routes = {}
@@ -419,19 +385,16 @@ for item in ev_routes:
 cost_EV=0
 for item in ev_routes_list:
    if True:#len(item)!=30:
-      cost,_ = ev_travel_cost(item)
+      cost = ev_travel_cost(item)
       cost_EV+=cost
 
 #visualize_routes()
-#cost_EV = cost_calculation(x_e_result,x_d_result,b0_result)
-print(f"total payment= {sum(p_result.values()),cost_EV}")
-print(f"stability subsidy= {sum(e_S_result.values())}")
-print(f"IR subsidy= {sum(e_IR_result.values())}")
-print(f"BB subsidy= {sum(e_BB_result.values())}")
-print(f"Total subsidy= {sum(e_BB_result.values())+sum(e_IR_result.values())+sum(e_S_result.values())}")
+cost_EV, miles_EV, miles_GV = cost_calculation(x_e_result,x_d_result,b0_result)
+print(f"total payment, EV tour cost (manual), EV tour cost = {sum(p_result.values()),cost_EV, sum(p_result.values()) + (mdl.getObjective().getValue()-(miles_EV*w_ev+miles_GV*w_dv))/theta}")
 print(f"payments= {p_result}")
-print(f"stability= {e_S_result}")
 print(ev_routes_list)
+
+
 
 2
 

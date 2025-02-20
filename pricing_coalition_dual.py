@@ -36,28 +36,11 @@ def column_generation(adj, forbidden_set=[], allowed_set = [], initial = False):
         for array in new:
             new_routes_to_add.add(tuple(array))
         new_routes_record.append(new_routes_to_add)
-
-        #for item in new_routes_to_add: p_result,e_S_result,e_BB_result,e_IR_result
-        #    master_prob.r_set.add(tuple(item))
-        #e_P, e_P_total = {}, {}
-        #e_S, e_S_total = {}, {}
-        #e_BB, e_BB_total = {}, {}
-        #e_IR, e_IR_total = {}, {}
-        #for route in new_routes_to_add:
-        #    e_P[route], e_S[route], e_BB[route], e_IR[route] = lp(route, standalone_cost_degree_2, N)
-        #    e_P_total[route] = sum(e_P[route].values())
-        #    e_S_total[route] = sum(e_S[route].values())
-        #    e_BB_total[route] = sum(e_BB[route].values())
-        #    e_IR_total[route] = sum(e_IR[route].values())
         
-
         y_r_result, master_prob_model, status = master_prob.relaxedLP(new_routes_to_add)
         dual_values,dual_values_BB, dual_values_IR, dual_values_stability = master_prob.getDuals()
 
-
         iteration+=1
-
-
 
         if check_values(y_r_result):
             print("All non-zero values are 1, breaking the loop.")

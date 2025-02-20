@@ -219,9 +219,10 @@ class SubProblem:
 
 class MasterProblem:
 
-    def __init__(self, adj, forbidden=[]):
+    def __init__(self, adj, forbidden=[], allowed=[]):
         self.adj = adj
         self.forbidden = forbidden
+        self.allowed = allowed
 
 
     def relaxedLP(self, extended_set) -> None:
@@ -297,7 +298,7 @@ class MasterProblem:
                 degree_2_coalition_final.append(tuple([item[0],item[2],item[1],item[0]]))
             else: degree_2_coalition_final.append(tuple(item))
 
-        degree_2_coalition_initial = copy.copy(degree_2_coalition_final)
+        degree_2_coalition_initial = copy.deepcopy(degree_2_coalition_final)
 
         degree_2_coalition=[]
         for item in degree_2_coalition_initial:
@@ -336,6 +337,25 @@ class MasterProblem:
         r_set_gv_cost = {}
         arc_set_Ar = {}
         r_set = set(tuple(route) for route in r_set)
+        #r_set_d = copy.deepcopy(r_set)
+        #for item in r_set_d:
+        #    r_set.add(tuple(item[::-1]))
+
+        if self.allowed:
+            for item in self.allowed:
+                if item[0]!=0 and item[1]!=0:
+                    s=list(item)
+                    s.append(0)
+                    s.insert(0,0)
+                    r_set.add(tuple(s))
+                elif item[0]==0 and item[1]!=0:
+                    s=list(item)
+                    s.append(0)
+                    r_set.add(tuple(s))
+                elif item[0]!=0 and item[1]==0:
+                    s=list(item)
+                    s.insert(0,0)
+                    r_set.add(tuple(s))
         for item in r_set:
             arr = []
             if len(item)>3:

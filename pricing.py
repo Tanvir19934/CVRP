@@ -1,7 +1,6 @@
 from models import SubProblem, MasterProblem
-import cProfile
 
-def column_generation(adj,forbidden_set=[], initial = False):
+def column_generation(adj, forbidden_set=[], allowed_set = [], initial = False):
 
     #if initial:
     not_fractional = False
@@ -9,7 +8,7 @@ def column_generation(adj,forbidden_set=[], initial = False):
     iteration = 1
     new_routes_to_add=set()
 
-    master_prob = MasterProblem(adj, forbidden_set)
+    master_prob = MasterProblem(adj, forbidden_set, allowed_set)
     y_r_result, master_prob_model, status = master_prob.relaxedLP(None)
     if not y_r_result:
         return None, None, None, None, status

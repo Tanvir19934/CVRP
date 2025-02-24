@@ -18,6 +18,7 @@ def column_generation(adj, forbidden_set=[], allowed_set = [], initial = False):
     while True:
 
         iteration+=1
+        flag = 0
         print(f"pricing outer iteration count: {iteration}")
         
         '''Initial LP relaxation, guaranteed to be RGSP feasible, so skipping that and going straight to the CGSP at the first iteration'''
@@ -41,24 +42,30 @@ def column_generation(adj, forbidden_set=[], allowed_set = [], initial = False):
 
 
         ''' This is the CGSP, at this point our solution is RGSP feasible and CGSP feasible but not optimum, meaning there may be better routes to add '''
-        dual_values_delta, dual_values_subsidy, dual_values_IR = master_prob.getDuals()
-        new = sub_problem.dy_prog(dual_values_delta, dual_values_subsidy, dual_values_IR)
+        dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle = master_prob.getDuals()
+        new = sub_problem.dy_prog(dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle)
         # if no new routes are found, break the loop
         if not new:
             break
+        for item in new:
+            if tuple(item) not in new_routes_to_add:
+                flag = 1
+        if flag == 0:
+            break
+
         #print(len(new))
         new_arr.append(new)
         #print(len(new_routes_to_add))
 
-        if new_arr[-1] == new_arr[-2] == new_arr[-3] == new_arr[-4]:
-            print("No new routes found, breaking the loop.")
-            break
+        #if new_arr[-1] == new_arr[-2] == new_arr[-3] == new_arr[-4]:
+        #    print("No new routes found, breaking the loop.")
+        #    break
         
         # add the new routes with negative reduced costs to the set
         for array in new:
             new_routes_to_add.add(tuple(array))
         #print(len(new_routes_to_add))
-        2
+
 
     if check_values(y_r_result):
         print("All non-zero values are 1")

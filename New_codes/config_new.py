@@ -1,9 +1,10 @@
 import numpy as np
 rnd = np.random
 rnd.seed(630)
+import math
 
 # Grid and coordinates
-n = 35
+n = 14
 grid_size = 50                                                               #number of clients
 xc = np.random.uniform(low=- grid_size/2, high=grid_size/2, size=n+1)
 yc = np.random.uniform(low=-grid_size/2, high=grid_size/2, size=n+1)
@@ -12,7 +13,7 @@ yc[0]=0
 w_dv = 1.5
 w_ev = 1
 theta = 0.2
-tol = 0.001
+tol = 0.0001
 #nodes
 N = [i for i in range(1,n+1)]                                                #set of customer nodes
 V = [0] + N                                                                  #set of all nodes (customer+depot)
@@ -26,7 +27,7 @@ adjustment = 1  #artificially make degree 2 coalition lucrative to get unstable 
 total_dem = sum(q)                                                           #total demand
 
 #Other parameters
-num_EV =int(n*0.2)
+num_EV = math.ceil(n*0.2)
 num_clusters = int(0.5*(total_dem/(num_EV*Q_EV)))           
 num_GV = len(N)
 num_TV = num_EV+num_GV 
@@ -48,13 +49,13 @@ MIP_start = 1
 gamma = 0.133/60    #0.133                                                   #battery depletion rate for EVs without any load (0.133 per hour)
 gamma_l =  0.026/60 #0.026                                                   #load dependent battery depletion rate for EVs   (0.026 per hour per ton)
 b = [(i,j) for i in V for j in E]                                            #battery level upon arriving at node j
-T_max_EV = 6000                                                               #max operation time per EV 
-T_max_GV = 6000                                                               #max operation time per GV
+T_max_EV = 6800                                                               #max operation time per EV 
+T_max_GV = 6800                                                              #max operation time per GV
 EV_velocity = 0.67
 GV_velocity = 0.67
 EV_cost = 0.38 # 0.3    #0.38  #$/kWh   or 0.035 per ton mile
-GV_cost = EV_cost*2
-#GV_cost = 0.58 #4.5/6.5  #0.58 #0.25 per ton mile
+#GV_cost = 0.58  # 0.25 per ton mile
+GV_cost = 0.2   # 0.045 per ton mile
 
 M = 4
 battery_threshold = 0.1

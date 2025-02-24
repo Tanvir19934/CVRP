@@ -1,6 +1,8 @@
 from config_new import *
 from gurobipy import Model, GRB, quicksum
 import itertools
+from itertools import permutations
+
 
 def ev_travel_cost(route):
     b = 1
@@ -11,13 +13,15 @@ def ev_travel_cost(route):
     cost = 260*EV_cost*(1-b)
     return cost
 
-def gv_travel_cost(route):
-    cost_GV = 0 
+def gv_tsp_cost(route):
+    cost_GV = a[(route[0],route[1])]*GV_cost
+    l = 0
     try:
         route = eval(route)
     except:
         for i in range(1,len(route)-1):
-            cost_GV += a[(route[i],route[0])]*GV_cost*q[route[i]] + a[(route[i],route[0])]*GV_cost
+            l+=q[route[i]]
+            cost_GV += a[(route[i],route[i+1])]*GV_cost*l
         return cost_GV
     
 def check_values(d):
@@ -86,7 +90,8 @@ def print_solution(final_model) -> None:
     # Print results
     c_r = {tuple(item):0 for item in solution_routes}
     for item in solution_routes:
-        c_r[tuple(item)] = ev_travel_cost(item)
+        if len(item) > 3:
+            c_r[tuple(item)] = ev_travel_cost(item)
 
     total_dv_miles_traveled = 0
     total_ev_miles_traveled = 0
@@ -128,75 +133,36 @@ def generate_all_possible_routes(N):
     return all_routes
 
 def tsp_tour(route):
-    q[0] = 0
-    if len(route)==3:
-        return a[(0,route[0])]* GV_cost + a[(0,route[0])] * q[route[1]] * GV_cost, route
-    if len(route)<=5:
-        cost = 0
-        l = 0
-        for i in range(0,len(route)-1):
-            l = l + q[route[i]]
-            cost += a[(route[i],route[i+1])] * l * GV_cost * 1
-        return cost, route
-    else:
-        nodes = set(route)
-        depot = 0
 
-        # Create the model
-        model = Model("TSP")
+    if len(route) == 3 and route[0]==0:
+        return a[(0,route[1])]* GV_cost + a[(route[1],0)] * q[route[1]] * GV_cost, route
 
-        # Create decision variables
-        x = {}
-        for i in nodes:
-            for j in nodes:
-                if i != j:
-                    x[i, j] = model.addVar(vtype=GRB.BINARY, name=f"x_{i}_{j}")
+    intermediate_nodes = route[1:-1]
 
-        # Set the objective function
-        model.setObjective(quicksum(a[i, j] * x[i, j] for i in nodes for j in nodes if i != j), GRB.MINIMIZE)
+    all_routes = [[0] + list(p) + [0] for p in permutations(intermediate_nodes)]
 
-        # Add constraints
-        # Each node must be entered exactly once
-        for j in nodes:
-            model.addConstr(quicksum(x[i, j] for i in nodes if i != j) == 1)
+    routes_list = [tuple(all_routes) for all_routes in all_routes]
 
-        # Each node must be exited exactly once
-        for i in nodes:
-            model.addConstr(quicksum(x[i, j] for j in nodes if i != j) == 1)
+    route_cost = {}
 
-        # Subtour elimination constraints
-        # We use the MTZ (Miller-Tucker-Zemlin) formulation
-        u = {}
-        for i in nodes:
-            if i!=0:
-                u[i] = model.addVar(vtype=GRB.CONTINUOUS, name=f"u_{i}")
+    for item in routes_list:
+        route_cost[tuple(item)] = gv_tsp_cost(item)
 
-        for i in nodes:
-            for j in nodes:
-                if i != j and i != depot and j != depot:
-                    model.addConstr(u[i] - u[j] + 1 <= (1 - x[i, j]) * len(nodes))
+    model = Model("TSP")
+    x = model.addVars(routes_list, vtype=GRB.BINARY, name="x")
 
-        # Optimize the model
-        model.Params.OutputFlag = 0
-        model.optimize()
+    model.addConstr(quicksum(x[i] for i in routes_list) == 1)
 
-        # Extract the solution
-        if model.status == GRB.OPTIMAL:
-            tour = []
-            current_node = depot
-            while True:
-                tour.append(current_node)
-                next_node = None
-                for j in nodes:
-                    if j != current_node and x[current_node, j].x > 0.5:
-                        next_node = j
-                        break
-                if next_node is None or next_node == depot:
-                    break
-                current_node = next_node
-            tour.append(depot)
-            #print(" -> ".join(map(str, tour)))
-            #print(f"Total distance: {model.objVal}")
-        else:
-            print("No solution found")
-        return model.getObjective().getValue()*w_dv, tour
+    model.setObjective(quicksum(route_cost[i] * x[i] for i in routes_list), GRB.MINIMIZE)
+
+
+    model.Params.OutputFlag = 0
+    model.optimize()
+
+    # Extract the solution
+    if model.status == GRB.OPTIMAL:
+        for i in routes_list:
+            if x[i].X > 0.5:
+                tour = i
+                break
+        return model.getObjective().getValue(), tour

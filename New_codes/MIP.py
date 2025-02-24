@@ -7,10 +7,10 @@ from matplotlib.lines import Line2D
 import random
 import pickle
 from config_new import *
-from utils_new import generate_all_possible_routes, ev_travel_cost, tsp_tour
+from utils_new import generate_all_possible_routes, ev_travel_cost, tsp_tour, gv_tsp_cost
 rnd = np.random
 #rnd.seed(10)
-
+# [[0, 2, 4, 6, 0], [0, 1, 9, 7, 0], [0, 5, 12, 10, 11, 0]]
 #override some config parameters
 q[0] = 0
 #T_max_EV = 700
@@ -25,19 +25,18 @@ p = {}
 all_routes = generate_all_possible_routes(N)
 mr = {}
 for item in all_routes:
-   mr[item] = tsp_tour(item)
+   mr[item] = gv_tsp_cost(item)
 
 
 for item in E:
     for element in A:
         x_e[item,element] = mdl.addVar(vtype=GRB.BINARY, name=f"x_e[{item},{element}]")
 x_d = mdl.addVars(((item, element) for item in D for element in A), vtype = GRB.BINARY, name = "x_d")
-z = mdl.addVars(((item, element) for item in K for element in V), vtype = GRB.CONTINUOUS, name = "z")
+#z = mdl.addVars(((item, element) for item in K for element in V), vtype = GRB.CONTINUOUS, name = "z")
 l = mdl.addVars(((item, element) for item in K for element in V), vtype = GRB.INTEGER, name = "l")
 b = mdl.addVars(((item, element) for item in E for element in V), vtype=GRB.CONTINUOUS, lb = 0, ub = 1, name = "b")
 b0 = mdl.addVars(((item, (i, 0)) for item in E for i in N), vtype=GRB.CONTINUOUS, name = "b0")
 y = mdl.addVars(((item, (i, 0)) for item in E for i in N), vtype=GRB.CONTINUOUS, name = "y")
-e_BB = mdl.addVar(vtype=GRB.CONTINUOUS, name = "e_BB")
 tol = mdl.addVar(vtype=GRB.CONTINUOUS, name = "tol")
 
 for i in N:
@@ -45,7 +44,6 @@ for i in N:
 
 
 mdl.update()
-#ind = mdl.addVars(((item, element) for item in E for element in V), vtype = GRB.BINARY, name = "ind")
 
 
 #Constraints
@@ -66,29 +64,28 @@ mdl.addConstrs((l[(k,0)] == 0) for k in K)
 mdl.addConstrs(((b[e,j]*x_e[e,(i,j)] == x_e[e,(i,j)] * (b[e,i]*(1-r[i])+r[i]-(a[(i,j)]/EV_velocity)*(gamma+gamma_l*l[(e,i)]))) for i in V for j in N for e in E if i!=j), name='ssss') #tracks rem battery capacity for each intermediate node
 mdl.addConstrs((b[e,j]*x_e[e,(i,j)] >= x_e[e,(i,j)]*(a[(j,0)]/EV_velocity)*(gamma+gamma_l*l[(e,j)])) for i in N for j in N for e in E if i!=j) #enough battery to go back to depot
 mdl.addConstrs((b[e,0] == 1) for e in E) #starts with full battery
-#mdl.addConstrs((b[e,i] >= 0.0) for e in E for i in N)
-#mdl.addConstrs((b[e,i] <= 1) for e in E for i in N)
 
 
-mdl.addConstrs((z[d,j]*x_d[d,(0,j)] == 2*x_d[d,(0,j)]*(st[j]+(a[0,j]/GV_velocity))) for j in N for d in D) #tracks time for GV
+
+#mdl.addConstrs((z[d,j]*x_d[d,(0,j)] == 2*x_d[d,(0,j)]*(st[j]+(a[0,j]/GV_velocity))) for j in N for d in D) #tracks time for GV
 
 for j in N:
       for e in E:
          mdl.addGenConstrPWL(b0[e,(j,0)], y[e,(j,0)], [0, 0.8, 1], [300, 120, 0],  "myPWLConstr")
 
-mdl.addConstrs((z[e,j]*x_e[e,(i,j)] == x_e[e,(i,j)]*(z[e,i]+st[i]+(a[(i,j)]/EV_velocity))) for i in V for j in N for e in E if i!=j) #tracks time for EV
+#mdl.addConstrs((z[e,j]*x_e[e,(i,j)] == x_e[e,(i,j)]*(z[e,i]+st[i]+(a[(i,j)]/EV_velocity))) for i in V for j in N for e in E if i!=j) #tracks time for EV
 mdl.addConstrs((b0[e,(j,0)]*x_e[e,(j,0)] == x_e[e,(j,0)] * (b[e,j] - (a[(j,0)]/EV_velocity)*(gamma+gamma_l*l[(e,j)]))) for j in N for e in E)
-#mdl.addConstrs((b0[e,(j,0)]*x_e[e,(j,0)] >= battery_threshold*x_e[e,(j,0)]) for j in N for e in E)
 mdl.addConstrs((b0[e,(j,0)]*x_e[e,(j,0)] >= battery_threshold*x_e[e,(j,0)] ) for j in N for e in E)
-mdl.addConstrs((z[d,0] == 0) for d in D) #starts at time 0
-mdl.addConstrs((z[e,0] == 0) for e in E) #starts at time 0
-mdl.addConstrs((quicksum(z[d,j]*x_d[d,(0,j)] for j in N)<= T_max_GV) for d in D) #daily working time limitation for GV
-
-
-mdl.addConstrs((quicksum(x_e[e,(j,0)]* (z[e,j]+y[e,(j,0)]+(a[(j,0)]/EV_velocity)) for j in N) <= T_max_EV) for e in E)
+#mdl.addConstrs((z[d,0] == 0) for d in D) #starts at time 0
+#mdl.addConstrs((z[e,0] == 0) for e in E) #starts at time 0
+#mdl.addConstrs((quicksum(z[d,j]*x_d[d,(0,j)] for j in N)<= T_max_GV) for d in D) #daily working time limitation for GV
+#mdl.addConstrs((quicksum(x_e[e,(j,0)]* (z[e,j]+y[e,(j,0)]+(a[(j,0)]/EV_velocity)) for j in N) <= T_max_EV) for e in E)
 
 # To ensure singleton cannot be an EV
 mdl.addConstrs(x_e[e,(j,0)] + x_e[e,(0,j)] <= 1 for e in E for j in N) 
+
+# To ensure one EV makes one trip
+mdl.addConstrs(quicksum(x_e[e,(j,0)] for j in N) <= 1 for e in E) 
 
 
 #coalition constraints
@@ -106,7 +103,7 @@ for d in D:
 
 
 # Stability
-mdl.addConstrs((quicksum(p[i] for i in N if i in route) <= mr[route][0]) for route in all_routes if len(route)>3)
+mdl.addConstrs((quicksum(p[i] for i in N if i in route) <= mr[route]) for route in all_routes if len(route)>3)
 
 
 def variable_elimination():
@@ -128,11 +125,11 @@ def variable_elimination():
          count+=2
 
    #daily working time limitation for EV
-   for i in N:
-      for j in N:
-         if i!=j and (a[(0,i)] + a[(i,j)] + a[(j,0)])/(EV_velocity) >= T_max_EV:
-            mdl.addConstrs(x_e[e,(i,j)]==0 for e in E)
-            count+=1
+   #for i in N:
+   #   for j in N:
+   #      if i!=j and (a[(0,i)] + a[(i,j)] + a[(j,0)])/(EV_velocity) >= T_max_EV:
+   #         mdl.addConstrs(x_e[e,(i,j)]==0 for e in E)
+   #         count+=1
    
    #A vehicle can not travel on an arc if it is more than the battery capacity limitation
    for i in N:
@@ -160,7 +157,7 @@ def valid_inequality():
                mdl.addConstrs(x_e[e,(i,j)]+x_e[e,(j,k)] <= 1 for e in E)
 
 variable_elimination()
-valid_inequality()
+valid_inequality()      #[[0, 8, 6, 4, 0], [0, 1, 7, 2, 0]]
 
 mdl.NumStart = 1
 mdl.update()
@@ -194,12 +191,13 @@ if not MIP_start:
 
 mdl.update()
 mdl.modelSense = GRB.MINIMIZE
+mdl.setParam('TimeLimit', 15000)  # Set a 60-second time limit
 
 #Set objective
 #mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)]*2 for j in N for d in D )) +0.1*(e_BB + (quicksum(e_IR[i] for i in N)) + (quicksum(e_S[i] for i in N)))+(quicksum(x_e[e,(i,j)]*a[(i,j)] for i in V for j in V for e in E if i!=j)))
 
 mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)]*2 for j in N for d in D ))*w_dv + (quicksum(x_e[e,(i,j)]*a[(i,j)] for i in V for j in V for e in E if i!=j))*w_ev \
-                 +  theta * ((quicksum((1-b0[e,(i,0)])*260*EV_cost*x_e[e,(i,0)] for i in N for e in E)) - quicksum(p[i] for i in N)))
+                 +  theta * ((quicksum((1-b0[e,(i,0)])*260*EV_cost*x_e[e,(i,0)] for i in N for e in E)) - quicksum(p[i] for i in N))) 
 
 
 mdl.Params.MIPGap = 0.05
@@ -391,6 +389,7 @@ for item in ev_routes_list:
 #visualize_routes()
 cost_EV, miles_EV, miles_GV = cost_calculation(x_e_result,x_d_result,b0_result)
 print(f"total payment, EV tour cost (manual), EV tour cost = {sum(p_result.values()),cost_EV, sum(p_result.values()) + (mdl.getObjective().getValue()-(miles_EV*w_ev+miles_GV*w_dv))/theta}")
+print(f"Total subsidy: {cost_EV - sum(p_result.values())}")
 print(f"payments= {p_result}")
 print(ev_routes_list)
 

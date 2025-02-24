@@ -1,8 +1,8 @@
 from gurobipy import GRB, Model, quicksum
 import pickle
-from config import *
+from config_new import *
 import time
-from utils import ev_travel_cost, standalone_cost_degree_2
+from utils_new import generate_all_possible_routes, ev_travel_cost, tsp_tour
 
 def load_routes():
     filenames = ['data.pkl']
@@ -20,7 +20,7 @@ def load_routes():
     return ev_routes
 
 
-def lp(route, standalone_cost_degree_2,N_whole):
+def lp(route, N_whole):
     mdl = Model(f'lp{route}')
     N_lp = route[1:-1]
     V_lp = route[0:-1]
@@ -92,7 +92,7 @@ if __name__ == "__main__":
     total_BB = 0
     total_ev_cost = 0
     for route in ev_routes:
-        p_result,e_S_result,e_BB_result,e_IR_result = lp(route,standalone_cost_degree_2,N_whole)
+        p_result,e_S_result,e_BB_result,e_IR_result = lp(route, N_whole)
         p_result_dict[f"{route}"] = p_result
         e_S_result_dict[f"{route}"] = e_S_result
         e_BB_result_dict[f"{route}"] = e_BB_result

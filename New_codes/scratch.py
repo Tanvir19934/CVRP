@@ -12,7 +12,7 @@ def column_generation(adj, forbidden_set=[], allowed_set = [], tsp_memo={}, init
     RG_time, CG_time, RG_DP_time, CG_DP_time = 0, 0, 0, 0
     new_routes_to_add=set()
     log_dir = "New_codes/LogFiles"
-    os.makedirs(log_dir, exist_ok=True)
+    os.makedirs(log_dir, exist_ok=True)  # Ensure the directory exists
     filename = f"{log_dir}/bpc_{NODES}.log" 
     logging.basicConfig(filename=filename, level=logging.INFO, filemode='w', format='%(asctime)s - %(message)s')
     
@@ -21,6 +21,12 @@ def column_generation(adj, forbidden_set=[], allowed_set = [], tsp_memo={}, init
     sub_problem = SubProblem(adj, forbidden_set)
     row_generating_subproblem = RowGeneratingSubProblem(adj, forbidden_set)
 
+    #start_1 = time.perf_counter()
+    #L = row_generating_subproblem.dy_prog()
+    #end_1 = time.perf_counter()
+    #logging.info(f"Time taken to solve the Row Generation DP: {end_1-start_1:0.2f}")
+
+    new_arr =[[0]]*4
 
     start_4 = time.perf_counter()
     
@@ -29,7 +35,11 @@ def column_generation(adj, forbidden_set=[], allowed_set = [], tsp_memo={}, init
         CG_iteration+=1
         flag = 0
         print(f"CG iteration count: {CG_iteration}")
-
+        
+        #'''Initial LP relaxation, guaranteed to be RGSP feasible, so skipping that and going straight to the CGSP at the first iteration'''
+        #if initial:
+        #    p_result, y_r_result, master_prob_model, status = master_prob.relaxedLP(new_routes_to_add, None)
+        #    initial = False
         RG_iteration = 0
         
         ''' Now we are in the RGSP and making it RGSP feasible by iterating between RMP and RGSP until no constraints are found'''
@@ -60,21 +70,31 @@ def column_generation(adj, forbidden_set=[], allowed_set = [], tsp_memo={}, init
         new = sub_problem.dy_prog(dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle)
         end_2 = time.perf_counter()
         logging.info(f"Time taken to solve the CG DP: {end_2-start_2:0.2f}")
+        # if no new routes are found, break the loop
         new = {key: value for key, value in new.items() if value <= -tol}
 
 
         if not new:
             break
 
-        for item in new:
-            if tuple(item) not in new_routes_to_add:
-                flag = 1
-        if flag == 0:
-            break
+        #for item in new:
+        #    if tuple(item) not in new_routes_to_add:
+        #        flag = 1
+        #if flag == 0:
+        #    break
 
+        #print(len(new))
+        new_arr.append(new)
+        #print(len(new_routes_to_add))
+
+        #if new_arr[-1] == new_arr[-2] == new_arr[-3] == new_arr[-4]:
+        #    print("No new routes found, breaking the loop.")
+        #    break
+        
         # add the new routes with negative reduced costs to the set
         for array in new:
             new_routes_to_add.add(tuple(array))
+        #print(len(new_routes_to_add))
         2
 
 

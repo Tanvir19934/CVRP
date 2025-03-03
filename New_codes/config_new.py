@@ -3,31 +3,30 @@ rnd = np.random
 rnd.seed(630)
 import math
 
-# Grid and coordinates
-n = 14
+
+NODES = 15
+
 grid_size = 50                                                               #number of clients
-xc = np.random.uniform(low=- grid_size/2, high=grid_size/2, size=n+1)
-yc = np.random.uniform(low=-grid_size/2, high=grid_size/2, size=n+1)
+xc = np.random.uniform(low=- grid_size/2, high=grid_size/2, size=NODES+1)
+yc = np.random.uniform(low=-grid_size/2, high=grid_size/2, size= NODES+1)
 xc[0]=0
 yc[0]=0
-w_dv = 1.5
+w_dv = 1.25
 w_ev = 1
 theta = 0.2
-tol = 0.0001
-#nodes
-N = [i for i in range(1,n+1)]                                                #set of customer nodes
+tol = 0.00002
+N = [i for i in range(1,NODES+1)]                                            #set of customer nodes
 V = [0] + N                                                                  #set of all nodes (customer+depot)
 
 # Demands and capacities
 Q_EV = 10                                                                    #capacity of each EV
-Q_GV = 15                                                                    #capacity of each GV
+Q_GV = 10                                                                    #capacity of each GV
 q = {i: rnd.randint(1,7) for i in N}                                         #demand for customers
-adjustment = 1  #artificially make degree 2 coalition lucrative to get unstable results
-#q = {i: np.random.choice([1, 20]) for i in N}
+q[0] = 0
 total_dem = sum(q)                                                           #total demand
 
 #Other parameters
-num_EV = math.ceil(n*0.2)
+num_EV = math.ceil(NODES*0.3)
 num_clusters = int(0.5*(total_dem/(num_EV*Q_EV)))           
 num_GV = len(N)
 num_TV = num_EV+num_GV 
@@ -42,24 +41,24 @@ a[(0,0)] = 0
 r = {i: 1 if i == 0 else 0 for i in V}                                       #recharge indicator for EVs at the depot
 st = {i: rnd.randint(20,40) for i in N}                                      #service time at customer nodes
 st[0]=0
-time_limit = 60
-MIP_start = 1
+time_limit = 6000
+MIP_start = 0
 
 # Battery, speed, and time parameters
 gamma = 0.133/60    #0.133                                                   #battery depletion rate for EVs without any load (0.133 per hour)
 gamma_l =  0.026/60 #0.026                                                   #load dependent battery depletion rate for EVs   (0.026 per hour per ton)
 b = [(i,j) for i in V for j in E]                                            #battery level upon arriving at node j
-T_max_EV = 6800                                                               #max operation time per EV 
-T_max_GV = 6800                                                              #max operation time per GV
-EV_velocity = 0.67
+T_max_EV = 68000                                                               #max operation time per EV 
+T_max_GV = 68000                                                              #max operation time per GV
+EV_velocity = 0.67 
 GV_velocity = 0.67
 EV_cost = 0.38 # 0.3    #0.38  #$/kWh   or 0.035 per ton mile
 #GV_cost = 0.58  # 0.25 per ton mile
-GV_cost = 0.2   # 0.045 per ton mile
+GV_cost = 0.11   # 0.045 per ton mile
 
 M = 4
 battery_threshold = 0.1
 alpha = 0.1
 
 arc_set = [(i,j) for i in N for j in N  if i!=j]
-dist = {(i,j): np.hypot(xc[i]-xc[j], yc[i]- yc[j]) for (i,j) in arc_set}      #eucledian distance
+dist = {(i,j): np.hypot(xc[i]-xc[j], yc[i]- yc[j]) for (i,j) in arc_set}

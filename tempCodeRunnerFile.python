@@ -1,0 +1,53 @@
+import pandas as pd
+import os
+
+# Define the file name
+file_name = "results.xlsx"
+
+def save_results(data, sheet_name):
+    """
+    Saves or appends results to the specified sheet in an Excel file.
+    
+    Parameters:
+        data (dict): Dictionary containing the results.
+        sheet_name (str): The sheet where data will be saved.
+    """
+    # Convert data to a DataFrame
+    df = pd.DataFrame([data])
+
+    # Check if file exists
+    if os.path.exists(file_name):
+        with pd.ExcelWriter(file_name, mode="a", if_sheet_exists="overlay", engine="openpyxl") as writer:
+            existing_df = pd.read_excel(file_name, sheet_name=sheet_name)
+            updated_df = pd.concat([existing_df, df], ignore_index=True)
+            updated_df.to_excel(writer, sheet_name=sheet_name, index=False)
+    else:
+        with pd.ExcelWriter(file_name, engine="openpyxl") as writer:
+            df.to_excel(writer, sheet_name=sheet_name, index=False)
+
+# Example usage
+algo1_data = {
+    "Nodes": 50,
+    "Obj": 245.47,
+    "Total Miles": 1200,
+    "EV miles": 800,
+    "Total payments": 50000,
+    "Subsidy": 10000,
+    "Execution time (sec.)": 35
+}
+
+algo2_data = {
+    "Nodes": 60,
+    "Obj": 250.89,
+    "Total Miles": 1300,
+    "EV miles": 850,
+    "Total payments": 55000,
+    "Subsidy": 12000,
+    "Execution time (sec.)": 40
+}
+
+# Save results for Algorithm 1 in Sheet1
+save_results(algo1_data, "Sheet1")
+
+# Save results for Algorithm 2 in Sheet2
+save_results(algo2_data, "Sheet2")

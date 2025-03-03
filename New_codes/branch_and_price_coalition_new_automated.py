@@ -1,17 +1,18 @@
 from gurobipy import GRB
 import heapq
-import os
+from typing import Dict, List, Tuple, Optional
 from pricing_coalition_new import column_generation
-from config_new import V, Q_EV, q, NODES
-from gurobipy import GRB
 from collections import defaultdict
 import copy
 import time
 import random
-from utils_new import print_solution, save_to_excel, create_excel_for_log_file, tsp_tour
+import numpy as np
 import pandas as pd
-import logging
-from models_coalition_new import RowGeneratingSubProblem
+from utils_new import print_solution, save_to_excel,update_config, refresh_config
+import importlib
+from config_new import V, Q_EV, q, a
+
+
 random.seed(20)
 
 class Node:
@@ -33,33 +34,14 @@ class Node:
     def __lt__(self, other):
         return self.obj_val > other.obj_val  # For heap implementation. The heapq.heapify() will heapify the list based on this criteria.
 
-
-
-
-def generate_routes(L):
-    tsp_memo = {}
-    for item in L:
-        for idx, elem in enumerate(L[item]): 
-            if elem.parent:
-                candidate_route = []
-                current = elem
-                while current:
-                    candidate_route.insert(0, current.node)
-                    current = current.parent
-                #candidate_route = reconstruct_path(elem)
-                if len(candidate_route)==1:
-                    candidate_route = [0, candidate_route[0], 0]
-                else:
-                    candidate_route = [0] + candidate_route + [0]
-                tsp_cost, candidate_route = tsp_tour(tuple(candidate_route))
-                tsp_memo[tuple(candidate_route)] = tsp_cost
-    return tsp_memo
-
 def branching() -> None:
 
+
+    global_stack = []
     adj = {}
     q[0] = 0
     forbidden_set = set()
+    #avg_dist = sum(list(a.values()))/len(a)
     for node in V:
         adj[node] = []
         for n in V:
@@ -70,49 +52,12 @@ def branching() -> None:
                     forbidden_set.add((node, n))  # Add violating arcs to forbidden_set
                     forbidden_set.add((n,node))  # Add violating arcs to forbidden_set
     
-    row_generating_subproblem = RowGeneratingSubProblem(adj, forbidden_set)
-    start_1 = time.perf_counter()
-    L = row_generating_subproblem.dy_prog()
-    end_1 = time.perf_counter()
-    RG_DP_time = end_1-start_1
-    log_dir = "New_codes/LogFiles"
-    os.makedirs(log_dir, exist_ok=True) 
-    filename = f"{log_dir}/bpc_{NODES}.log" 
-    logging.basicConfig(filename=filename, level=logging.INFO, filemode='w', format='%(asctime)s - %(message)s')
-    logging.info(f"Time taken to solve the Row Generation DP: {end_1-start_1:0.2f}")
-    start_2 = time.perf_counter()
-    tsp_memo = generate_routes(L)
-    end_2 = time.perf_counter()
-    tsp_cache_time = end_2-start_2
-    logging.info(f"Time taken to generate tsp cache: {tsp_cache_time:0.2f}")
-    
-    global Total_CG_iteration, Total_RG_iteration, Total_RG_time, Total_CG_time
-    global Total_RG_DP_time, Total_CG_DP_time, Total_execution_time
-    Total_CG_iteration,  Total_RG_iteration,  Total_RG_time,  Total_CG_time,  Total_RG_DP_time,  Total_CG_DP_time = 0, 0, 0, 0, 0, 0
-    
-    
-    
     # Create the root node by solving the initial rmp
-    y_r_result, not_fractional, master_prob_model, obj_val, status, CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time  = column_generation(adj, forbidden_set= forbidden_set, allowed_set = [], tsp_memo=tsp_memo, initial = True)
-    track_time_iterations(CG_iteration, RG_iteration, RG_time, CG_time, RG_DP_time, CG_DP_time)
+    y_r_result, not_fractional, master_prob_model, obj_val, status, CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time = column_generation(adj,forbidden_set)
+
     if not_fractional:
         print("Optimal solution found at the root node: did not need branching")
         obj, total_miles, EV_miles, Total_payments, Subsidy, payments, solution_routes = print_solution(master_prob_model)
-        print(f"Total CG iterations: {Total_CG_iteration}")
-        print(f"Total RG iterations: {Total_RG_iteration}")
-        print(f"Total RG time: {Total_RG_time}")
-        print(f"Total CG time: {Total_CG_time}")
-        print(f"Total RG DP time: {Total_RG_DP_time}")
-        print(f"Total CG DP time: {Total_CG_DP_time}")
-        print(f"tsp cache time: {tsp_cache_time}")
-        logging.info(f"Total CG iterations: {Total_CG_iteration}")
-        logging.info(f"Total RG iterations: {Total_RG_iteration}")
-        logging.info(f"Total RG time: {Total_RG_time:.2f}")
-        logging.info(f"Total CG time: {Total_CG_time:.2f}")
-        logging.info(f"Total RG DP time: {Total_RG_DP_time:.2f}")
-        logging.info(f"Total CG DP time: {Total_CG_DP_time:.2f}")
-        logging.info(f"tsp cache time: {tsp_cache_time:.2f}")
-        logging.info(f"Optimal solution found at the root node: did not need branching")
         return obj, total_miles, EV_miles, Total_payments, Subsidy, payments, solution_routes
     
     left_not_fractional = right_not_fractional = False
@@ -126,13 +71,11 @@ def branching() -> None:
     best_node = None
     best_obj = GRB.INFINITY
     stack = [root_node]
-    tol = 0.0001
+    tol = 0.01
     heapq.heapify(stack)  #we are going to traverse in best first manner
     frac_count = 0
 
     outer_iter = 0
-
-
     
     #loop through the stack
     while stack:
@@ -143,10 +86,10 @@ def branching() -> None:
         node = heapq.heappop(stack)
         if node.not_fractional==True:
             frac_count+=1
-            print(node.obj_val)
             if node.obj_val < best_obj:
                 best_obj = node.obj_val
                 best_node = node
+            continue
         else:  
             if node.obj_val > best_obj:
                 continue
@@ -163,8 +106,8 @@ def branching() -> None:
                     for i in range(len(element)-1):
                         flow_vars[(element[i],element[i+1])]= model_vars[item]
                 
-                branching_arcs= {arc: flow_vars[arc] for arc in flow_vars if abs(flow_vars[arc] - 1) <= tol or abs(flow_vars[arc] - 0) <= tol or (flow_vars[arc] > tol and flow_vars[arc] < 1 - tol)}
-
+                branching_arcs= {arc:flow_vars[arc] for arc in flow_vars if flow_vars[arc]!=1}
+                #branching_arc= {arc:flow_vars[arc] for arc in flow_vars if arc[0]!=0 and arc[1]!=0}]
                 if not branching_arcs:
                     continue
                 
@@ -174,6 +117,7 @@ def branching() -> None:
                         continue
                     else:
                         break
+                #branching_arc = sorted(branching_arc, key=lambda k: abs(branching_arc[k] - 0.5))[0]
                 # Create left branch node
                 left_node = Node(node.depth + 1, f'{branching_arc}={0}', [], copy.deepcopy(node.forbidden) , copy.deepcopy(node.allowed), node)
                 left_node.adj = copy.deepcopy(left_node.parent.adj)
@@ -182,17 +126,18 @@ def branching() -> None:
                 except: pass
                 # enforcing branching_arc = 0
                 left_node.forbidden.add(branching_arc)
+                #left_node.forbidden.add(tuple(list(branching_arc)[::-1]))
                 print(f"branching {branching_arc}={0}")
-                y_r_result, left_not_fractional, master_prob_model, obj_val, left_status, CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time = column_generation(left_node.adj, left_node.forbidden, left_node.allowed,tsp_memo )
-                track_time_iterations(CG_iteration, RG_iteration, RG_time, CG_time, RG_DP_time, CG_DP_time)
-
-                if left_status==2:
+                y_r_result, left_not_fractional, master_prob_model, obj_val, left_status, CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time = column_generation(left_node.adj, left_node.forbidden, left_node.allowed)
+                if left_status!=3:
                     if left_not_fractional:
                         left_node.not_fractional = True
                     left_node.obj_val = obj_val
                     left_node.model = master_prob_model
                     left_node.solution = y_r_result
-                    heapq.heappush(stack, left_node)
+                    if left_node.name not in global_stack:
+                        heapq.heappush(stack, left_node)
+                        global_stack.append(left_node.name)
                 # Create right branch node
                 right_node = Node(node.depth + 1, f'{branching_arc}={1}', [], copy.deepcopy(node.forbidden), copy.deepcopy(node.allowed), node)
                 right_node.adj = copy.deepcopy(right_node.parent.adj)
@@ -206,16 +151,16 @@ def branching() -> None:
                     if item!=branching_arc[1] and item!=branching_arc[0]:
                         right_node.forbidden.add((branching_arc[0],item))
                 print(f"branching {branching_arc}={1}")
-                y_r_result, right_not_fractional, master_prob_model, obj_val, right_status, CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time = column_generation(right_node.adj,right_node.forbidden,right_node.allowed,tsp_memo)
-                track_time_iterations(CG_iteration, RG_iteration, RG_time, CG_time, RG_DP_time, CG_DP_time)
-
-                if right_status==2:
+                y_r_result, right_not_fractional, master_prob_model, obj_val, right_status, CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time = column_generation(right_node.adj,right_node.forbidden,right_node.allowed)
+                if right_status!=3:
                     if right_not_fractional:
                         right_node.not_fractional = True  
                     right_node.obj_val = obj_val
                     right_node.model = master_prob_model
                     right_node.solution = y_r_result
-                    heapq.heappush(stack, right_node)
+                    if right_node.name not in global_stack:
+                        heapq.heappush(stack, right_node)
+                        global_stack.append(right_node.name)
                     #if left_status==3 and right_status==3 and len(stack)==0 and len(branching_arcs)>1:
                     #    branching_arcs.pop(branching_arc)
                     #else:
@@ -224,45 +169,35 @@ def branching() -> None:
     print(frac_count)
     if best_node:
         print("Optimal solution found:")
-        obj, total_miles, EV_miles, Total_payments, Subsidy, payments, solution_routes = print_solution(best_node.model)
+        obj, total_miles, EV_miles, Total_payments, Subsidy, payments, solution_routes =  print_solution(best_node.model)
     else:
         print("No optimal solution found.")
-    
-    print(f"Total CG iterations: {Total_CG_iteration}")
-    print(f"Total RG iterations: {Total_RG_iteration}")
-    print(f"Total RG time: {Total_RG_time:.2f}")
-    print(f"Total CG time: {Total_CG_time:.2f}")
-    print(f"Total RG DP time: {Total_RG_DP_time:.2f}")
-    print(f"Total CG DP time: {Total_CG_DP_time:.2f}")
-    print(f"tsp cache time: {tsp_cache_time}")
-    logging.info(f"Total CG iterations: {Total_CG_iteration}")
-    logging.info(f"Total RG iterations: {Total_RG_iteration}")
-    logging.info(f"Total RG time: {Total_RG_time:.2f}")
-    logging.info(f"Total CG time: {Total_CG_time:.2f}")
-    logging.info(f"Total RG DP time: {Total_RG_DP_time:.2f}")
-    logging.info(f"Total CG DP time: {Total_CG_DP_time:.2f}")
-    logging.info(f"tsp cache time: {tsp_cache_time:.2f}")
-    
     return obj, total_miles, EV_miles, Total_payments, Subsidy, payments, solution_routes
 
-def track_time_iterations(CG_iteration, RG_iteration, RG_time, CG_time, RG_DP_time, CG_DP_time):
-    global Total_CG_iteration, Total_RG_iteration, Total_RG_time, Total_CG_time, Total_RG_DP_time, Total_CG_DP_time
-    Total_CG_iteration+=CG_iteration
-    Total_RG_iteration+=RG_iteration
-    Total_RG_time+=RG_time
-    Total_CG_time+=CG_time
-    Total_RG_DP_time+=RG_DP_time
-    Total_CG_DP_time+=CG_DP_time
-
-
 def main():
+    nodes = [i for i in range(9, 10)]
+
+    for item in nodes:
+        # Update config.py with the current node value
+        update_config(item)
+
+        time.sleep(5)
+
+        # Reload the config_new module to reflect the updated NODES value
+        import config_new
+        importlib.reload(config_new)  # Reload the module to update V, q, a, Q_EV
+        globals().update({k: getattr(config_new, k) for k in dir(config_new) if not k.startswith("__")})
+
+
+
+        # Run the branching logic
         start = time.perf_counter()
         obj, total_miles, EV_miles, Total_payments, Subsidy, payments, solution_routes = branching()
         end = time.perf_counter()
-        print(f"Execution time for nodes={NODES}: {end - start}")
+        print(f"Execution time for nodes={item}: {end - start}")
         Execution_time = end - start
         data = {
-            "Nodes": [NODES],
+            "Nodes": [item],
             "Obj": [obj],
             "Total Miles": [total_miles],
             "EV miles": [EV_miles],
@@ -274,15 +209,13 @@ def main():
         file_name = "New_codes/results.xlsx"
         save_to_excel(file_name, "Sheet1", df)
         data = {
-            "Nodes": [NODES],
+            "Nodes": [item],
             "Payments": [payments],
             "Solution routes": [solution_routes]
         }
         df = pd.DataFrame(data)
         file_name = "New_codes/results.xlsx"
         save_to_excel(file_name, "Sheet2", df)
-        file_name = f"New_codes/LogFiles/bpc_{NODES}.log"
-        create_excel_for_log_file(file_name)
 
 if __name__ == "__main__":
     main()

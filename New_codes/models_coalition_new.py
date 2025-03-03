@@ -1,14 +1,12 @@
 from gurobipy import GRB, Model, quicksum
 from typing import List
-from config_new import *
 import heapq
 from collections import defaultdict
 import re
 from utils_new import *
 import random
+from config_new import battery_threshold, N, V, Q_EV, q, a, w_dv, w_ev, theta, tol, num_EV, st, gamma, gamma_l, T_max_EV, EV_velocity, GV_cost
 
-
-# Define a label structure
 class Label:
     def __init__(self, node, resource_vector, parent=None):
         self.node = node  # Current node
@@ -20,24 +18,13 @@ class Label:
     def __repr__(self):
         return f"Label(node={self.node}, resource_vector={self.resource_vector}, parent={self.parent})"
 
-
-
 class SubProblem:
     def __init__(self,  adj, forbidden_set):
-        #self.subproblem_model = model
         self.adj= adj
         self.forbidden_set = forbidden_set
-        #self.memo={}
-    #@staticmethod
+
     def feasibility_check(self, curr_node, extending_node, curr_time = 0, curr_load = 0, curr_battery = 0, curr_distance = 0):
-        #key = (curr_node, extending_node, curr_time, curr_load, curr_battery, curr_distance)
         
-        # Check if the result is already in the memoization cache
-        #if key in self.memo:
-        #    return self.memo[key]
-
-        #new_distance, new_load, new_battery, new_time
-
         if curr_node == 's':
             curr_node=0
         if extending_node == 't':
@@ -54,7 +41,6 @@ class SubProblem:
                 if new_time + (st[extending_node]+(a[(0,extending_node)]/EV_velocity)) > T_max_EV:
                     return None, None, None, None
         new_distance = curr_distance + a[(curr_node,extending_node)]
-        #self.memo[key] = (new_time, new_load, new_battery, new_distance)
 
         return new_time, new_load, new_battery, new_distance 
 
@@ -71,13 +57,22 @@ class SubProblem:
         partial_route[-1]=0
 
         reduced_cost = 0
+        delta_sum = [dual_values_delta[i] for i in partial_route if i!=0]
+
+        if len(partial_route)==3:
+            for i in range(0,len(partial_route)-1):
+                reduced_cost += w_dv*a[(partial_route[i],partial_route[i+1])]
+            reduced_cost+=-sum(delta_sum)
+            return reduced_cost
+
         for i in range(0,len(partial_route)-1):
             reduced_cost += w_ev*a[(partial_route[i],partial_route[i+1])]
-        
+
         reduced_cost+= (theta-dual_values_subsidy)*ev_travel_cost(partial_route)
-        delta_sum = [dual_values_delta[i] for i in partial_route if i!=0]
         IR_sum = [dual_values_IR[i]*(a[(i,0)]*GV_cost*q[i]+a[(i,0)]*GV_cost) for i in partial_route if i!=0]
-        reduced_cost += -sum(delta_sum) + sum(IR_sum) + dual_values_vehicle #(note the + sign for IR_sum)
+        if [0,5,12,10,11,0]==partial_route:
+            pass 
+        reduced_cost += -sum(delta_sum) + sum(IR_sum) - dual_values_vehicle #(note the + sign for IR_sum)
         
         return reduced_cost
     
@@ -86,30 +81,15 @@ class SubProblem:
         U = []  # Priority queue for undominated labels
         L = defaultdict(list)  # Dictionary to store the sets of labels at each node
         N.extend(['s','t'])
-        # Step 1: Initialize with the starting node
         start_node = 's'
-        initial_resource_vector = (0, 0, 0, 0)  # (distance, load, battery, time)
+        initial_resource_vector = (0, 0, 0, 0)  # (reduced_cost, load, battery, time)
         initial_label = Label(start_node, initial_resource_vector, None)
         heapq.heappush(U, initial_label)
-        #cutoff = len(N)*5000000000000
         
-        # Step 2: Main loop for label setting
         while U:
-            #if len(L['t'])>=cutoff:
-            #    break
-            # 2a. Remove first label (label with the least resource cost in heap)
             current_label = heapq.heappop(U)
             current_node = current_label.node
-
-            #check = []
-            #d = current_label
-            #while d.parent:
-            #    check.append(d.node)
-            #    d = d.parent
-            #if check[::-1]==[1,4]:
-            #    pass
-  
-            # 2c. Check for dominance and add label to the set of labels if not dominated
+            # Check for dominance and add label to the set of labels if not dominated
             is_dominated = False
             for label in L[current_node]:
 
@@ -119,13 +99,14 @@ class SubProblem:
                     is_dominated = True
                     break
                 
-            if not is_dominated and current_label not in L[current_node]:
+            if not is_dominated:
                     in_path_already = False
                     in_path_already = partial_path(current_label,current_node)
                     if in_path_already:
                         continue
                     L[current_node].append(current_label)
-                    # 2c2. Extend the label along all arcs leaving the current node
+
+                    #Extend the label along all arcs leaving the current node
                     neigh = list(set(N)-set([current_node]))
                     if current_node=='s':
                         neigh.remove('t')
@@ -143,44 +124,31 @@ class SubProblem:
                         else: current_node_converted = current_node
                         if new_node_converted not in self.adj[current_node_converted] or (current_node_converted,new_node_converted) in self.forbidden_set:
                             continue
+                        
+                        new_time, new_load, new_battery, new_cost   = self.feasibility_check(current_node, new_node, current_label.resource_vector[-1], current_label.resource_vector[1], current_label.resource_vector[2], current_label.resource_vector[0])
 
-                        if (new_node!='s' and current_node!='t'):
-                            new_time, new_load, new_battery, new_distance   = self.feasibility_check(current_node, new_node, current_label.resource_vector[-1], current_label.resource_vector[1], current_label.resource_vector[2], current_label.resource_vector[0])
-
-                            reduced_cost = False
-                        if new_distance:
-                            resource_vector = (new_distance, new_load, new_battery, new_time)
-                            #new_resource_vector = tuple(map(sum, zip(current_label.resource_vector, resources)))
+                        if new_cost:
+                            resource_vector = (new_cost, new_load, new_battery, new_time)
                             new_label = Label(new_node, resource_vector, current_label)
                             reduced_cost = self.calculate_reduced_cost(new_label, dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle)
                             new_label.resource_vector = (reduced_cost, new_load, new_battery, new_time) #update the resource vector with reduced cost
 
-                            if reduced_cost<-tol:
-                                # 2c3. Add all feasible extensions to U (if no constraint violation)
+                            if reduced_cost<tol:
+                                #Add all feasible extensions to U (if no constraint violation)
                                 heapq.heappush(U, new_label)
                                 if new_node=='t':
                                     L[new_node].append(new_label)
 
-        # Step 3: Select the best label in L_t (sink node)
         sink_node = 't'
-        #best_label = min(L[sink_node], key=lambda x: x.resource_vector[0]) if L[sink_node] else None
-        # Output the path corresponding to the best label
-
-
-
-        new_routes = []
+        new_routes = {}
         for item in L[sink_node]:
-            candidate_route = reconstruct_path(item)
-            if len(candidate_route)!=3:
-                new_routes.append(reconstruct_path(item))
-        for item in new_routes:
-            item[0]=0
-            item[-1]=0
+            new_routes[tuple(reconstruct_path(item))] = item.resource_vector[0]
+            new_routes[tuple(reconstruct_path(item)[::-1])] = -1
 
         N.remove('s')
         N.remove('t')
 
-        return new_routes ########################not optimizing the tours to avoid adding nodes from forbidden set###########
+        return new_routes
 
 class MasterProblem:
 
@@ -188,11 +156,10 @@ class MasterProblem:
         self.adj = adj
         self.forbidden = forbidden
         self.allowed = allowed
-        self.r_set = [[0, node, 0] for node in V if node != 0]
-        #self.model = Model('master_problem')
         self.y_r = {}
         self.p = {}
-
+        self.r_set = [[0, node, 0] for node in V if node != 0]
+        self.r_set = self.r_set
 
     def relaxedLP(self, extended_set, new_constraints = None) -> None:
 
@@ -236,16 +203,12 @@ class MasterProblem:
                 a_r[item] += a[(item[i],item[i+1])]
             c_r[item] = ev_travel_cost(item)
         
-
         delta = {}
-        # Iterate over all routes and nodes
         for route in self.r_set:
-            for i in range(1,len(V)+1):  # Nodes from 0 to 10
-                # Set delta_i,r = 1 if node i is in route r, otherwise 0
+            for i in range(1,len(V)+1):
                 delta[(i, route)] = 1 if i in route else 0
 
         self.model = Model('master_problem')
-        
         
         #DECISION VARIABLES
         for item in self.r_set:
@@ -255,10 +218,10 @@ class MasterProblem:
         self.model.update()
 
         #CONSTRAINTS
-        self.model.addConstrs((quicksum(delta[(i, route)] * self.y_r[route] for route in self.r_set) == 1 for i in N), name=f"delta_")
-        self.model.addConstr((quicksum(c_r[route]*self.y_r[route] for route in self.r_set if len(route)>3) >= quicksum(self.p[i] for i in N)), name="subsidy")
-        self.model.addConstr((num_EV >= quicksum(self.y_r[route] for route in self.r_set if len(route)>3)), name="vehicle")
-        self.model.addConstrs((self.p[i] <= (a[(i,0)]*GV_cost*q[i]+a[(i,0)]*GV_cost)*(quicksum(delta[(i, route)] * self.y_r[route] for route in self.r_set if len(route)!=3)) for i in N), name=f"IR_")
+        self.model.addConstrs((quicksum(delta[(i, route)] * self.y_r[route] for route in self.r_set) >= 1 for i in N), name=f"delta_")
+        self.model.addConstr((quicksum(c_r[route]*self.y_r[route] for route in self.r_set if len(route)>3) - quicksum(self.p[i] for i in N)) >= 0, name="subsidy")
+        self.model.addConstr((quicksum(self.y_r[route] for route in self.r_set if len(route)>3) <= num_EV), name="vehicle")
+        self.model.addConstrs(((a[(i,0)]*GV_cost*q[i]+a[(i,0)]*GV_cost)*(quicksum(delta[(i, route)] * self.y_r[route] for route in self.r_set if len(route)!=3)) - self.p[i] >= 0 for i in N), name=f"IR_")
         self.model.update()
 
         if new_constraints:
@@ -266,14 +229,12 @@ class MasterProblem:
                 self.model.addConstr((quicksum(self.p[i] for i in route if i!=0) <= cost), name=f"stability_{route}")
         self.model.update()
 
- 
-        
+
         
         #SET OBJECTIVE
         self.model.setObjective((quicksum(a_r[route]*self.y_r[route] for route in self.r_set if len(route)==3))*w_dv + (quicksum(a_r[route]*self.y_r[route] for route in self.r_set if len(route)!=3))*w_ev +  theta*(quicksum(c_r[route]*self.y_r[route] for route in self.r_set if len(route)>3) - quicksum(self.p[i] for i in N)))
         self.model.update()
 
-        #self.model.setParam('Threads', 8)  # Use 8 threads for solving
         self.model.modelSense = GRB.MINIMIZE
         self.model.Params.OutputFlag = 0
         self.model.write("/Users/tanvirkaisar/Library/CloudStorage/OneDrive-UniversityofSouthernCalifornia/CVRP/Codes/New_codes/master_prob.lp")
@@ -300,8 +261,6 @@ class MasterProblem:
             if y_r_result[item]>0:
                 y_r_result_final[item] = y_r_result[item]
                 print(f"rlxd_{item}={y_r_result[item]}")
-        if self.get_RMP_cost() < 0:
-            pass
                 
         return p_result, y_r_result_final, self.model, self.model.status
 
@@ -323,7 +282,6 @@ class MasterProblem:
                 dual_values_vehicle = constr.Pi
         
         return dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle
-
 
     def get_RMP_solution(self) -> List[int]:
        
@@ -347,25 +305,19 @@ class RowGeneratingSubProblem:
     def __init__(self,  adj, forbidden_set):
         self.adj= adj
         self.forbidden_set = forbidden_set
-
+    
+    #@staticmethod
     def dy_prog(self):
-        # Initialize the sets of labels
         U = []  # Priority queue for undominated labels
         L = defaultdict(list)  # Dictionary to store the sets of labels at each node
-        #N.extend(['s','t'])
-        # Step 1: Initialize with the starting node
+        q[0]=0
         start_node = random.choice(N)
         initial_resource_vector = q[start_node]
         initial_label = Label(start_node, initial_resource_vector, None)
         U.append(initial_label)
         
-        #cutoff = len(N)*5000000000000
-        
         # Step 2: Main loop for label setting
         while U:
-            #if len(L['t'])>=cutoff:
-            #    break
-            # 2a. Remove first label (label with the least resource cost in heap)
             current_label = U.pop()
             current_node = current_label.node
 
@@ -375,39 +327,23 @@ class RowGeneratingSubProblem:
                 continue
             if current_node!=0:
                 L[current_node].append(current_label)
-            # 2c2. Extend the label along all arcs leaving the current node
             neigh = list(set(N)-set([current_node]))
 
             for new_node in neigh:
-                if new_node not in self.adj[current_node] or current_label.resource_vector + q[new_node] > Q_EV or (current_node,new_node) in self.forbidden_set:
+                #if new_node not in self.adj[current_node] or current_label.resource_vector + q[new_node] > Q_EV or (current_node,new_node) in self.forbidden_set:
+                if  current_label.resource_vector + q[new_node] > Q_EV:
                     continue
                 else:
                     U.append(Label(new_node, current_label.resource_vector + q[new_node], current_label))
         return L
-                
-    def generate_routes(self,L,p):
+
+    @staticmethod 
+    def generate_routes(tsp_memo,p):
+        p['p_0']=0
         new_routes = set() 
-        for item in L:
-            for elem in L[item]: 
-                if elem.parent:
-                    candidate_route = []
-                    while elem:
-                        candidate_route.append(elem.node)
-                        elem = elem.parent
-                    candidate_route = candidate_route[::-1]
-                    #candidate_route = reconstruct_path(elem)
-                    if len(candidate_route)==1:
-                        candidate_route = [0, candidate_route[0], 0]
-                    else:
-                        candidate_route = [0] + candidate_route + [0]
-                    payments = [p[f"p_{i}"] for i in candidate_route if i!=0]
-                    tsp_cost, candidate_route = tsp_tour(candidate_route)
-                    if candidate_route and tsp_cost-sum(payments)<-tol:
-                        new_routes.add((tuple(candidate_route),tsp_cost))
-        for item in N:
-            tsp_cost, candidate_route = tsp_tour([0,item,0])
-            if candidate_route and tsp_cost-p[f"p_{item}"]<-tol:
+        for candidate_route in tsp_memo:
+            tsp_cost = tsp_memo[candidate_route]
+            payments = [p[f"p_{i}"] for i in candidate_route if i!=0]
+            if tsp_cost<sum(payments)-tol:
                 new_routes.add((tuple(candidate_route),tsp_cost))
         return new_routes
-
-    

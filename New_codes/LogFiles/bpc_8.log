@@ -1,0 +1,19 @@
+2025-03-02 16:28:01,190 - Time taken to solve the Row Generation DP: 0.00
+2025-03-02 16:28:01,192 - Set parameter Username
+2025-03-02 16:28:01,197 - Academic license - for non-commercial use only - expires 2025-11-12
+2025-03-02 16:28:01,238 - Time taken to generate tsp cache: 0.05
+2025-03-02 16:28:01,240 - Time taken to solve the RGSP: 0.00
+2025-03-02 16:28:01,254 - Time taken to solve the CG DP: 0.01
+2025-03-02 16:28:01,287 - Time taken to generate new constraints: 0.00
+2025-03-02 16:28:01,354 - Time taken to generate new constraints: 0.00
+2025-03-02 16:28:01,355 - Time taken to solve the RGSP: 0.10
+2025-03-02 16:28:01,358 - Time taken to solve the CG DP: 0.00
+2025-03-02 16:28:01,359 - Time taken to solve the CGSP: 0.12
+2025-03-02 16:28:01,362 - Total CG iterations: 2
+2025-03-02 16:28:01,362 - Total RG iterations: 2
+2025-03-02 16:28:01,362 - Total RG time: 0.10
+2025-03-02 16:28:01,362 - Total CG time: 0.12
+2025-03-02 16:28:01,362 - Total RG DP time: 0.00
+2025-03-02 16:28:01,362 - Total CG DP time: 0.00
+2025-03-02 16:28:01,362 - tsp cache time: 0.05
+2025-03-02 16:28:01,362 - Optimal solution found at the root node: did not need branching

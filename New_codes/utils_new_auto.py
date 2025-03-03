@@ -9,8 +9,14 @@ import importlib
 import re
 
 
+def refresh_config():
+    import config_new
+    importlib.reload(config_new)  # Reload the module to update V, q, a, Q_EV
+    globals().update({k: getattr(config_new, k) for k in dir(config_new) if not k.startswith("__")})
+    pass
 
 def ev_travel_cost(route):
+    refresh_config()
     b = 1
     l = 0
     for i in range(len(route)-1):
@@ -20,6 +26,7 @@ def ev_travel_cost(route):
     return cost
 
 def gv_tsp_cost(route):
+    refresh_config()
     cost_GV = a[(route[0],route[1])]*GV_cost
     l = 0
     try:
@@ -78,6 +85,7 @@ def construct_tour(edges):
     return route
 
 def print_solution(final_model) -> None:
+    refresh_config()
     model_vars = {var.VarName: var.X for var in final_model.getVars()}
     var_names = list(model_vars.keys())
 

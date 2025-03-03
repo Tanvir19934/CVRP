@@ -1,0 +1,518 @@
+2025-03-02 23:20:37,654 - Time taken to solve the Row Generation DP: 0.00
+2025-03-02 23:20:37,662 - Set parameter Username
+2025-03-02 23:20:37,675 - Academic license - for non-commercial use only - expires 2025-11-12
+2025-03-02 23:20:37,706 - Time taken to generate tsp cache: 0.05
+2025-03-02 23:20:37,716 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:37,716 - Time taken to solve the RGSP: 0.01
+2025-03-02 23:20:37,731 - Time taken to solve the CG DP: 0.01
+2025-03-02 23:20:37,766 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:37,766 - Time taken to solve the RGSP: 0.03
+2025-03-02 23:20:37,767 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:37,767 - Time taken to solve the CGSP: 0.06
+2025-03-02 23:20:37,771 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:37,772 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:37,785 - Time taken to solve the CG DP: 0.01
+2025-03-02 23:20:37,814 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:37,815 - Time taken to solve the RGSP: 0.03
+2025-03-02 23:20:37,816 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:37,816 - Time taken to solve the CGSP: 0.05
+2025-03-02 23:20:37,820 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:37,820 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:37,835 - Time taken to solve the CG DP: 0.01
+2025-03-02 23:20:37,864 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:37,864 - Time taken to solve the RGSP: 0.03
+2025-03-02 23:20:37,865 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:37,865 - Time taken to solve the CGSP: 0.05
+2025-03-02 23:20:37,870 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:37,870 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:37,878 - Time taken to solve the CG DP: 0.01
+2025-03-02 23:20:37,904 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:37,904 - Time taken to solve the RGSP: 0.03
+2025-03-02 23:20:37,905 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:37,905 - Time taken to solve the CGSP: 0.04
+2025-03-02 23:20:37,908 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:37,908 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:37,915 - Time taken to solve the CG DP: 0.01
+2025-03-02 23:20:37,938 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:37,938 - Time taken to solve the RGSP: 0.02
+2025-03-02 23:20:37,938 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:37,938 - Time taken to solve the CGSP: 0.03
+2025-03-02 23:20:37,942 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:37,942 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:37,950 - Time taken to solve the CG DP: 0.01
+2025-03-02 23:20:37,975 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:37,975 - Time taken to solve the RGSP: 0.02
+2025-03-02 23:20:37,976 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:37,976 - Time taken to solve the CGSP: 0.04
+2025-03-02 23:20:37,979 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:37,979 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:37,987 - Time taken to solve the CG DP: 0.01
+2025-03-02 23:20:38,011 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,011 - Time taken to solve the RGSP: 0.02
+2025-03-02 23:20:38,012 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,013 - Time taken to solve the CGSP: 0.04
+2025-03-02 23:20:38,017 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,017 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:38,027 - Time taken to solve the CG DP: 0.01
+2025-03-02 23:20:38,057 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,057 - Time taken to solve the RGSP: 0.03
+2025-03-02 23:20:38,058 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,058 - Time taken to solve the CGSP: 0.04
+2025-03-02 23:20:38,061 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,061 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:38,068 - Time taken to solve the CG DP: 0.01
+2025-03-02 23:20:38,090 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,091 - Time taken to solve the RGSP: 0.02
+2025-03-02 23:20:38,092 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,092 - Time taken to solve the CGSP: 0.03
+2025-03-02 23:20:38,096 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,096 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:38,107 - Time taken to solve the CG DP: 0.01
+2025-03-02 23:20:38,138 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,138 - Time taken to solve the RGSP: 0.03
+2025-03-02 23:20:38,139 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,139 - Time taken to solve the CGSP: 0.05
+2025-03-02 23:20:38,142 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,142 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:38,143 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,156 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,156 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:38,164 - Time taken to solve the CG DP: 0.01
+2025-03-02 23:20:38,192 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,192 - Time taken to solve the RGSP: 0.03
+2025-03-02 23:20:38,193 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,193 - Time taken to solve the CGSP: 0.04
+2025-03-02 23:20:38,196 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,196 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:38,198 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,213 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,213 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:38,222 - Time taken to solve the CG DP: 0.01
+2025-03-02 23:20:38,250 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,250 - Time taken to solve the RGSP: 0.03
+2025-03-02 23:20:38,251 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,251 - Time taken to solve the CGSP: 0.04
+2025-03-02 23:20:38,253 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,253 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:38,254 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,254 - Time taken to solve the CGSP: 0.00
+2025-03-02 23:20:38,258 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,258 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:38,266 - Time taken to solve the CG DP: 0.01
+2025-03-02 23:20:38,298 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,298 - Time taken to solve the RGSP: 0.03
+2025-03-02 23:20:38,299 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,299 - Time taken to solve the CGSP: 0.04
+2025-03-02 23:20:38,303 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,303 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:38,307 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,324 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,324 - Time taken to solve the RGSP: 0.02
+2025-03-02 23:20:38,325 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,340 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,340 - Time taken to solve the RGSP: 0.01
+2025-03-02 23:20:38,341 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,341 - Time taken to solve the CGSP: 0.04
+2025-03-02 23:20:38,345 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,345 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:38,349 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,362 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,362 - Time taken to solve the RGSP: 0.01
+2025-03-02 23:20:38,363 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,378 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,378 - Time taken to solve the RGSP: 0.01
+2025-03-02 23:20:38,379 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,379 - Time taken to solve the CGSP: 0.04
+2025-03-02 23:20:38,382 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,382 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:38,386 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,399 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,399 - Time taken to solve the RGSP: 0.01
+2025-03-02 23:20:38,400 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,400 - Time taken to solve the CGSP: 0.02
+2025-03-02 23:20:38,404 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,404 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:38,408 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,422 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,422 - Time taken to solve the RGSP: 0.01
+2025-03-02 23:20:38,423 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,437 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,437 - Time taken to solve the RGSP: 0.01
+2025-03-02 23:20:38,438 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,438 - Time taken to solve the CGSP: 0.04
+2025-03-02 23:20:38,441 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,441 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:38,446 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,465 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,465 - Time taken to solve the RGSP: 0.02
+2025-03-02 23:20:38,466 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,466 - Time taken to solve the CGSP: 0.03
+2025-03-02 23:20:38,470 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,470 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:38,474 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,488 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,488 - Time taken to solve the RGSP: 0.01
+2025-03-02 23:20:38,489 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,503 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,503 - Time taken to solve the RGSP: 0.01
+2025-03-02 23:20:38,504 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,504 - Time taken to solve the CGSP: 0.04
+2025-03-02 23:20:38,506 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,506 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:38,509 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,518 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,518 - Time taken to solve the RGSP: 0.01
+2025-03-02 23:20:38,519 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,519 - Time taken to solve the CGSP: 0.01
+2025-03-02 23:20:38,522 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,522 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:38,525 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,534 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,534 - Time taken to solve the RGSP: 0.01
+2025-03-02 23:20:38,534 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,534 - Time taken to solve the CGSP: 0.01
+2025-03-02 23:20:38,537 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,537 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:38,539 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,543 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,543 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:38,544 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,552 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,552 - Time taken to solve the RGSP: 0.01
+2025-03-02 23:20:38,553 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,553 - Time taken to solve the CGSP: 0.02
+2025-03-02 23:20:38,556 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,556 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:38,559 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,570 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,570 - Time taken to solve the RGSP: 0.01
+2025-03-02 23:20:38,571 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,571 - Time taken to solve the CGSP: 0.02
+2025-03-02 23:20:38,573 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,573 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:38,575 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,585 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,585 - Time taken to solve the RGSP: 0.01
+2025-03-02 23:20:38,585 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,585 - Time taken to solve the CGSP: 0.01
+2025-03-02 23:20:38,590 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,590 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:38,597 - Time taken to solve the CG DP: 0.01
+2025-03-02 23:20:38,623 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,623 - Time taken to solve the RGSP: 0.03
+2025-03-02 23:20:38,624 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,624 - Time taken to solve the CGSP: 0.04
+2025-03-02 23:20:38,626 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,626 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:38,631 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,647 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,647 - Time taken to solve the RGSP: 0.02
+2025-03-02 23:20:38,648 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,648 - Time taken to solve the CGSP: 0.02
+2025-03-02 23:20:38,652 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,652 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:38,656 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,672 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,672 - Time taken to solve the RGSP: 0.02
+2025-03-02 23:20:38,673 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,673 - Time taken to solve the CGSP: 0.02
+2025-03-02 23:20:38,676 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,676 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:38,680 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,693 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,693 - Time taken to solve the RGSP: 0.01
+2025-03-02 23:20:38,694 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,708 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,708 - Time taken to solve the RGSP: 0.01
+2025-03-02 23:20:38,708 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,709 - Time taken to solve the CGSP: 0.04
+2025-03-02 23:20:38,712 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,712 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:38,718 - Time taken to solve the CG DP: 0.01
+2025-03-02 23:20:38,739 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,739 - Time taken to solve the RGSP: 0.02
+2025-03-02 23:20:38,740 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,740 - Time taken to solve the CGSP: 0.03
+2025-03-02 23:20:38,742 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,742 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:38,747 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,769 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,769 - Time taken to solve the RGSP: 0.02
+2025-03-02 23:20:38,770 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,770 - Time taken to solve the CGSP: 0.03
+2025-03-02 23:20:38,773 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,773 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:38,779 - Time taken to solve the CG DP: 0.01
+2025-03-02 23:20:38,802 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,802 - Time taken to solve the RGSP: 0.02
+2025-03-02 23:20:38,803 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,803 - Time taken to solve the CGSP: 0.03
+2025-03-02 23:20:38,805 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,805 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:38,809 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,824 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,824 - Time taken to solve the RGSP: 0.01
+2025-03-02 23:20:38,825 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,825 - Time taken to solve the CGSP: 0.02
+2025-03-02 23:20:38,828 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,828 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:38,834 - Time taken to solve the CG DP: 0.01
+2025-03-02 23:20:38,853 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,853 - Time taken to solve the RGSP: 0.02
+2025-03-02 23:20:38,854 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,854 - Time taken to solve the CGSP: 0.03
+2025-03-02 23:20:38,856 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,856 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:38,862 - Time taken to solve the CG DP: 0.01
+2025-03-02 23:20:38,885 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,885 - Time taken to solve the RGSP: 0.02
+2025-03-02 23:20:38,886 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,886 - Time taken to solve the CGSP: 0.03
+2025-03-02 23:20:38,889 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,889 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:38,895 - Time taken to solve the CG DP: 0.01
+2025-03-02 23:20:38,916 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,916 - Time taken to solve the RGSP: 0.02
+2025-03-02 23:20:38,917 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:38,917 - Time taken to solve the CGSP: 0.03
+2025-03-02 23:20:38,920 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:38,920 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:38,920 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:39,002 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,002 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:39,020 - Time taken to solve the CG DP: 0.02
+2025-03-02 23:20:39,038 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,038 - Time taken to solve the RGSP: 0.02
+2025-03-02 23:20:39,039 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:39,039 - Time taken to solve the CGSP: 0.04
+2025-03-02 23:20:39,041 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,041 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:39,048 - Time taken to solve the CG DP: 0.01
+2025-03-02 23:20:39,072 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,072 - Time taken to solve the RGSP: 0.02
+2025-03-02 23:20:39,072 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:39,072 - Time taken to solve the CGSP: 0.03
+2025-03-02 23:20:39,078 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,078 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:39,083 - Time taken to solve the CG DP: 0.01
+2025-03-02 23:20:39,101 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,101 - Time taken to solve the RGSP: 0.02
+2025-03-02 23:20:39,102 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:39,102 - Time taken to solve the CGSP: 0.03
+2025-03-02 23:20:39,104 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,104 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:39,110 - Time taken to solve the CG DP: 0.01
+2025-03-02 23:20:39,128 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,128 - Time taken to solve the RGSP: 0.02
+2025-03-02 23:20:39,129 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:39,129 - Time taken to solve the CGSP: 0.03
+2025-03-02 23:20:39,133 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,133 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:39,138 - Time taken to solve the CG DP: 0.01
+2025-03-02 23:20:39,156 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,156 - Time taken to solve the RGSP: 0.02
+2025-03-02 23:20:39,156 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:39,156 - Time taken to solve the CGSP: 0.03
+2025-03-02 23:20:39,159 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,159 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:39,164 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:39,179 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,179 - Time taken to solve the RGSP: 0.02
+2025-03-02 23:20:39,180 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:39,196 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,196 - Time taken to solve the RGSP: 0.02
+2025-03-02 23:20:39,196 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:39,197 - Time taken to solve the CGSP: 0.04
+2025-03-02 23:20:39,201 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,201 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:39,206 - Time taken to solve the CG DP: 0.01
+2025-03-02 23:20:39,223 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,223 - Time taken to solve the RGSP: 0.02
+2025-03-02 23:20:39,224 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:39,224 - Time taken to solve the CGSP: 0.03
+2025-03-02 23:20:39,227 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,227 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:39,232 - Time taken to solve the CG DP: 0.01
+2025-03-02 23:20:39,251 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,251 - Time taken to solve the RGSP: 0.02
+2025-03-02 23:20:39,251 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:39,251 - Time taken to solve the CGSP: 0.03
+2025-03-02 23:20:39,254 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,254 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:39,260 - Time taken to solve the CG DP: 0.01
+2025-03-02 23:20:39,277 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,277 - Time taken to solve the RGSP: 0.02
+2025-03-02 23:20:39,277 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:39,277 - Time taken to solve the CGSP: 0.02
+2025-03-02 23:20:39,280 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,280 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:39,283 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:39,291 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,291 - Time taken to solve the RGSP: 0.01
+2025-03-02 23:20:39,291 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:39,292 - Time taken to solve the CGSP: 0.01
+2025-03-02 23:20:39,298 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,298 - Time taken to solve the RGSP: 0.01
+2025-03-02 23:20:39,303 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:39,322 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,322 - Time taken to solve the RGSP: 0.02
+2025-03-02 23:20:39,322 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:39,341 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,341 - Time taken to solve the RGSP: 0.02
+2025-03-02 23:20:39,342 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:39,342 - Time taken to solve the CGSP: 0.05
+2025-03-02 23:20:39,344 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,344 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:39,348 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:39,360 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,360 - Time taken to solve the RGSP: 0.01
+2025-03-02 23:20:39,361 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:39,373 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,373 - Time taken to solve the RGSP: 0.01
+2025-03-02 23:20:39,374 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:39,374 - Time taken to solve the CGSP: 0.03
+2025-03-02 23:20:39,378 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,378 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:39,384 - Time taken to solve the CG DP: 0.01
+2025-03-02 23:20:39,407 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,407 - Time taken to solve the RGSP: 0.02
+2025-03-02 23:20:39,408 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:39,446 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,446 - Time taken to solve the RGSP: 0.04
+2025-03-02 23:20:39,447 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:39,447 - Time taken to solve the CGSP: 0.07
+2025-03-02 23:20:39,451 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,452 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:39,459 - Time taken to solve the CG DP: 0.01
+2025-03-02 23:20:39,480 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,480 - Time taken to solve the RGSP: 0.02
+2025-03-02 23:20:39,481 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:39,481 - Time taken to solve the CGSP: 0.03
+2025-03-02 23:20:39,484 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,484 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:39,490 - Time taken to solve the CG DP: 0.01
+2025-03-02 23:20:39,510 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,511 - Time taken to solve the RGSP: 0.02
+2025-03-02 23:20:39,511 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:39,511 - Time taken to solve the CGSP: 0.03
+2025-03-02 23:20:39,513 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,513 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:39,519 - Time taken to solve the CG DP: 0.01
+2025-03-02 23:20:39,541 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,541 - Time taken to solve the RGSP: 0.02
+2025-03-02 23:20:39,541 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:39,541 - Time taken to solve the CGSP: 0.03
+2025-03-02 23:20:39,544 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,544 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:39,550 - Time taken to solve the CG DP: 0.01
+2025-03-02 23:20:39,567 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,567 - Time taken to solve the RGSP: 0.02
+2025-03-02 23:20:39,568 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:39,568 - Time taken to solve the CGSP: 0.03
+2025-03-02 23:20:39,570 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,570 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:39,576 - Time taken to solve the CG DP: 0.01
+2025-03-02 23:20:39,596 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,597 - Time taken to solve the RGSP: 0.02
+2025-03-02 23:20:39,597 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:39,597 - Time taken to solve the CGSP: 0.03
+2025-03-02 23:20:39,601 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,601 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:39,605 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:39,622 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,622 - Time taken to solve the RGSP: 0.02
+2025-03-02 23:20:39,623 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:39,623 - Time taken to solve the CGSP: 0.02
+2025-03-02 23:20:39,625 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,625 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:39,626 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:39,635 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,642 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,642 - Time taken to solve the RGSP: 0.02
+2025-03-02 23:20:39,643 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:39,643 - Time taken to solve the CGSP: 0.02
+2025-03-02 23:20:39,646 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,646 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:39,652 - Time taken to solve the CG DP: 0.01
+2025-03-02 23:20:39,685 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,685 - Time taken to solve the RGSP: 0.03
+2025-03-02 23:20:39,685 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:39,685 - Time taken to solve the CGSP: 0.04
+2025-03-02 23:20:39,688 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,688 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:39,693 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:39,744 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,745 - Time taken to solve the RGSP: 0.05
+2025-03-02 23:20:39,745 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:39,745 - Time taken to solve the CGSP: 0.06
+2025-03-02 23:20:39,768 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,768 - Time taken to solve the RGSP: 0.02
+2025-03-02 23:20:39,777 - Time taken to solve the CG DP: 0.01
+2025-03-02 23:20:39,799 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,799 - Time taken to solve the RGSP: 0.02
+2025-03-02 23:20:39,800 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:39,800 - Time taken to solve the CGSP: 0.05
+2025-03-02 23:20:39,806 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,806 - Time taken to solve the RGSP: 0.01
+2025-03-02 23:20:39,812 - Time taken to solve the CG DP: 0.01
+2025-03-02 23:20:39,834 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,834 - Time taken to solve the RGSP: 0.02
+2025-03-02 23:20:39,835 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:39,835 - Time taken to solve the CGSP: 0.03
+2025-03-02 23:20:39,838 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,838 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:39,843 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:39,862 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,862 - Time taken to solve the RGSP: 0.02
+2025-03-02 23:20:39,863 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:39,863 - Time taken to solve the CGSP: 0.03
+2025-03-02 23:20:39,865 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,865 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:39,867 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:39,878 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,878 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:39,884 - Time taken to solve the CG DP: 0.01
+2025-03-02 23:20:39,905 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,905 - Time taken to solve the RGSP: 0.02
+2025-03-02 23:20:39,906 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:39,930 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,930 - Time taken to solve the RGSP: 0.02
+2025-03-02 23:20:39,930 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:39,930 - Time taken to solve the CGSP: 0.05
+2025-03-02 23:20:39,933 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,933 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:39,936 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:39,946 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,946 - Time taken to solve the RGSP: 0.01
+2025-03-02 23:20:39,947 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:39,971 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,971 - Time taken to solve the RGSP: 0.02
+2025-03-02 23:20:39,972 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:39,972 - Time taken to solve the CGSP: 0.04
+2025-03-02 23:20:39,975 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,975 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:39,980 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:39,996 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:39,997 - Time taken to solve the RGSP: 0.02
+2025-03-02 23:20:39,998 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:40,017 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:40,017 - Time taken to solve the RGSP: 0.02
+2025-03-02 23:20:40,018 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:40,018 - Time taken to solve the CGSP: 0.04
+2025-03-02 23:20:40,020 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:40,021 - Time taken to solve the RGSP: 0.00
+2025-03-02 23:20:40,025 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:40,042 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:40,043 - Time taken to solve the RGSP: 0.02
+2025-03-02 23:20:40,044 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:40,063 - Time taken to generate new constraints: 0.00
+2025-03-02 23:20:40,064 - Time taken to solve the RGSP: 0.02
+2025-03-02 23:20:40,066 - Time taken to solve the CG DP: 0.00
+2025-03-02 23:20:40,066 - Time taken to solve the CGSP: 0.05
+2025-03-02 23:20:40,068 - Total CG iterations: 151
+2025-03-02 23:20:40,069 - Total RG iterations: 70
+2025-03-02 23:20:40,069 - Total RG time: 1.30
+2025-03-02 23:20:40,069 - Total CG time: 2.17
+2025-03-02 23:20:40,069 - Total RG DP time: 0.01
+2025-03-02 23:20:40,069 - Total CG DP time: 0.00
+2025-03-02 23:20:40,069 - tsp cache time: 0.05

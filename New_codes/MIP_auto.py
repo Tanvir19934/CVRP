@@ -7,7 +7,7 @@ from matplotlib.lines import Line2D
 import random
 import pickle
 from config_new import N, V, Q_EV, q, a, NODES, grid_size, xc, yc, w_dv, w_ev, theta, MIP_start, gamma, gamma_l, battery_threshold, EV_cost, GV_cost, T_max_EV, T_max_GV, EV_velocity, GV_velocity, Q_GV, num_TV, num_GV, num_EV, E, D, K, A, r, st
-from utils_new import generate_all_possible_routes, ev_travel_cost, tsp_tour, gv_tsp_cost, save_to_excel, update_config, refresh_config
+from utils_new_auto import generate_all_possible_routes, ev_travel_cost, tsp_tour, gv_tsp_cost, save_to_excel, update_config, refresh_config
 import pandas as pd
 import time
 import importlib
@@ -111,7 +111,7 @@ def main():
 
 
    # Stability
-   mdl.addConstrs((quicksum(p[i] for i in N if i in route) <= mr[route]) for route in all_routes)
+   mdl.addConstrs((quicksum(p[i] for i in N if i in route) <= mr[route]) for route in all_routes if len(route)>3)
 
 
    def variable_elimination():
@@ -167,7 +167,7 @@ def main():
    variable_elimination()
    valid_inequality()      #[[0, 8, 6, 4, 0], [0, 1, 7, 2, 0]]
 
-   mdl.NumStart = 1
+   #mdl.NumStart = 1
    mdl.update()
 
 
@@ -199,7 +199,7 @@ def main():
 
    mdl.update()
    mdl.modelSense = GRB.MINIMIZE
-   mdl.setParam('TimeLimit', 15000)  # Set a 60-second time limit
+   mdl.setParam('TimeLimit', 3000)  # Set a 60-second time limit
 
    #Set objective
    #mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)]*2 for j in N for d in D )) +0.1*(e_BB + (quicksum(e_IR[i] for i in N)) + (quicksum(e_S[i] for i in N)))+(quicksum(x_e[e,(i,j)]*a[(i,j)] for i in V for j in V for e in E if i!=j)))
@@ -208,8 +208,8 @@ def main():
                   +  theta * ((quicksum((1-b0[e,(i,0)])*260*EV_cost*x_e[e,(i,0)] for i in N for e in E)) - quicksum(p[i] for i in N))) 
 
 
-   mdl.Params.MIPGap = 0.288
-   mdl.params.NonConvex = 2
+   mdl.Params.MIPGap = 0.05
+   #mdl.params.NonConvex = 2
    #mdl.Params.TimeLimit = 2000 #seconds
    mdl.optimize()
 
@@ -404,14 +404,26 @@ def main():
 
 if __name__=="__main__":
     
+    nodes = [i for i in range(5, 16)]
+
+    for item in nodes:
+        
+        update_config(item)
+        time.sleep(10)
+        import config_new
+        importlib.reload(config_new)  # Reload the module to update V, q, a, Q_EV
+        globals().update({k: getattr(config_new, k) for k in dir(config_new) if not k.startswith("__")})
+
+
+
         # Run the branching logic
         start = time.perf_counter()
         obj, total_miles, EV_miles, Total_payments, Subsidy, payments, solution_routes = main()
         end = time.perf_counter()
-        print(f"Execution time for nodes={NODES}: {end - start}")
+        print(f"Execution time for nodes={item}: {end - start}")
         Execution_time = end - start
         data = {
-            "Nodes": [NODES],
+            "Nodes": [item],
             "Obj": [obj],
             "Total Miles": [total_miles],
             "EV miles": [EV_miles],
@@ -423,7 +435,7 @@ if __name__=="__main__":
         file_name = "New_codes/results.xlsx"
         save_to_excel(file_name, "Sheet3", df)
         data = {
-            "Nodes": [NODES],
+            "Nodes": [item],
             "Payments": [payments],
             "Solution routes": [solution_routes]
         }

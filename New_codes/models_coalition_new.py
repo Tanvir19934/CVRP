@@ -45,34 +45,24 @@ class SubProblem:
 
         return new_time, new_load, new_battery, new_distance 
 
-    def calculate_reduced_cost(self, label, dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle):
-        pointer = label
-        partial_route = [label.node]
-        while pointer.parent:
-            partial_route.append(pointer.parent.node)
-            pointer = pointer.parent
-        partial_route = partial_route[::-1]
-        if partial_route[-1]!='t':
-            partial_route.append('t')
-        partial_route[0]=0
-        partial_route[-1]=0
+    def calculate_reduced_cost(self, route, dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle):
 
         reduced_cost = 0
-        delta_sum = [dual_values_delta[i] for i in partial_route if i!=0]
+        delta_sum = [dual_values_delta[i] for i in route if i!=0]
 
-        if len(partial_route)==3:
-            for i in range(0,len(partial_route)-1):
-                reduced_cost += w_dv*a[(partial_route[i],partial_route[i+1])]
+        if len(route)==3:
+            for i in range(0,len(route)-1):
+                reduced_cost += w_dv*a[(route[i],route[i+1])]
             reduced_cost+=-sum(delta_sum)
             return reduced_cost
 
-        for i in range(0,len(partial_route)-1):
-            reduced_cost += w_ev*a[(partial_route[i],partial_route[i+1])]
+        for i in range(0,len(route)-1):
+            reduced_cost += w_ev*a[(route[i],route[i+1])]
 
-        reduced_cost+= (theta-dual_values_subsidy)*ev_travel_cost(partial_route)
-        IR_sum = [dual_values_IR[i]*(a[(i,0)]*GV_cost*q[i]+a[(i,0)]*GV_cost) for i in partial_route if i!=0]
-        if [0, 7, 3, 1, 0]==partial_route or [0, 7, 3, 0]==partial_route:
-            pass 
+        reduced_cost+= (theta-dual_values_subsidy)*ev_travel_cost(route)
+        IR_sum = [dual_values_IR[i]*(a[(i,0)]*GV_cost*q[i]+a[(i,0)]*GV_cost) for i in route if i!=0]
+        #if [0, 7, 3, 1, 0]==route or [0, 7, 3, 0]==route:
+        #    pass 
         reduced_cost += -sum(delta_sum) - sum(IR_sum) + dual_values_vehicle #(note the + sign for IR_sum)
         
         return reduced_cost
@@ -125,17 +115,20 @@ class SubProblem:
                         else: current_node_converted = current_node
                         if (current_node_converted,new_node_converted) in self.forbidden_set:
                             continue
-                        current_path = reconstruct_path(current_label)+ [new_node]
-                        if current_path==[0,7,3,1] or current_path==[0,7,3]:
-                            pass
-
+                        if new_node=='t':
+                            new_path = reconstruct_path(current_label) + [0]
+                        else:
+                            new_path = reconstruct_path(current_label) + [new_node] + [0]
+                        
+                        #if new_path==[0,7,3,1] or new_path==[0,7,3]:
+                        #    pass
                         
                         new_time, new_load, new_battery, new_cost   = self.feasibility_check(current_node, new_node, current_label.resource_vector[-1], current_label.resource_vector[1], current_label.resource_vector[2], current_label.resource_vector[0])
 
                         if new_cost:
                             resource_vector = (new_cost, new_load, new_battery, new_time)
                             new_label = Label(new_node, resource_vector, current_label)
-                            reduced_cost = self.calculate_reduced_cost(new_label, dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle)
+                            reduced_cost = self.calculate_reduced_cost(new_path, dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle)
                             new_label.resource_vector = (reduced_cost, new_load, new_battery, new_time) #update the resource vector with reduced cost
 
                             if reduced_cost<tol:

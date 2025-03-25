@@ -27,6 +27,9 @@ total_dem = sum(q)                                                           #to
 #Other parameters
 num_EV = math.ceil(NODES*0.3)
 unlimited_EV = True
+use_column_heuristic = False
+always_generate_rows = False
+
 if unlimited_EV:
     num_EV = NODES
 num_clusters = int(0.5*(total_dem/(num_EV*Q_EV)))
@@ -58,7 +61,7 @@ EV_cost = 14.5 # 0.3    #
 #GV_cost = 0.58  # 
 GV_cost = 5   
 
-EV_cost = 2.33
+EV_cost = 3.5
 GV_cost = 1
 
 

@@ -199,7 +199,7 @@ def main():
 
    mdl.update()
    mdl.modelSense = GRB.MINIMIZE
-   mdl.setParam('TimeLimit', 3000)  # Set a 60-second time limit
+   mdl.setParam('TimeLimit', 14400)  # Set a 60-second time limit
 
    #Set objective
    #mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)]*2 for j in N for d in D )) +0.1*(e_BB + (quicksum(e_IR[i] for i in N)) + (quicksum(e_S[i] for i in N)))+(quicksum(x_e[e,(i,j)]*a[(i,j)] for i in V for j in V for e in E if i!=j)))
@@ -400,7 +400,7 @@ def main():
    print(f"Total subsidy: {cost_EV - sum(p_result.values())}")
    print(f"payments= {p_result}")
    print(ev_routes_list)
-   return mdl.getObjective().getValue(), miles_EV+miles_GV, miles_EV, sum(p_result.values()), cost_EV - sum(p_result.values()), p_result, ev_routes_list
+   return mdl.getObjective().getValue(), miles_EV*w_ev+miles_GV*w_dv, miles_EV, sum(p_result.values()), cost_EV - sum(p_result.values()), p_result, ev_routes_list
 
 if __name__=="__main__":
     
@@ -409,10 +409,11 @@ if __name__=="__main__":
     for item in nodes:
         
         update_config(item)
-        time.sleep(10)
+        time.sleep(5)
         import config_new
         importlib.reload(config_new)  # Reload the module to update V, q, a, Q_EV
         globals().update({k: getattr(config_new, k) for k in dir(config_new) if not k.startswith("__")})
+        time.sleep(5)
 
 
 
@@ -432,7 +433,7 @@ if __name__=="__main__":
             "Execution time (sec.)": [Execution_time]
         }
         df = pd.DataFrame(data)
-        file_name = "New_codes/results.xlsx"
+        file_name = "Results/results.xlsx"
         save_to_excel(file_name, "Sheet3", df)
         data = {
             "Nodes": [item],
@@ -440,7 +441,7 @@ if __name__=="__main__":
             "Solution routes": [solution_routes]
         }
         df = pd.DataFrame(data)
-        file_name = "New_codes/results.xlsx"
+        file_name = "Results/results.xlsx"
         save_to_excel(file_name, "Sheet4", df)
 
 #miles_saved, percentage_miles_saved, cost_saved, percentage_cost_saved =  cost_calculation(x_e_result,x_d_result,b0_result)

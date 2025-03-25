@@ -1,20 +1,20 @@
 import numpy as np
+import math
 rnd = np.random
 rnd.seed(630)
-import math
 
 
-NODES = 15
-
+NODES = 10
+k = min(round(NODES*0.5),4)
 grid_size = 50                                                               #number of clients
 xc = np.random.uniform(low=- grid_size/2, high=grid_size/2, size=NODES+1)
 yc = np.random.uniform(low=-grid_size/2, high=grid_size/2, size= NODES+1)
 xc[0]=0
 yc[0]=0
-w_dv = 1.25
+w_dv = 1.2
 w_ev = 1
-theta = 0.2
-tol = 0.00002
+theta = 0.3
+tol = 0.001
 N = [i for i in range(1,NODES+1)]                                            #set of customer nodes
 V = [0] + N                                                                  #set of all nodes (customer+depot)
 
@@ -22,14 +22,16 @@ V = [0] + N                                                                  #se
 Q_EV = 10                                                                    #capacity of each EV
 Q_GV = 10                                                                    #capacity of each GV
 q = {i: rnd.randint(1,7) for i in N}                                         #demand for customers
-q[0] = 0
 total_dem = sum(q)                                                           #total demand
 
 #Other parameters
 num_EV = math.ceil(NODES*0.3)
-num_clusters = int(0.5*(total_dem/(num_EV*Q_EV)))           
+unlimited_EV = True
+if unlimited_EV:
+    num_EV = NODES
+num_clusters = int(0.5*(total_dem/(num_EV*Q_EV)))
 num_GV = len(N)
-num_TV = num_EV+num_GV 
+num_TV = num_EV+num_GV
 K = [i for i in range(1,num_TV+1)]                                           #Set of all vehicles 
 D = [i for i in range(1,num_GV+1)]                                           #Set of diesel vehicles
 E = [i for i in range(num_GV+1,num_TV+1)]                                    #Set of EVs
@@ -52,9 +54,16 @@ T_max_EV = 68000                                                               #
 T_max_GV = 68000                                                              #max operation time per GV
 EV_velocity = 0.67 
 GV_velocity = 0.67
-EV_cost = 0.38 # 0.3    #0.38  #$/kWh   or 0.035 per ton mile
-#GV_cost = 0.58  # 0.25 per ton mile
-GV_cost = 0.11   # 0.045 per ton mile
+EV_cost = 14.5 # 0.3    #
+#GV_cost = 0.58  # 
+GV_cost = 5   
+
+EV_cost = 2.33
+GV_cost = 1
+
+
+# EV_cost = 2.3112 is on par with GV_cost = 1, i.e., equal cost
+
 
 M = 4
 battery_threshold = 0.1

@@ -4,9 +4,10 @@ import heapq
 from collections import defaultdict
 import re
 from utils_new import *
-import random
-from config_new import battery_threshold, N, V, Q_EV, q, a, w_dv, w_ev, theta, tol, num_EV, st, gamma, gamma_l, T_max_EV, EV_velocity, GV_cost
-
+from config_new import battery_threshold, N, V, Q_EV, q, a, w_dv, w_ev, theta, tol, num_EV, st, gamma, gamma_l, T_max_EV, EV_velocity, GV_cost, unlimited_EV
+import numpy as np
+rnd = np.random
+rnd.seed(42)
 class Label:
     def __init__(self, node, resource_vector, parent=None):
         self.node = node  # Current node
@@ -70,9 +71,9 @@ class SubProblem:
 
         reduced_cost+= (theta-dual_values_subsidy)*ev_travel_cost(partial_route)
         IR_sum = [dual_values_IR[i]*(a[(i,0)]*GV_cost*q[i]+a[(i,0)]*GV_cost) for i in partial_route if i!=0]
-        if [0,5,12,10,11,0]==partial_route:
+        if [0, 7, 3, 1, 0]==partial_route or [0, 7, 3, 0]==partial_route:
             pass 
-        reduced_cost += -sum(delta_sum) + sum(IR_sum) - dual_values_vehicle #(note the + sign for IR_sum)
+        reduced_cost += -sum(delta_sum) - sum(IR_sum) + dual_values_vehicle #(note the + sign for IR_sum)
         
         return reduced_cost
     
@@ -122,8 +123,12 @@ class SubProblem:
                         if current_node=='t' or current_node=='s':
                             current_node_converted=0
                         else: current_node_converted = current_node
-                        if new_node_converted not in self.adj[current_node_converted] or (current_node_converted,new_node_converted) in self.forbidden_set:
+                        if (current_node_converted,new_node_converted) in self.forbidden_set:
                             continue
+                        current_path = reconstruct_path(current_label)+ [new_node]
+                        if current_path==[0,7,3,1] or current_path==[0,7,3]:
+                            pass
+
                         
                         new_time, new_load, new_battery, new_cost   = self.feasibility_check(current_node, new_node, current_label.resource_vector[-1], current_label.resource_vector[1], current_label.resource_vector[2], current_label.resource_vector[0])
 
@@ -143,7 +148,7 @@ class SubProblem:
         new_routes = {}
         for item in L[sink_node]:
             new_routes[tuple(reconstruct_path(item))] = item.resource_vector[0]
-            new_routes[tuple(reconstruct_path(item)[::-1])] = -1
+            #new_routes[tuple(reconstruct_path(item)[::-1])] = -1
 
         N.remove('s')
         N.remove('t')
@@ -159,9 +164,9 @@ class MasterProblem:
         self.y_r = {}
         self.p = {}
         self.r_set = [[0, node, 0] for node in V if node != 0]
-        self.r_set = self.r_set
+        self.r_set = [tuple(path) for path in self.r_set]  # Convert lists to tuples
 
-    def relaxedLP(self, extended_set, new_constraints = None) -> None:
+    def relaxedLP(self, extended_set, new_constraints = None, initial_lp=False) -> None:
 
         #override some config parameters
         q[0] = 0
@@ -172,27 +177,25 @@ class MasterProblem:
                     self.r_set.remove(tuple((0,item[0],0)))
                 if tuple((0,item[1],0)) in self.r_set:
                     self.r_set.remove(tuple((0,item[1],0)))
+        
+        #def contains_forbidden_arc(path, forbidden):
+        #    for i in range(len(path) - 1):
+        #        if (path[i], path[i+1]) in forbidden:
+        #            return True
+        #    return False
 
         if extended_set:
             self.r_set.update(extended_set)
+
+        # Filter out tuples that contain forbidden arcs
+        #filtered_r_set = {path for path in self.r_set if not contains_forbidden_arc(path, self.forbidden)}
+        # Update self.r_set
+        #self.r_set = filtered_r_set
+
+        if initial_lp:
+            self.r_set = [[0, node, 0] for node in V if node != 0]
         
         self.r_set = set(tuple(route) for route in self.r_set)
-
-        if self.allowed:
-            for item in self.allowed:
-                if item[0]!=0 and item[1]!=0:
-                    s=list(item)
-                    s.append(0)
-                    s.insert(0,0)
-                    self.r_set.add(tuple(s))
-                elif item[0]==0 and item[1]!=0:
-                    s=list(item)
-                    s.append(0)
-                    self.r_set.add(tuple(s))
-                elif item[0]!=0 and item[1]==0:
-                    s=list(item)
-                    s.insert(0,0)
-                    self.r_set.add(tuple(s))
 
         c_r = {item:0 for item in self.r_set}
         a_r = {item:0 for item in self.r_set}
@@ -220,7 +223,10 @@ class MasterProblem:
         #CONSTRAINTS
         self.model.addConstrs((quicksum(delta[(i, route)] * self.y_r[route] for route in self.r_set) >= 1 for i in N), name=f"delta_")
         self.model.addConstr((quicksum(c_r[route]*self.y_r[route] for route in self.r_set if len(route)>3) - quicksum(self.p[i] for i in N)) >= 0, name="subsidy")
-        self.model.addConstr((quicksum(self.y_r[route] for route in self.r_set if len(route)>3) <= num_EV), name="vehicle")
+        if unlimited_EV:
+            self.model.addConstr((quicksum(self.y_r[route] for route in self.r_set if len(route)>3) <= num_EV*10000), name="vehicle")
+        else:
+            self.model.addConstr((quicksum(self.y_r[route] for route in self.r_set if len(route)>3) <= num_EV), name="vehicle")
         self.model.addConstrs(((a[(i,0)]*GV_cost*q[i]+a[(i,0)]*GV_cost)*(quicksum(delta[(i, route)] * self.y_r[route] for route in self.r_set if len(route)!=3)) - self.p[i] >= 0 for i in N), name=f"IR_")
         self.model.update()
 
@@ -306,44 +312,56 @@ class RowGeneratingSubProblem:
         self.adj= adj
         self.forbidden_set = forbidden_set
     
-    #@staticmethod
-    def dy_prog(self):
-        U = []  # Priority queue for undominated labels
-        L = defaultdict(list)  # Dictionary to store the sets of labels at each node
-        q[0]=0
-        start_node = random.choice(N)
-        initial_resource_vector = q[start_node]
-        initial_label = Label(start_node, initial_resource_vector, None)
-        U.append(initial_label)
-        
-        # Step 2: Main loop for label setting
-        while U:
-            current_label = U.pop()
-            current_node = current_label.node
+    def dy_prog(self, N, q, Q_EV):
+        q = {i: q[i] for i in q if i != 0}  
+        customers = list(q.keys())  
+        weights = list(q.values())  
+        N = len(customers)  
 
-            in_path_already = False
-            in_path_already = partial_path(current_label,current_node)
-            if in_path_already:
-                continue
-            if current_node!=0:
-                L[current_node].append(current_label)
-            neigh = list(set(N)-set([current_node]))
+        dp = [set() for _ in range(Q_EV + 1)]
+        dp[0].add(tuple())  
 
-            for new_node in neigh:
-                #if new_node not in self.adj[current_node] or current_label.resource_vector + q[new_node] > Q_EV or (current_node,new_node) in self.forbidden_set:
-                if  current_label.resource_vector + q[new_node] > Q_EV:
-                    continue
-                else:
-                    U.append(Label(new_node, current_label.resource_vector + q[new_node], current_label))
-        return L
+        # Fill DP table
+        for i in range(N):  
+            customer_id = customers[i]
+            weight = weights[i]
+            for w in range(Q_EV, -1, -1):
+                if dp[w]:
+                    new_weight = w + weight
+                    if new_weight <= Q_EV:
+                        # Temporary set to store new combinations
+                        new_combinations = set()
+                        for combination in dp[w]:
+                            new_combinations.add(combination + (customer_id,))
+                        # Update dp[new_weight] after iteration
+                        dp[new_weight].update(new_combinations)
 
-    @staticmethod 
-    def generate_routes(tsp_memo,p):
+        valid_combinations = []
+        for w in range(1, Q_EV + 1): 
+            valid_combinations.extend(dp[w])
+
+        return valid_combinations
+
+
+    def generate_constr(self,tsp_memo,p,L):
         p['p_0']=0
-        new_routes = set() 
-        for candidate_route in tsp_memo:
-            tsp_cost = tsp_memo[candidate_route]
+        new_routes = set()
+
+        for item in L:
+            candidate_route = list(item)
+            if len(candidate_route)==1:
+                candidate_route = [0, candidate_route[0], 0]
+            else:
+                candidate_route = [0] + candidate_route + [0]
+            sorted_candidate_route = (0,) + tuple(sorted(candidate_route[1:-1])) + (0,)
+            if tuple(candidate_route)!=sorted_candidate_route:
+                pass
+            if sorted_candidate_route in tsp_memo:
+                tsp_cost = tsp_memo[tuple(sorted_candidate_route)][0]
+            else: 
+                tsp_cost, candidate_route = tsp_tour(sorted_candidate_route)
+                tsp_memo[sorted_candidate_route] = (tsp_cost,tuple(candidate_route))
             payments = [p[f"p_{i}"] for i in candidate_route if i!=0]
             if tsp_cost<sum(payments)-tol:
                 new_routes.add((tuple(candidate_route),tsp_cost))
-        return new_routes
+        return new_routes, tsp_memo

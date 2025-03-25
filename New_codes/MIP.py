@@ -7,13 +7,12 @@ from matplotlib.lines import Line2D
 import random
 import pickle
 from config_new import N, V, Q_EV, q, a, NODES, grid_size, xc, yc, w_dv, w_ev, theta, MIP_start, gamma, gamma_l, battery_threshold, EV_cost, GV_cost, T_max_EV, T_max_GV, EV_velocity, GV_velocity, Q_GV, num_TV, num_GV, num_EV, E, D, K, A, r, st
-from utils_new import generate_all_possible_routes, ev_travel_cost, tsp_tour, gv_tsp_cost, save_to_excel, update_config, refresh_config
+from utils_new import generate_all_possible_routes, ev_travel_cost, tsp_tour, gv_tsp_cost, save_to_excel, update_config
 import pandas as pd
 import time
 import importlib
 
 def main():
-   rnd = np.random
    #rnd.seed(10)
    # [[0, 2, 4, 6, 0], [0, 1, 9, 7, 0], [0, 5, 12, 10, 11, 0]]
    #override some config parameters
@@ -30,10 +29,22 @@ def main():
 
    all_routes = generate_all_possible_routes(N)
    mr = {}
+   over = []
+   #for item in all_routes:
+   #   load = [sum(q[i] for i in item)]
+   #   if load[0] <= Q_GV:
+   #      mr[item] = gv_tsp_cost(item)
+   #   else:
+   #      over.append(item)
+   #all_routes = [item for item in all_routes if item not in over]
+   tsp_memo = {}
    for item in all_routes:
-
-      
-      mr[item] = gv_tsp_cost(item)
+      sorted_item = tuple(sorted(item))
+      if sorted_item in tsp_memo:
+         mr[item] = tsp_memo[sorted_item]
+      else:
+         mr[item] = tsp_tour(item)[0]
+         tsp_memo[sorted_item] = mr[item]
 
 
    for item in E:
@@ -114,6 +125,12 @@ def main():
    mdl.addConstrs((quicksum(p[i] for i in N if i in route) <= mr[route]) for route in all_routes)
 
 
+
+   #Symmetry breaking constraints (optional)
+   #mdl.addConstrs((x_e[e,(i,j)] == x_e[e,(j,i)] for i in V for j in V for e in E if i!=j))
+   #mdl.addConstrs((x_e[e,(0,i)] <= x_e[e-1,(0,i)] for i in N for j in N for e in E if i!=j))
+
+
    def variable_elimination():
 
       #mdl.addConstrs((quicksum(x_e[e,(0,j)] for j in N))<= (quicksum(x_e[e-1,(0,j)] for j in N)) for e in E if e!=min(E))  #employ smaller labeled truck first
@@ -148,12 +165,12 @@ def main():
 
    def valid_inequality():
       #valid inequality: If the total distance of two successive arcs is larger than γ2G, a vehicle can not travel through both of the arcs
-      for i in V:
+      for i in N:
          for j in N:
-            for k in V:
-               if i!=j and j!=k and ((a[(i,j)]/EV_velocity)*(gamma+gamma_l*q[i]) + (a[(j,k)]/EV_velocity)*(gamma+gamma_l*(q[i]+q[j]))) > 1-battery_threshold:
+            for k in N:
+               if i!=j and j!=k and ((a[(0,i)]/EV_velocity)*gamma + (a[(i,j)]/EV_velocity)*(gamma+gamma_l*q[i]) + (a[(j,k)]/EV_velocity)*(gamma+gamma_l*(q[i]+q[j]))) + (a[(k,0)]/EV_velocity)*(gamma+gamma_l*(q[i]+q[j]+q[k])) > 1-battery_threshold:
                   mdl.addConstrs(x_e[e,(i,j)]+x_e[e,(j,k)] <= 1 for e in E)
-               if i!=j and j!=k and (((a[(i,j)]/EV_velocity) + (a[(j,k)]/EV_velocity) + st[j] + st[k]) > T_max_EV):
+               if i!=j and j!=k and (((a[(0,i)]/EV_velocity)+ (a[(i,j)]/EV_velocity) + (a[(j,k)]/EV_velocity) + (a[(k,0)]/EV_velocity) + st[i] + st[j] + st[k]) > T_max_EV):
                   mdl.addConstrs(x_e[e,(i,j)]+x_e[e,(j,k)] <= 1 for e in E)
 
       #cuts based on load capacity limitation. If a subset C′ of the customers’ cargo load is more than a vehicle’s 
@@ -208,7 +225,7 @@ def main():
                   +  theta * ((quicksum((1-b0[e,(i,0)])*260*EV_cost*x_e[e,(i,0)] for i in N for e in E)) - quicksum(p[i] for i in N))) 
 
 
-   mdl.Params.MIPGap = 0.288
+   mdl.Params.MIPGap = 0.05
    mdl.params.NonConvex = 2
    #mdl.Params.TimeLimit = 2000 #seconds
    mdl.optimize()
@@ -420,7 +437,7 @@ if __name__=="__main__":
             "Execution time (sec.)": [Execution_time]
         }
         df = pd.DataFrame(data)
-        file_name = "New_codes/results.xlsx"
+        file_name = "Results/results.xlsx"
         save_to_excel(file_name, "Sheet3", df)
         data = {
             "Nodes": [NODES],
@@ -428,7 +445,7 @@ if __name__=="__main__":
             "Solution routes": [solution_routes]
         }
         df = pd.DataFrame(data)
-        file_name = "New_codes/results.xlsx"
+        file_name = "Results/results.xlsx"
         save_to_excel(file_name, "Sheet4", df)
 
 #miles_saved, percentage_miles_saved, cost_saved, percentage_cost_saved =  cost_calculation(x_e_result,x_d_result,b0_result)

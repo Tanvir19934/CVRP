@@ -5,12 +5,10 @@ from itertools import permutations
 from openpyxl import load_workbook
 import pandas as pd
 import os
-import importlib
 import re
 
-
-
 def ev_travel_cost(route):
+    q[0]=0
     b = 1
     l = 0
     for i in range(len(route)-1):
@@ -22,6 +20,7 @@ def ev_travel_cost(route):
 def gv_tsp_cost(route):
     cost_GV = a[(route[0],route[1])]*GV_cost
     l = 0
+    q[0]=0
     try:
         route = eval(route)
     except:
@@ -165,7 +164,9 @@ def tsp_tour(route):
 
 
     model.Params.OutputFlag = 0
+    model.Params.MIPGap = 0.01
     model.optimize()
+    
 
     # Extract the solution
     if model.status == GRB.OPTIMAL:

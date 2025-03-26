@@ -76,7 +76,7 @@ class SubProblem:
         initial_resource_vector = (0, 0, 0, 0)  # (reduced_cost, load, battery, time)
         initial_label = Label(start_node, initial_resource_vector, None)
         heapq.heappush(U, initial_label)
-        print("Executing CG DP...")
+        print("\nExecuting CG DP...\n")
         
         while U:
             current_label = heapq.heappop(U)
@@ -323,7 +323,7 @@ class RowGeneratingSubProblem:
         dp = [set() for _ in range(Q_EV + 1)]
         dp[0].add(tuple())
 
-        print("Executing RG DP...")  
+        print("\nExecuting RG DP...\n")  
 
         # Fill DP table
         for i in range(N):  
@@ -360,7 +360,7 @@ class RowGeneratingSubProblem:
     def generate_constr(self,tsp_memo,p,L):
         p['p_0']=0
         new_routes = set()
-        print("Generating rows...")
+        print("\nGenerating rows...\n")
         for item in L:
             candidate_route = list(item)
             sorted_candidate_route = tuple([0]+ sorted(candidate_route[1:-1])+ [0])

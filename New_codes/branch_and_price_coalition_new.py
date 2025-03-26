@@ -27,7 +27,8 @@ class Node:
         self.forbidden = forbidden
         self.allowed = allowed
         self.not_fractional = False
-        print("depth =",self.depth)  #sanity check
+        print("\ndepth =",self.depth)  #sanity check
+        print("\n")
 
     def __lt__(self, other):
         return self.obj_val > other.obj_val  # For heap implementation. The heapq.heapify() will heapify the list based on this criteria.

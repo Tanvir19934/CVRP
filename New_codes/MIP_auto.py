@@ -14,6 +14,7 @@ import importlib
 
 def main():
    rnd = np.random
+   rnd.seed(42)
    #rnd.seed(10)
    # [[0, 2, 4, 6, 0], [0, 1, 9, 7, 0], [0, 5, 12, 10, 11, 0]]
    #override some config parameters
@@ -30,10 +31,14 @@ def main():
 
    all_routes = generate_all_possible_routes(N)
    mr = {}
+   tsp_memo = {}
    for item in all_routes:
-
-      
-      mr[item] = gv_tsp_cost(item)
+      sorted_item = tuple(sorted(item))
+      if sorted_item in tsp_memo:
+         mr[item] = tsp_memo[sorted_item]
+      else:
+         mr[item] = tsp_tour(item)[1]
+         tsp_memo[sorted_item] = mr[item]
 
 
    for item in E:

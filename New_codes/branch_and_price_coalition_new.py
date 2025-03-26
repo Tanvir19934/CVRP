@@ -12,9 +12,8 @@ import pandas as pd
 import logging
 from itertools import combinations
 
-import numpy as np
-rnd = np.random
-rnd.seed(20)
+
+random.seed(42)
 
 class Node:  
     
@@ -49,7 +48,7 @@ def generate_routes(L):
                     candidate_route = [0, candidate_route[0], 0]
                 else:
                     candidate_route = [0] + candidate_route + [0]
-                tsp_cost, candidate_route = tsp_tour(tuple(candidate_route))
+                candidate_route,tsp_cost = tsp_tour(tuple(candidate_route))
                 tsp_memo[tuple(candidate_route)] = tsp_cost
     return tsp_memo
 
@@ -62,8 +61,8 @@ def generate_tsp_cache(N, k):
         for comb in combinations(customers, i):
             all_combinations.append((0,) + comb + (0,))
     for item in all_combinations:
-        tsp_cost, candidate_route = tsp_tour(item)
-        tsp_memo[item] = (tsp_cost,tuple(candidate_route))
+        candidate_route, tsp_cost = tsp_tour(item)
+        tsp_memo[item] = (tuple(candidate_route),tsp_cost)
     
     return tsp_memo
 
@@ -98,27 +97,30 @@ def branching() -> None:
     logging.info(f"Time taken to generate tsp cache: {tsp_cache_time:0.2f}")
     
     global Total_CG_iteration, Total_RG_iteration, Total_RG_time, Total_CG_time
-    global Total_RG_DP_time, Total_CG_DP_time, Total_execution_time
-    Total_CG_iteration,  Total_RG_iteration,  Total_RG_time,  Total_CG_time,  Total_RG_DP_time,  Total_CG_DP_time = 0, 0, 0, 0, 0, 0
+    global Total_RG_DP_time, Total_CG_DP_time, Total_execution_time, Total_LP_time
+    Total_CG_iteration,  Total_RG_iteration,  Total_RG_time,  Total_CG_time,  Total_RG_DP_time,  Total_CG_DP_time, Total_LP_time = 0, 0, 0, 0, 0, 0, 0
     Total_num_lp = 0
+    feasibility_memo={}
     
     
     # Create the root node by solving the initial rmp
-    y_r_result, not_fractional, master_prob_model, root_obj_val, status, CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time, RG_DP_time, tsp_memo, num_lp  = column_generation(adj, forbidden_set= {}, allowed_set = [], tsp_memo=tsp_memo, initial = True)
-    2  ######################################## check here ########################
-    track_time_iterations(CG_iteration, RG_iteration, RG_time, CG_time, RG_DP_time, CG_DP_time)
+    y_r_result, not_fractional, master_prob_model, root_obj_val, status, CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time, RG_DP_time, LP_time, tsp_memo, feasibility_memo, num_lp, L, root_constraints = column_generation(adj, forbidden_set= {}, allowed_set = [], tsp_memo=tsp_memo, L = None, feasibility_memo=feasibility_memo, initial = True, root_constraints=set())
+    track_time_iterations(CG_iteration, RG_iteration, RG_time, CG_time, RG_DP_time, CG_DP_time, LP_time)
     Total_num_lp+=num_lp
     if not_fractional:
         print("Optimal solution found at the root node: did not need branching")
         obj, total_miles, EV_miles, Total_payments, Subsidy, payments, solution_routes = print_solution(master_prob_model)
         print(f"Total CG iterations: {Total_CG_iteration}")
         print(f"Total RG iterations: {Total_RG_iteration}")
+        print(f"Total nodes explored: {num_nodes_explored}")
         print(f"Total RG time: {Total_RG_time}")
         print(f"Total CG time: {Total_CG_time}")
         print(f"Total RG DP time: {Total_RG_DP_time}")
         print(f"Total CG DP time: {Total_CG_DP_time}")
+        print(f"Total LP time: {Total_LP_time:.2f}")
         print(f"tsp cache time: {tsp_cache_time}")
         print("LP gap: ", ((obj-root_obj_val)/obj)*100)
+        print(f"Total number of LPs solved: {Total_num_lp}")
         return obj, total_miles, EV_miles, Total_payments, Subsidy, payments, solution_routes, root_obj_val, 1, tsp_cache_time, Total_num_lp
     
     left_not_fractional = right_not_fractional = False
@@ -139,8 +141,6 @@ def branching() -> None:
     outer_iter = 0
     num_nodes_explored = 0 
     
-
-
     
     #loop through the stack
     while stack:
@@ -178,10 +178,11 @@ def branching() -> None:
                 
                 while True:
                     branching_arc = random.choice(list(branching_arcs.keys()))
-                    if (branching_arc[0]==0 and outer_iter==1) or (branching_arc[1]==0 and outer_iter==1):
+                    if (branching_arc[0]==0 ) or (branching_arc[1]==0):
                         continue
                     else:
                         break
+                
 
                 # Create left branch node
                 left_node = Node(node.depth + 1, f'{branching_arc}={0}', [], copy.deepcopy(node.forbidden) , copy.deepcopy(node.allowed), node)
@@ -194,8 +195,9 @@ def branching() -> None:
                 print(f"branching {branching_arc}={0}")
                 if branching_arc==(5,9):
                     pass
-                y_r_result, left_not_fractional, master_prob_model, obj_val, left_status, CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time, RG_DP_time, tsp_memo, num_lp = column_generation(left_node.adj, left_node.forbidden, [],tsp_memo )
-                track_time_iterations(CG_iteration, RG_iteration, RG_time, CG_time, RG_DP_time, CG_DP_time)
+                y_r_result, left_not_fractional, master_prob_model, obj_val, left_status, CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time, RG_DP_time, LP_time, tsp_memo, feasibility_memo, num_lp, L, _ \
+                      = column_generation(left_node.adj, left_node.forbidden, [], tsp_memo, L, feasibility_memo=feasibility_memo,initial = False, root_constraints=root_constraints.copy())
+                track_time_iterations(CG_iteration, RG_iteration, RG_time, CG_time, RG_DP_time, CG_DP_time, LP_time)
                 num_nodes_explored+=1
                 Total_num_lp+=num_lp
 
@@ -220,8 +222,8 @@ def branching() -> None:
                         right_node.forbidden.add((branching_arc[0],item))
                         #right_node.forbidden.add((item,branching_arc[1])) ############added, review later################
                 print(f"branching {branching_arc}={1}")
-                y_r_result, right_not_fractional, master_prob_model, obj_val, right_status, CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time, RG_DP_time, tsp_memo, num_lp = column_generation(right_node.adj,right_node.forbidden,[],tsp_memo)
-                track_time_iterations(CG_iteration, RG_iteration, RG_time, CG_time, RG_DP_time, CG_DP_time)
+                y_r_result, right_not_fractional, master_prob_model, obj_val, right_status, CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time, RG_DP_time, LP_time, tsp_memo, feasibility_memo, num_lp, L, _ = column_generation(right_node.adj,right_node.forbidden,[],tsp_memo,L,feasibility_memo=feasibility_memo,initial = False, root_constraints=root_constraints.copy())
+                track_time_iterations(CG_iteration, RG_iteration, RG_time, CG_time, RG_DP_time, CG_DP_time, LP_time)
                 num_nodes_explored+=1
                 Total_num_lp+=num_lp
 
@@ -233,10 +235,7 @@ def branching() -> None:
                     right_node.model = master_prob_model
                     right_node.solution = y_r_result
                     heapq.heappush(stack, right_node)
-                    #if left_status==3 and right_status==3 and len(stack)==0 and len(branching_arcs)>1:
-                    #    branching_arcs.pop(branching_arc)
-                    #else:
-                    #    break
+
 
     print(frac_count)
     if best_node:
@@ -247,23 +246,27 @@ def branching() -> None:
     
     print(f"Total CG iterations: {Total_CG_iteration}")
     print(f"Total RG iterations: {Total_RG_iteration}")
+    print(f"Total nodes explored: {num_nodes_explored}")
     print(f"Total RG time: {Total_RG_time:.2f}")
     print(f"Total CG time: {Total_CG_time:.2f}")
     print(f"Total RG DP time: {Total_RG_DP_time:.2f}")
     print(f"Total CG DP time: {Total_CG_DP_time:.2f}")
+    print(f"Total LP time: {Total_LP_time:.2f}")
     print(f"tsp cache time: {tsp_cache_time}")
     print(f"LP gap: {((obj-root_obj_val)/obj)*100}")
+    print(f"Total number of LPs solved: {Total_num_lp}")
     
     return obj, total_miles, EV_miles, Total_payments, Subsidy, payments, solution_routes, root_obj_val, num_nodes_explored, tsp_cache_time, Total_num_lp
 
-def track_time_iterations(CG_iteration, RG_iteration, RG_time, CG_time, RG_DP_time, CG_DP_time):
-    global Total_CG_iteration, Total_RG_iteration, Total_RG_time, Total_CG_time, Total_RG_DP_time, Total_CG_DP_time
+def track_time_iterations(CG_iteration, RG_iteration, RG_time, CG_time, RG_DP_time, CG_DP_time, LP_time):
+    global Total_CG_iteration, Total_RG_iteration, Total_RG_time, Total_CG_time, Total_RG_DP_time, Total_CG_DP_time, Total_LP_time
     Total_CG_iteration+=CG_iteration
     Total_RG_iteration+=RG_iteration
     Total_RG_time+=RG_time
     Total_CG_time+=CG_time
     Total_CG_DP_time+=CG_DP_time
     Total_RG_DP_time+=RG_DP_time
+    Total_LP_time+=LP_time
 
 
 def main():
@@ -288,7 +291,7 @@ def main():
             "Total CG DP time": [Total_CG_DP_time],
             "Total RG DP time": [Total_RG_DP_time],
             "TSP cache time": [tsp_cache_time],
-            "Total LP relaxation time": [Execution_time-(Total_RG_DP_time+Total_CG_DP_time+tsp_cache_time)],
+            "Total LP relaxation time": [Total_LP_time],
             "Total execution time": [Execution_time],
             "Total number of LPs solved": [Total_num_lp]
         }

@@ -1,11 +1,11 @@
 import numpy as np
 import math
 rnd = np.random
-rnd.seed(630)
+rnd.seed(42)
 
 
-NODES = 10
-k = min(round(NODES*0.5),4)
+NODES = 45
+k = min(round(NODES*0.5),3)
 grid_size = 50                                                               #number of clients
 xc = np.random.uniform(low=- grid_size/2, high=grid_size/2, size=NODES+1)
 yc = np.random.uniform(low=-grid_size/2, high=grid_size/2, size= NODES+1)
@@ -26,9 +26,10 @@ total_dem = sum(q)                                                           #to
 
 #Other parameters
 num_EV = math.ceil(NODES*0.3)
-unlimited_EV = True
+unlimited_EV = False
+row_dp_cutoff = 100 #float('inf')
 use_column_heuristic = False
-always_generate_rows = False
+always_generate_rows = True
 
 if unlimited_EV:
     num_EV = NODES

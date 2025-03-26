@@ -1,19 +1,18 @@
-import numpy as np
 from matplotlib import pyplot as plt
 import networkx as nx
 from gurobipy import Model, GRB, quicksum
 import re
 from matplotlib.lines import Line2D
 import random
+import numpy as np
 import pickle
 from config_new import N, V, Q_EV, q, a, NODES, grid_size, xc, yc, w_dv, w_ev, theta, MIP_start, gamma, gamma_l, battery_threshold, EV_cost, GV_cost, T_max_EV, T_max_GV, EV_velocity, GV_velocity, Q_GV, num_TV, num_GV, num_EV, E, D, K, A, r, st
-from utils_new import generate_all_possible_routes, ev_travel_cost, tsp_tour, gv_tsp_cost, save_to_excel, update_config
+from utils_new import generate_all_possible_routes, ev_travel_cost, tsp_tour, save_to_excel
 import pandas as pd
 import time
-import importlib
 
 def main():
-   #rnd.seed(10)
+   np.random.seed(42)
    # [[0, 2, 4, 6, 0], [0, 1, 9, 7, 0], [0, 5, 12, 10, 11, 0]]
    #override some config parameters
    n = NODES
@@ -43,7 +42,7 @@ def main():
       if sorted_item in tsp_memo:
          mr[item] = tsp_memo[sorted_item]
       else:
-         mr[item] = tsp_tour(item)[0]
+         mr[item] = tsp_tour(item)[1]
          tsp_memo[sorted_item] = mr[item]
 
 

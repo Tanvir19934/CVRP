@@ -4,7 +4,7 @@ import heapq
 from collections import defaultdict
 import re
 from utils_new import *
-from config_new import battery_threshold, N, V, Q_EV, q, a, w_dv, w_ev, theta, tol, num_EV, st, gamma, gamma_l, T_max_EV, EV_velocity, GV_cost, unlimited_EV
+from config_new import battery_threshold, N, V, Q_EV, q, a, w_dv, w_ev, theta, tol, num_EV, st, gamma, gamma_l, T_max_EV, EV_velocity, GV_cost, unlimited_EV, row_dp_cutoff
 import numpy as np
 rnd = np.random
 rnd.seed(42)
@@ -67,7 +67,7 @@ class SubProblem:
         
         return reduced_cost
     
-    def dy_prog(self, dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle):
+    def dy_prog(self, dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle, feasibility_memo={}):
         # Initialize the sets of labels
         U = []  # Priority queue for undominated labels
         L = defaultdict(list)  # Dictionary to store the sets of labels at each node
@@ -76,6 +76,7 @@ class SubProblem:
         initial_resource_vector = (0, 0, 0, 0)  # (reduced_cost, load, battery, time)
         initial_label = Label(start_node, initial_resource_vector, None)
         heapq.heappush(U, initial_label)
+        print("Executing CG DP...")
         
         while U:
             current_label = heapq.heappop(U)
@@ -123,7 +124,11 @@ class SubProblem:
                         #if new_path==[0,7,3,1] or new_path==[0,7,3]:
                         #    pass
                         
-                        new_time, new_load, new_battery, new_cost   = self.feasibility_check(current_node, new_node, current_label.resource_vector[-1], current_label.resource_vector[1], current_label.resource_vector[2], current_label.resource_vector[0])
+                        if tuple(new_path) in feasibility_memo:
+                            new_time, new_load, new_battery, new_cost = feasibility_memo[tuple(new_path)]
+                        else:
+                            new_time, new_load, new_battery, new_cost   = self.feasibility_check(current_node, new_node, current_label.resource_vector[-1], current_label.resource_vector[1], current_label.resource_vector[2], current_label.resource_vector[0])
+                            feasibility_memo[tuple(new_path)] = (new_time, new_load, new_battery, new_cost)
 
                         if new_cost:
                             resource_vector = (new_cost, new_load, new_battery, new_time)
@@ -136,17 +141,21 @@ class SubProblem:
                                 heapq.heappush(U, new_label)
                                 if new_node=='t':
                                     L[new_node].append(new_label)
+                        #
+                        #if len(L['t'])>100:
+                        #    break
 
         sink_node = 't'
         new_routes = {}
         for item in L[sink_node]:
             new_routes[tuple(reconstruct_path(item))] = item.resource_vector[0]
+            #new_routes[tuple([0, 12, 7, 11, 0])] = -100
             #new_routes[tuple(reconstruct_path(item)[::-1])] = -1
 
         N.remove('s')
         N.remove('t')
 
-        return new_routes
+        return new_routes, feasibility_memo
 
 class MasterProblem:
 
@@ -312,7 +321,9 @@ class RowGeneratingSubProblem:
         N = len(customers)  
 
         dp = [set() for _ in range(Q_EV + 1)]
-        dp[0].add(tuple())  
+        dp[0].add(tuple())
+
+        print("Executing RG DP...")  
 
         # Fill DP table
         for i in range(N):  
@@ -333,28 +344,34 @@ class RowGeneratingSubProblem:
         for w in range(1, Q_EV + 1): 
             valid_combinations.extend(dp[w])
 
-        return valid_combinations
+        final_combinations = []    
+        
+        for item in valid_combinations:
+            if len(item)==1:
+                item = [0, item[0], 0]
+            else:
+                item = [0] + list(item) + [0]
+            final_combinations.append(tuple(item))
+            
+
+        return final_combinations
 
 
     def generate_constr(self,tsp_memo,p,L):
         p['p_0']=0
         new_routes = set()
-
+        print("Generating rows...")
         for item in L:
             candidate_route = list(item)
-            if len(candidate_route)==1:
-                candidate_route = [0, candidate_route[0], 0]
-            else:
-                candidate_route = [0] + candidate_route + [0]
-            sorted_candidate_route = (0,) + tuple(sorted(candidate_route[1:-1])) + (0,)
-            if tuple(candidate_route)!=sorted_candidate_route:
-                pass
+            sorted_candidate_route = tuple([0]+ sorted(candidate_route[1:-1])+ [0])
             if sorted_candidate_route in tsp_memo:
-                tsp_cost = tsp_memo[tuple(sorted_candidate_route)][0]
+                tsp_cost = tsp_memo[sorted_candidate_route][-1]
             else: 
-                tsp_cost, candidate_route = tsp_tour(sorted_candidate_route)
-                tsp_memo[sorted_candidate_route] = (tsp_cost,tuple(candidate_route))
+                candidate_route, tsp_cost = tsp_tour(sorted_candidate_route)
+                tsp_memo[sorted_candidate_route] = (candidate_route,tsp_cost)
             payments = [p[f"p_{i}"] for i in candidate_route if i!=0]
             if tsp_cost<sum(payments)-tol:
                 new_routes.add((tuple(candidate_route),tsp_cost))
+            if len(new_routes)>row_dp_cutoff:
+                return new_routes, tsp_memo
         return new_routes, tsp_memo

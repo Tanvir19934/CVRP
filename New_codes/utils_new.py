@@ -6,7 +6,8 @@ from openpyxl import load_workbook
 import pandas as pd
 import os
 import re
-
+import numpy as np
+np.random.seed(42)
 def ev_travel_cost(route):
     q[0]=0
     b = 1
@@ -142,7 +143,7 @@ def generate_all_possible_routes(N):
 def tsp_tour(route):
     
     if len(route) == 3 and route[0]==0:
-        return a[(0,route[1])]* GV_cost + a[(route[1],0)] * q[route[1]] * GV_cost, route
+        return route, a[(0,route[1])]* GV_cost + a[(route[1],0)] * q[route[1]] * GV_cost
 
     intermediate_nodes = route[1:-1]
 
@@ -174,7 +175,7 @@ def tsp_tour(route):
             if x[i].X > 0.5:
                 tour = i
                 break
-        return model.getObjective().getValue(), tour
+        return tour, model.getObjective().getValue()
     
 
 

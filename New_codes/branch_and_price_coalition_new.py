@@ -53,7 +53,7 @@ def generate_routes(L):
     return tsp_memo
 
 def generate_tsp_cache(N, k):
-    print(f"\nCreating initial TSP memo... \ntotal {N}C{k} combinations")
+    print(f"\nCreating initial TSP memo... \ntotal {N}C{k} combinations\n")
     tsp_memo = {}
     customers = list(range(1, N + 1))  # Assuming customers are labeled 1 to N
     all_combinations = []

@@ -9,7 +9,6 @@ import time
 import random
 from utils_new import print_solution, save_to_excel, tsp_tour
 import pandas as pd
-import logging
 from itertools import combinations
 
 
@@ -65,7 +64,7 @@ def generate_tsp_cache(N, k):
         candidate_route, tsp_cost = tsp_tour(item)
         tsp_memo[item] = (tuple(candidate_route),tsp_cost)
 
-    print(f"Finished creating initial TSP memo")
+    print(f"\nFinished creating initial TSP memo\n")
     time.sleep(1)
     return tsp_memo
 
@@ -89,15 +88,10 @@ def branching() -> None:
     #L = row_generating_subproblem.dy_prog()
     #end_1 = time.perf_counter()
     #RG_DP_time = end_1-start_1
-    log_dir = "New_codes/LogFiles"
-    os.makedirs(log_dir, exist_ok=True) 
-    filename = f"{log_dir}/bpc_{NODES}.log" 
-    logging.basicConfig(filename=filename, level=logging.INFO, filemode='w', format='%(asctime)s - %(message)s')
     start_2 = time.perf_counter()
     tsp_memo = generate_tsp_cache(NODES, k)
     end_2 = time.perf_counter()
     tsp_cache_time = end_2-start_2
-    logging.info(f"Time taken to generate tsp cache: {tsp_cache_time:0.2f}")
     
     global Total_CG_iteration, Total_RG_iteration, Total_RG_time, Total_CG_time
     global Total_RG_DP_time, Total_CG_DP_time, Total_execution_time, Total_LP_time

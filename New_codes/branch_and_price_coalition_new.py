@@ -53,6 +53,7 @@ def generate_routes(L):
     return tsp_memo
 
 def generate_tsp_cache(N, k):
+    print(f"\nCreating initial TSP memo... \ntotal {N}C{k} combinations")
     tsp_memo = {}
     customers = list(range(1, N + 1))  # Assuming customers are labeled 1 to N
     all_combinations = []
@@ -63,7 +64,9 @@ def generate_tsp_cache(N, k):
     for item in all_combinations:
         candidate_route, tsp_cost = tsp_tour(item)
         tsp_memo[item] = (tuple(candidate_route),tsp_cost)
-    
+
+    print(f"Finished creating initial TSP memo")
+    time.sleep(1)
     return tsp_memo
 
 def branching() -> None:

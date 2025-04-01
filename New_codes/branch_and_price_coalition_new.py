@@ -2,7 +2,7 @@ from gurobipy import GRB
 import heapq
 import os
 from pricing_coalition_new import column_generation
-from config_new import V, Q_EV, q, NODES,k
+from config_new import V, Q_EV, q, NODES,k, plot_enabled, a, w_dv
 from collections import defaultdict
 import copy
 import time
@@ -10,6 +10,7 @@ import random
 from utils_new import print_solution, save_to_excel, tsp_tour
 import pandas as pd
 from itertools import combinations
+import matplotlib.pyplot as plt
 
 
 random.seed(42)
@@ -69,6 +70,35 @@ def generate_tsp_cache(N, k):
     time.sleep(1)
     return tsp_memo
 
+def update_plot(outer_iter, lp_gap):
+    global iterations, lp_gaps
+    """Updates the LP gap plot dynamically."""
+    if not plot_enabled:
+        return  # Do nothing if plotting is disabled
+
+    # Append new data
+    iterations.append(outer_iter)
+    lp_gaps.append(lp_gap)
+
+    # Static figure and axis setup (only first time)
+    if not hasattr(update_plot, "fig"):
+        plt.ion()  # Enable interactive mode
+        update_plot.fig, update_plot.ax = plt.subplots()
+        update_plot.line, = update_plot.ax.plot([], [], marker='o', linestyle='-')
+
+    # Update the plot
+    update_plot.line.set_xdata(iterations)
+    update_plot.line.set_ydata(lp_gaps)
+    update_plot.ax.relim()  # Recompute limits
+    update_plot.ax.autoscale_view()  # Adjust view
+    update_plot.ax.set_xlabel("Outer Iteration")
+    update_plot.ax.set_ylabel("LP Gap (%)")
+    update_plot.ax.set_title("LP Gap vs. Outer Iteration")
+    plt.draw()
+    plt.pause(0.01)  # Pause for smooth updating
+
+
+
 def branching() -> None:
 
     adj = {}
@@ -94,11 +124,13 @@ def branching() -> None:
     end_2 = time.perf_counter()
     tsp_cache_time = end_2-start_2
     
-    global Total_CG_iteration, Total_RG_iteration, Total_RG_time, Total_CG_time
+    global Total_CG_iteration, Total_RG_iteration, Total_RG_time, Total_CG_time, iterations, lp_gaps
     global Total_RG_DP_time, Total_CG_DP_time, Total_execution_time, Total_LP_time
     Total_CG_iteration,  Total_RG_iteration,  Total_RG_time,  Total_CG_time,  Total_RG_DP_time,  Total_CG_DP_time, Total_LP_time = 0, 0, 0, 0, 0, 0, 0
     Total_num_lp = 0
     feasibility_memo={}
+    iterations = []
+    lp_gaps = []
     
     
     # Create the root node by solving the initial rmp
@@ -117,7 +149,7 @@ def branching() -> None:
         print(f"Total CG DP time: {Total_CG_DP_time}")
         print(f"Total LP time: {Total_LP_time:.2f}")
         print(f"tsp cache time: {tsp_cache_time}")
-        print("LP gap: ", ((obj-root_obj_val)/obj)*100)
+        print("LP gap(%): ", ((obj-root_obj_val)/obj)*100)
         print(f"Total number of LPs solved: {Total_num_lp}")
         return obj, total_miles, EV_miles, Total_payments, Subsidy, payments, solution_routes, root_obj_val, 1, tsp_cache_time, Total_num_lp
     
@@ -130,7 +162,12 @@ def branching() -> None:
     
     #initialize best node and the stack
     best_node = None
-    best_obj = GRB.INFINITY
+    # best initial objective is just round trip cost using only DVs
+    best_obj = 0
+    for i in range(NODES):
+        best_obj += 2*a[(0,i)]*w_dv
+
+    
     stack = [root_node]
     tol = 0.0001
     heapq.heapify(stack)  #we are going to traverse in best first manner
@@ -145,11 +182,16 @@ def branching() -> None:
         outer_iter+=1
         print(f"outer iteration count: {outer_iter}")
         print(f"Integer solution found so far = {frac_count}. Size of stack = {len(stack)}")
+        print(f"\nCurrent best = {best_obj}")
+        print(f"\nCurrent best's LP gap = {((best_obj-root_obj_val)/best_obj)*100}%")
+
+        if plot_enabled and outer_iter % 20 == 0:
+            # Update the plot every 10 iterations
+            update_plot(outer_iter, ((best_obj-root_obj_val)/best_obj)*100)
         
         node = heapq.heappop(stack)
         if node.not_fractional==True:
             frac_count+=1
-            print(node.obj_val)
             if node.obj_val < best_obj:
                 best_obj = node.obj_val
                 best_node = node
@@ -235,7 +277,10 @@ def branching() -> None:
                     heapq.heappush(stack, right_node)
 
 
-    print(frac_count)
+    if plot_enabled:
+        plt.ioff()
+        plt.show()
+
     if best_node:
         print("Optimal solution found:")
         obj, total_miles, EV_miles, Total_payments, Subsidy, payments, solution_routes = print_solution(best_node.model)
@@ -251,7 +296,7 @@ def branching() -> None:
     print(f"Total CG DP time: {Total_CG_DP_time:.2f}")
     print(f"Total LP time: {Total_LP_time:.2f}")
     print(f"tsp cache time: {tsp_cache_time}")
-    print(f"LP gap: {((obj-root_obj_val)/obj)*100}")
+    print(f"LP gap(%): {((obj-root_obj_val)/obj)*100}")
     print(f"Total number of LPs solved: {Total_num_lp}")
     
     return obj, total_miles, EV_miles, Total_payments, Subsidy, payments, solution_routes, root_obj_val, num_nodes_explored, tsp_cache_time, Total_num_lp

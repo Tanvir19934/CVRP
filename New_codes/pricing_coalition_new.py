@@ -6,11 +6,14 @@ import os
 import numpy as np
 rnd = np.random
 rnd.seed(42)
+
+
 def column_generation(adj, forbidden_set=[], allowed_set = [], tsp_memo={}, L=None, feasibility_memo={}, initial = False, root_constraints=set()):
 
     not_fractional = False
     CG_iteration = 0
     RG_iteration = 0
+    col_int_flag = 0
     RG_time, CG_time, RG_DP_time, CG_DP_time, LP_time = 0, 0, 0, 0, 0
     new_routes_to_add=set()
     new_constr = set()
@@ -18,6 +21,8 @@ def column_generation(adj, forbidden_set=[], allowed_set = [], tsp_memo={}, L=No
         root_constraints = set()
     else:
         new_constraints = root_constraints
+    #for item in [[0, 11, 1, 7, 3, 0], [0, 5, 10, 15, 0], [0, 20, 0], [0, 19, 16, 8, 0], [0, 18, 0], [0, 2, 0], [0, 13, 4, 0], [0, 6, 14, 0], [0, 17, 0], [0, 12, 9, 0]]:
+    #    new_constraints.add((tuple(item), tsp_tour(item)[1]))
 
 
     num_lp = 0
@@ -91,6 +96,14 @@ def column_generation(adj, forbidden_set=[], allowed_set = [], tsp_memo={}, L=No
             # add the new routes with negative reduced costs to the set
             for array in new:
                 new_routes_to_add.add(tuple(array))
+                if use_column_heuristic and tuple(array) not in new_constraints:
+                    if array in tsp_memo:
+                        new_column_constr = tsp_memo[array]
+                    else:
+                        new_column_constr = tsp_tour(array)
+                        tsp_memo[array] = new_column_constr
+                    new_constraints.add(new_column_constr)
+        2
             
 
     else:
@@ -144,18 +157,19 @@ def column_generation(adj, forbidden_set=[], allowed_set = [], tsp_memo={}, L=No
             # add the new routes with negative reduced costs to the set
             for array in new:
                 new_routes_to_add.add(tuple(array))
-
-                if use_column_heuristic:
+                if use_column_heuristic and tuple(array) not in new_constraints:
                     if array in tsp_memo:
                         new_column_constr = tsp_memo[array]
                     else:
                         new_column_constr = tsp_tour(array)
                         tsp_memo[array] = new_column_constr
                     new_constraints.add(new_column_constr)
+            2
         
         start_3 = time.perf_counter()
         if check_values(y_r_result):
-            print("Integer solution found, starting row generation")
+            col_int_flag = 1
+            print("Integer solution has been hit, starting row generation")
             RG_iteration += 1
             #if not use_column_heuristic:
             #    new_constraints = set()
@@ -188,6 +202,9 @@ def column_generation(adj, forbidden_set=[], allowed_set = [], tsp_memo={}, L=No
     if check_values(y_r_result):
         print("All non-zero values are 1")
         not_fractional = True
+    else:
+        if col_int_flag==1:
+            2
     
     end_4 = time.perf_counter()
 

@@ -3,6 +3,7 @@ from typing import List
 import heapq
 from collections import defaultdict
 import re
+import time
 from utils_new import *
 from config_new import battery_threshold, N, V, Q_EV, q, a, w_dv, w_ev, theta, tol, num_EV, st, gamma, gamma_l, T_max_EV, EV_velocity, GV_cost, unlimited_EV, row_dp_cutoff
 import numpy as np
@@ -64,6 +65,7 @@ class SubProblem:
         #if [0, 7, 3, 1, 0]==route or [0, 7, 3, 0]==route:
         #    pass 
         reduced_cost += -sum(delta_sum) - sum(IR_sum) + dual_values_vehicle #(note the + sign for IR_sum)
+        #reduced_cost += -sum(delta_sum) - sum(IR_sum) - dual_values_vehicle #(note the + sign for IR_sum)
         
         return reduced_cost
     
@@ -149,8 +151,7 @@ class SubProblem:
         new_routes = {}
         for item in L[sink_node]:
             new_routes[tuple(reconstruct_path(item))] = item.resource_vector[0]
-            #new_routes[tuple([0, 12, 7, 11, 0])] = -100
-            #new_routes[tuple(reconstruct_path(item)[::-1])] = -1
+
 
         N.remove('s')
         N.remove('t')
@@ -236,7 +237,6 @@ class MasterProblem:
             for route, cost in new_constraints:
                 self.model.addConstr((quicksum(self.p[i] for i in route if i!=0) <= cost), name=f"stability_{route}")
         self.model.update()
-
 
         
         #SET OBJECTIVE
@@ -325,6 +325,8 @@ class RowGeneratingSubProblem:
 
         print("\nExecuting RG DP...\n")  
 
+        start = time.perf_counter()
+
         # Fill DP table
         for i in range(N):  
             customer_id = customers[i]
@@ -352,10 +354,12 @@ class RowGeneratingSubProblem:
             else:
                 item = [0] + list(item) + [0]
             final_combinations.append(tuple(item))
+
+        end = time.perf_counter()
+        
+        print(f"valid route generation time using DP: {end-start:.2f} seconds")
             
-
         return final_combinations
-
 
     def generate_constr(self,tsp_memo,p,L):
         p['p_0']=0

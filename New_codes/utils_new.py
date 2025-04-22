@@ -1,4 +1,4 @@
-from config_new import q, a, EV_velocity, gamma, gamma_l, EV_cost, GV_cost, w_dv, w_ev, theta
+from config_new import q, a, EV_velocity, gamma, gamma_l, EV_cost, GV_cost, w_dv, w_ev, theta, battery_threshold
 from gurobipy import Model, GRB, quicksum
 import itertools
 from itertools import permutations
@@ -7,7 +7,9 @@ import pandas as pd
 import os
 import re
 import numpy as np
+
 np.random.seed(42)
+
 def ev_travel_cost(route):
     q[0]=0
     b = 1
@@ -15,6 +17,8 @@ def ev_travel_cost(route):
     for i in range(len(route)-1):
         l+=q[route[i]]
         b = b - (a[route[i],route[i+1]]/EV_velocity)*(gamma+gamma_l*l) 
+        if b < battery_threshold:
+            raise ValueError(f"Battery level too low (below threshold of {battery_threshold}): {b} in route {route}")
     cost = 260*EV_cost*(1-b)
     return cost
 
@@ -30,11 +34,12 @@ def gv_tsp_cost(route):
             cost_GV += a[(route[i],route[i+1])]*GV_cost*l
         return cost_GV
     
-def check_values(d):
+def check_values(d, tolerance=1e-5):
     for key, value in d.items():
-        if value != 0 and value!=1:
+        if not (abs(value - 0) <= tolerance or abs(value - 1) <= tolerance):
             return False
     return True
+
 
 def partial_path(label,current_node):
     node = current_node
@@ -59,9 +64,7 @@ def reconstruct_path(label):
     return path
 
 def construct_tour(edges):
-    # Build a dictionary for quick lookup of the next node
     next_node_map = {i: j for i, j in edges}
-    
     # Start from any node (choosing the first node from the first edge)
     start_node = edges[0][0]
     route = [start_node]
@@ -135,7 +138,6 @@ def generate_all_possible_routes(N):
         degree_k_coalition = [tuple([0] + list(comb) + [0]) for comb in combinations]
         return degree_k_coalition
     
-
     for item in N:
         all_routes.extend(generate_k_degree_coalition(N, item))
     
@@ -143,16 +145,12 @@ def generate_all_possible_routes(N):
 def tsp_tour(route):
     
     if len(route) == 3 and route[0]==0:
-        return route, a[(0,route[1])]* GV_cost + a[(route[1],0)] * q[route[1]] * GV_cost
+        return route, a[(0,route[1])]* GV_cost * q[route[1]] + a[(route[1],0)] * GV_cost
 
     intermediate_nodes = route[1:-1]
-
     all_routes = [[0] + list(p) + [0] for p in permutations(intermediate_nodes)]
-
     routes_list = [tuple(all_routes) for all_routes in all_routes]
-
     route_cost = {}
-
     for item in routes_list:
         route_cost[tuple(item)] = gv_tsp_cost(item)
 
@@ -163,12 +161,10 @@ def tsp_tour(route):
 
     model.setObjective(quicksum(route_cost[i] * x[i] for i in routes_list), GRB.MINIMIZE)
 
-
     model.Params.OutputFlag = 0
-    model.Params.MIPGap = 0.01
+    model.Params.MIPGap = 0.00000001
     model.optimize()
     
-
     # Extract the solution
     if model.status == GRB.OPTIMAL:
         for i in routes_list:
@@ -177,8 +173,6 @@ def tsp_tour(route):
                 break
         return tour, model.getObjective().getValue()
     
-
-
 def save_to_excel(file_name, sheet_name, data):
     try:
         # Check if the file already exists
@@ -206,7 +200,6 @@ def save_to_excel(file_name, sheet_name, data):
         print(f"Data saved to {file_name} in sheet '{sheet_name}'.")
     except Exception as e:
         print(f"Error: {e}")
-
 
 def update_config(node_value):
     # Path to the config_new.py file

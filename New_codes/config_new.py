@@ -1,11 +1,12 @@
 import numpy as np
 import math
 rnd = np.random
+rand_seed = 111
 rnd.seed(42)
 
 
-NODES = 16
-k = min(round(NODES*0.5),3)
+NODES = 5
+k = min(round(NODES*0.5),2)
 grid_size = 50                                                               #number of clients
 xc = np.random.uniform(low=- grid_size/2, high=grid_size/2, size=NODES+1)
 yc = np.random.uniform(low=-grid_size/2, high=grid_size/2, size= NODES+1)
@@ -14,7 +15,7 @@ yc[0]=0
 w_dv = 1.2
 w_ev = 1
 theta = 0.3
-tol = 0.001
+tol = 1e-5
 N = [i for i in range(1,NODES+1)]                                            #set of customer nodes
 V = [0] + N                                                                  #set of all nodes (customer+depot)
 
@@ -27,15 +28,16 @@ total_dem = sum(q)                                                           #to
 #Other parameters
 num_EV = math.ceil(NODES*0.3)
 unlimited_EV = False
-row_dp_cutoff = float('inf')
+row_dp_cutoff = 10000000000000
 
 #use_column_heuristic = False
 #always_generate_rows = True
-use_column_heuristic = False
-always_generate_rows = False
-#use_column_heuristic = True
+#use_column_heuristic = False
 #always_generate_rows = False
+always_generate_rows = False
+use_column_heuristic = True
 
+dom_heuristic = False
 plot_enabled = 0
 
 if unlimited_EV:
@@ -82,3 +84,6 @@ alpha = 0.1
 
 arc_set = [(i,j) for i in N for j in N  if i!=j]
 dist = {(i,j): np.hypot(xc[i]-xc[j], yc[i]- yc[j]) for (i,j) in arc_set}
+best_obj = 0
+for i in range(1, NODES+1):
+    best_obj+= 2*w_dv*a[(0,i)]

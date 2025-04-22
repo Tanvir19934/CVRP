@@ -13,11 +13,9 @@ import time
 
 def main():
    np.random.seed(42)
-   # [[0, 2, 4, 6, 0], [0, 1, 9, 7, 0], [0, 5, 12, 10, 11, 0]]
    #override some config parameters
    n = NODES
    q[0] = 0
-   #T_max_EV = 700
 
    ###########Gurobi model############
    mdl = Model('mip')
@@ -215,7 +213,7 @@ def main():
 
    mdl.update()
    mdl.modelSense = GRB.MINIMIZE
-   mdl.setParam('TimeLimit', 15000)  # Set a 60-second time limit
+   mdl.setParam('TimeLimit', 10000)  # Set a 60-second time limit
 
    #Set objective
    #mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)]*2 for j in N for d in D )) +0.1*(e_BB + (quicksum(e_IR[i] for i in N)) + (quicksum(e_S[i] for i in N)))+(quicksum(x_e[e,(i,j)]*a[(i,j)] for i in V for j in V for e in E if i!=j)))

@@ -37,7 +37,7 @@ def main():
       if sorted_item in tsp_memo:
          mr[item] = tsp_memo[sorted_item]
       else:
-         mr[item] = tsp_tour(item)[1]
+         mr[item] = tsp_tour(item)[0]
          tsp_memo[sorted_item] = mr[item]
 
 
@@ -204,7 +204,7 @@ def main():
 
    mdl.update()
    mdl.modelSense = GRB.MINIMIZE
-   mdl.setParam('TimeLimit', 14400)  # Set a 60-second time limit
+   mdl.setParam('TimeLimit', 10000)  # Set a 60-second time limit
 
    #Set objective
    #mdl.setObjective((quicksum(x_d[d,(0,j)]*a[(0,j)]*2 for j in N for d in D )) +0.1*(e_BB + (quicksum(e_IR[i] for i in N)) + (quicksum(e_S[i] for i in N)))+(quicksum(x_e[e,(i,j)]*a[(i,j)] for i in V for j in V for e in E if i!=j)))
@@ -409,16 +409,16 @@ def main():
 
 if __name__=="__main__":
     
-    nodes = [i for i in range(5, 16)]
+    nodes = [i for i in range(10, 16)]
 
     for item in nodes:
         
         update_config(item)
-        time.sleep(5)
+        time.sleep(60)
         import config_new
         importlib.reload(config_new)  # Reload the module to update V, q, a, Q_EV
         globals().update({k: getattr(config_new, k) for k in dir(config_new) if not k.startswith("__")})
-        time.sleep(5)
+        time.sleep(60)
 
 
 

@@ -1,5 +1,7 @@
 import heapq
 from pricing_coalition_new import column_generation
+#from pricing_coalition_notstable import column_generation
+
 from config_new import V, Q_EV, q, NODES,k, plot_enabled, use_column_heuristic, always_generate_rows, N, rand_seed, best_obj
 from collections import defaultdict
 import copy
@@ -11,7 +13,7 @@ from itertools import combinations
 import matplotlib.pyplot as plt
 from gurobipy import GRB
 
-random.seed(rand_seed)  # Set a seed v
+random.seed(rand_seed)  
 class Node:  
     
     def __init__(self, depth, name, forbidden, parent, constraints=set()):
@@ -23,7 +25,7 @@ class Node:
         self.forbidden = forbidden
         self.not_fractional = False
         self.constraints = constraints
-        print("\ndepth =",self.depth)  #sanity check
+        print("\ndepth =",self.depth) 
         print("\n")
 
     def __lt__(self, other):
@@ -33,7 +35,7 @@ def generate_tsp_cache(N, k):
     print(f"\nCreating initial TSP memo... \ntotal {N}C{k} combinations\n")
     tsp_memo = {}
     global_tsp_memo = {}
-    customers = list(range(1, N + 1))  #Assuming customers are labeled 1 to N
+    customers = list(range(1, N + 1)) 
     all_combinations = []
       
     for i in range(1, k + 1):
@@ -79,8 +81,6 @@ def update_plot(outer_iter, lp_gap):
     plt.draw()
     plt.pause(0.01)  # Pause for smooth updating
 
-
-
 def branching() -> None:
 
     q[0] = 0
@@ -112,7 +112,6 @@ def branching() -> None:
     root_y_r_result, root_not_fractional, root_master_prob_model, root_obj_val, status, CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time, RG_DP_time, LP_time, tsp_memo, feasibility_memo, global_tsp_memo, num_lp, L, root_constraints = column_generation(None, forbidden_set={}, tsp_memo=tsp_memo, L = None, feasibility_memo=feasibility_memo, global_tsp_memo=global_tsp_memo, initial = True, parent_constraints = set())
     print(f"root_obj_val: {root_obj_val}\n\n")
 
-
     track_time_iterations(CG_iteration, RG_iteration, RG_time, CG_time, RG_DP_time, CG_DP_time, LP_time)
     Total_num_lp+=num_lp
     if root_not_fractional:
@@ -141,26 +140,21 @@ def branching() -> None:
     
     #initialize best node and the stack
     best_node = None
-
-
     upper_bound = best_obj
     best_objective = float('inf')
 
     
     stack = [root_node]
     heapq.heapify(stack)  #we are going to traverse in best first manner
-    frac_count = 0
+    int_count = 0
 
     outer_iter = 0
     num_nodes_explored = 0 
     
-
     while stack:
         outer_iter += 1
-        if outer_iter==9:
-            pass
         print(f"outer iteration count: {outer_iter}")
-        print(f"Integer solution found so far = {frac_count}. Size of stack = {len(stack)}")
+        print(f"Integer solution found so far = {int_count}. Size of stack = {len(stack)}")
         print(f"\nCurrent best = {best_objective}")
         print(f"\nCurrent best's LP gap = {((best_objective - root_obj_val) / best_objective) * 100}%")
 
@@ -182,7 +176,7 @@ def branching() -> None:
 
 
         if node.not_fractional==True:
-            frac_count+=1
+            int_count+=1
             if node.obj_val < best_objective:
                 best_objective = node.obj_val
                 best_node = node
@@ -219,39 +213,7 @@ def branching() -> None:
                     key=lambda iv: abs(iv[1] - 0.5),
                     default=(None, None)
                 )
-
-                if branching_arc==(0,5):
-                    pass
-
-
-                #prev_arcs = []
-                #node_copy = node
-                #while node_copy.parent is not None:
-                #    prev_arcs.append(eval(node_copy.name.split('=')[0]))
-                #    node_copy = node_copy.parent 
-            
-                #while True:
-                #    branching_arc = random.choice(list(branching_arcs.keys()))
-                #    #if (branching_arc[0]==0) or (branching_arc[1]==0) or branching_arc in prev_arcs:
-                #    if branching_arc in prev_arcs:
-                #        continue
-                #    else:
-                #        break
-
-
-                #flow_vars = defaultdict(float)
-                #model_vars ={var.VarName: var.X for var in node.model.getVars()}
-                #var_names = list(model_vars.keys())
-                #fractional_var = {}
-                #for var in var_names:
-                #    if not (abs(model_vars[var] - 0) <= tol or abs(model_vars[var] - 1) <= tol) and var.split('[')[0]=='y_r_':
-                #        fractional_var[var] = model_vars[var]
-                #for item in fractional_var:
-                #    element = eval(item.split('[')[-1][0:-1])
-                #    for i in range(len(element)-1):
-                #        flow_vars[(element[i],element[i+1])]= model_vars[item]           
-                
-                
+             
                 if not branching_arcs:
                     continue 
 
@@ -274,14 +236,6 @@ def branching() -> None:
                 Total_num_lp+=num_lp
                 if not always_generate_rows:
                     left_node.constraints = left_constraints
-                if left_result is not None:
-                    tpl = []
-                    for item in left_result:
-                        if left_result[item] != 0:
-                            h=list(eval(item[5:-1]))
-                            tpl.extend([(h[i],h[i+1])for i in range(len(h)-1)])
-                    if branching_arc in tpl:
-                        pass
 
                 if left_status==GRB.OPTIMAL and left_obj_val < upper_bound:
                     if left_not_fractional:
@@ -290,18 +244,19 @@ def branching() -> None:
                     left_node.model = left_model
                     left_node.solution = left_result
                     heapq.heappush(stack, left_node)
+                
                 # Create right branch node
                 right_node = Node(node.depth + 1, f'{branching_arc}={1}', copy.deepcopy(node.forbidden), node, copy.deepcopy(node.constraints))
                 for item in V:
-                    if branching_arc[0]!=0 and branching_arc[1]!=0:
+                    if branching_arc[0]!=0 and branching_arc[1]!=0:             # for (x,y) type of arcs, forbid all (x,y) arcs for all x,y not 0
                         if item!=branching_arc[1]:
                             right_node.forbidden.add((branching_arc[0],item))
                         if  item!=branching_arc[0]:
                             right_node.forbidden.add((item,branching_arc[1])) 
-                    elif branching_arc[0]==0:
+                    elif branching_arc[0]==0:                                   # for (0,x) type of arcs, forbid all (y,x) arcs for all y not 0
                         if item!=0:
                             right_node.forbidden.add((item,branching_arc[1])) 
-                    elif branching_arc[1]==0:
+                    elif branching_arc[1]==0:                                   # for (x,0) type of arcs, forbid all (x,y) arcs for all y not 0
                         if item!=0:
                             right_node.forbidden.add((branching_arc[0],item))
 
@@ -315,16 +270,6 @@ def branching() -> None:
                 if not always_generate_rows:
                     right_node.constraints = right_constraints
                 
-                tpl = []
-                if right_result is not None:
-                    for item in right_result:
-                        if right_result[item] != 0:
-                            h=list(eval(item[5:-1]))
-                            tpl.extend([(h[i],h[i+1])for i in range(len(h)-1)])
-                    if branching_arc not in tpl:
-                        pass
-
-
                 if right_status==GRB.OPTIMAL and right_obj_val < upper_bound:
                     if right_not_fractional:
                         right_node.not_fractional = True  

@@ -1,12 +1,11 @@
 from models_coalition_new import SubProblem, MasterProblem, RowGeneratingSubProblem
 from utils_new import check_values, tsp_tour
-from config_new import tol, N, q, Q_EV, always_generate_rows, use_column_heuristic, rand_seed
+from config_new import N, q, Q_EV, always_generate_rows, use_column_heuristic, rand_seed
 import time
 import copy
 import random
 
 random.seed(rand_seed)
-
 
 def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None, feasibility_memo={}, global_tsp_memo={}, initial = False, parent_constraints=set()):
 
@@ -70,7 +69,6 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None, feas
             end_3 = time.perf_counter()
             RG_time +=  end_3-start_3
 
-
             ''' This is the CGSP, at this point our solution is RGSP feasible and CGSP feasible but not optimum, meaning there may be better routes to add '''
             dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle = master_prob.getDuals()
             if dual_values_delta==None:
@@ -94,10 +92,7 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None, feas
             # add the new routes with negative reduced costs to the set
             for array in new_columns:
                 new_columns_to_add.add(tuple(array))
-            if (tuple([0,9,1,7,0]) not in new_columns_to_add or tuple([0,2,3,0]) not in new_columns_to_add or tuple([0,10,4,0]) not in new_columns_to_add) and (CG_iteration != 1 and RG_iteration != 1):
-                pass
-            else:
-                pass
+
             2
 
         if use_column_heuristic:
@@ -112,7 +107,6 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None, feas
             2
         2
             
-
     else:
         while True:
             CG_iteration+=1
@@ -137,7 +131,6 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None, feas
             new_columns, feasibility_memo = sub_problem.dy_prog(dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle, feasibility_memo, False)
             end_2 = time.perf_counter()
 
-            
             if not new_columns:
                 break
 
@@ -147,7 +140,6 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None, feas
                     break
             if flag == 0:
                 break
-
                             
             CG_DP_time+=end_2-start_2
 
@@ -155,7 +147,6 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None, feas
             for array in new_columns:
                 new_columns_to_add.add(tuple(array))
             2
-
         
         if use_column_heuristic:
             for array in new_columns_to_add:
@@ -195,10 +186,8 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None, feas
 
                 2
 
-
         end_3 = time.perf_counter()
         RG_time += end_3-start_3
-
 
     if check_values(y_r_result):
         print("All non-zero values are 1")
@@ -210,10 +199,6 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None, feas
     end_4 = time.perf_counter()
 
     CG_time = end_4-start_4
-
-    if abs(master_prob_model.ObjVal-370.02844606324754) < 0.001:
-        pass
-    
 
     return y_r_result, not_fractional, master_prob_model, master_prob_model.ObjVal, master_prob_model.status, \
         CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time, RG_DP_time, LP_time, tsp_memo, feasibility_memo, global_tsp_memo, num_lp, L, new_constraints

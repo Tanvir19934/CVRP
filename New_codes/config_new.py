@@ -5,7 +5,7 @@ rand_seed = 111
 rnd.seed(42)
 
 
-NODES = 5
+NODES = 25
 k = min(round(NODES*0.5),2)
 grid_size = 50                                                               #number of clients
 xc = np.random.uniform(low=- grid_size/2, high=grid_size/2, size=NODES+1)
@@ -28,14 +28,16 @@ total_dem = sum(q)                                                           #to
 #Other parameters
 num_EV = math.ceil(NODES*0.3)
 unlimited_EV = False
-row_dp_cutoff = 10000000000000
+row_dp_cutoff = 0
+col_dp_cutoff = 0
+row_dp_time_limit = 300
 
 #use_column_heuristic = False
 #always_generate_rows = True
 #use_column_heuristic = False
 #always_generate_rows = False
-always_generate_rows = False
 use_column_heuristic = True
+always_generate_rows = False
 
 dom_heuristic = False
 plot_enabled = 0
@@ -78,7 +80,6 @@ GV_cost = 1
 # EV_cost = 2.3112 is on par with GV_cost = 1, i.e., equal cost
 
 
-M = 4
 battery_threshold = 0.1
 alpha = 0.1
 

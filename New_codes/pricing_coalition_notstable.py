@@ -1,46 +1,92 @@
-from models_coalition_new import SubProblem, MasterProblem
+from models_coalition_new import SubProblem, MasterProblem, RowGeneratingSubProblem
+from utils_new import check_values, tsp_tour
+from config_new import N, q, Q_EV, always_generate_rows, use_column_heuristic, rand_seed
+import time
+import copy
+import random
 
+random.seed(rand_seed)
 
-def column_generation(adj, forbidden_set=[], allowed_set = [], initial = False):
+def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None, feasibility_memo={}, global_tsp_memo={}, initial = False, parent_constraints=set()):
 
-    #if initial:
     not_fractional = False
-    iteration = 0
-    new_routes_to_add=set()
-    master_prob_model = None
-    
-    master_prob = MasterProblem(adj, forbidden_set, allowed_set)
-    sub_problem = SubProblem(adj, forbidden_set)
-    
-    def check_values(d):
-        for key, value in d.items():
-            if value != 0 and value!=1:
-                return False
-        return True
-    
-    while True:
-        iteration+=1
-        #print(f"iteration count: {iteration}")
-        p_result, y_r_result, master_prob_model, status = master_prob.relaxedLP(new_routes_to_add, None)
+    CG_iteration = 0
+    RG_iteration = 0
+    col_int_flag = 0
+    RG_time, CG_time, RG_DP_time, CG_DP_time, LP_time = 0, 0, 0, 0, 0
+    new_columns_to_add=set()
+    if parent_constraints is not None and not always_generate_rows:
+        new_constraints = copy.deepcopy(parent_constraints)
+    else:
+        new_constraints = set()
 
-        if y_r_result is None:
-            return None, None, None, None, status
-        
-        dual_values_delta, dual_values_subsidy, dual_values_IR = master_prob.getDuals()
-        
-        new = sub_problem.dy_prog(dual_values_delta, dual_values_subsidy, dual_values_IR)
-        
-        # if no new routes are found, break the loop
-        if new:
-            for array in new:
-                new_routes_to_add.add(tuple(array))
-            continue
-        else:
-            if iteration!=1 and check_values(y_r_result):
-                print("All non-zero values are 1, no new routes found, breaking the loop.")
-                not_fractional = True
-            print("No new routes found, breaking the loop.")
-            break  
 
-        
-    return y_r_result, not_fractional, master_prob_model, master_prob_model.ObjVal, master_prob_model.status
+    num_lp = 0
+    master_prob = MasterProblem(forbidden_set)
+    sub_problem = SubProblem(forbidden_set)
+
+    start_4 = time.perf_counter()
+    
+    if True:
+        while True:
+            CG_iteration+=1
+            flag = 0
+            print(f"CG iteration count: {CG_iteration}")
+            
+            ''' Now we are in the RGSP and making it RGSP feasible by iterating between RMP and RGSP until no constraints are found'''
+            start_3 = time.perf_counter()
+
+            start_lp = time.perf_counter()
+            if CG_iteration == 1:
+                p_result, y_r_result, master_prob_model, status = master_prob.relaxedLP(branching_arc, new_columns_to_add, new_constraints,True)
+            else:
+                p_result, y_r_result, master_prob_model, status = master_prob.relaxedLP(branching_arc, new_columns_to_add, new_constraints, False)
+                print(master_prob_model.ObjVal)
+                2
+            end_lp = time.perf_counter()
+            LP_time += end_lp-start_lp
+            num_lp+=1
+            if not y_r_result:
+                return None, None, None, None, status, CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time, RG_DP_time, LP_time, tsp_memo, feasibility_memo, global_tsp_memo, num_lp, L, new_constraints
+
+
+            ''' This is the CGSP, at this point our solution is RGSP feasible and CGSP feasible but not optimum, meaning there may be better routes to add '''
+            dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle = master_prob.getDuals()
+            if dual_values_delta==None:
+                return None, None, None, None, status, CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time, RG_DP_time, LP_time, tsp_memo, feasibility_memo, global_tsp_memo, num_lp, L, new_constraints
+            start_2 = time.perf_counter()
+            new_columns, feasibility_memo = sub_problem.dy_prog(dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle, feasibility_memo, False)
+            end_2 = time.perf_counter()
+            
+            if not new_columns:
+                break
+
+            for item in new_columns:
+                if tuple(item) not in new_columns_to_add:
+                    flag = 1
+                    break
+            #if flag == 0:
+            #    break
+                            
+            CG_DP_time+=end_2-start_2
+
+            # add the new routes with negative reduced costs to the set
+            for array in new_columns:
+                new_columns_to_add.add(tuple(array))
+
+        end_3 = time.perf_counter()
+        RG_time += end_3-start_3
+
+    if check_values(y_r_result):
+        print("All non-zero values are 1")
+        not_fractional = True
+    else:
+        if col_int_flag==1:
+            pass
+    
+    end_4 = time.perf_counter()
+
+    CG_time = end_4-start_4
+
+    return y_r_result, not_fractional, master_prob_model, master_prob_model.ObjVal, master_prob_model.status, \
+        CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time, RG_DP_time, LP_time, tsp_memo, feasibility_memo, global_tsp_memo, num_lp, L, new_constraints

@@ -6,7 +6,10 @@ import re
 import copy
 import time
 from utils_new import ev_travel_cost, reconstruct_path, tsp_tour
-from config_new import row_dp_time_limit, col_dp_cutoff, battery_threshold, N, V, Q_EV, q, a, w_dv, w_ev, theta, tol, num_EV, gamma, gamma_l, EV_velocity, GV_cost, unlimited_EV, row_dp_cutoff, dom_heuristic, rand_seed, best_obj, GV_cost, EV_cost
+from config_new import (
+    col_dp_cutoff, battery_threshold, N, V, Q_EV, q, a, w_dv, w_ev, theta, tol, num_EV, gamma, 
+    gamma_l, EV_velocity, GV_cost, unlimited_EV, dom_heuristic, rand_seed, best_obj, GV_cost, EV_cost
+)
 import random
 random.seed(rand_seed)
 
@@ -197,8 +200,8 @@ class SubProblem:
                             heapq.heappush(U, new_label)
                             heapq.heappush(L[new_node], new_label)
             
-            #if neg_count >= col_dp_cutoff:
-            #    break
+            if neg_count >= col_dp_cutoff:
+                break
             if current_label.resource_vector[0]<0 and current_node=='t':
                 neg_count+=1               
         sink_node = 't'

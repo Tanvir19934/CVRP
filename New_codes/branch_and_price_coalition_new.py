@@ -1,8 +1,9 @@
 import heapq
 from pricing_coalition_new import column_generation
-#from pricing_coalition_notstable import column_generation
-
-from config_new import V, Q_EV, q, NODES,k, plot_enabled, use_column_heuristic, always_generate_rows, N, rand_seed, best_obj
+from config_new import (
+    V, Q_EV, q, NODES,k, plot_enabled, use_column_heuristic, 
+    always_generate_rows, N, rand_seed, best_obj
+    )
 from collections import defaultdict
 import copy
 import time
@@ -125,7 +126,7 @@ def branching() -> None:
         print(f"Total RG DP time: {Total_RG_DP_time}")
         print(f"Total CG DP time: {Total_CG_DP_time}")
         print(f"Total LP time: {Total_LP_time:.2f}")
-        print(f"tsp cache time: {tsp_cache_time}")
+        #print(f"tsp cache time: {tsp_cache_time}")
         print("LP gap(%): ", ((obj-root_obj_val)/obj)*100)
         print(f"root_obj_val: {root_obj_val}")
         print(f"Total number of LPs solved: {Total_num_lp}")
@@ -341,7 +342,7 @@ def main():
             "Total RG iterations": [Total_RG_iteration],
             "Total CG DP time": [Total_CG_DP_time],
             "Total RG DP time": [Total_RG_DP_time],
-            "TSP cache time": [tsp_cache_time],
+            #"TSP cache time": [tsp_cache_time],
             "Total LP relaxation time": [Total_LP_time],
             "Total execution time": [Execution_time],
             "Total number of LPs solved": [Total_num_lp],

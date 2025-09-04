@@ -1,4 +1,7 @@
-from config_new import q, a, EV_velocity, gamma, gamma_l, EV_cost, GV_cost, w_dv, w_ev, theta, battery_threshold, V, N, Q_EV
+from config_new import (
+    q, a, EV_velocity, gamma, gamma_l, EV_cost, 
+    GV_cost, w_dv, w_ev, theta, battery_threshold, V, N, Q_EV
+)
 from gurobipy import Model, GRB, quicksum
 import itertools
 from itertools import permutations
@@ -255,54 +258,68 @@ def create_excel_for_log_file(log_file):
     print(f"Data successfully saved to {excel_filename}")
 
 
+from gurobipy import Model, GRB, quicksum
+
 def prize_collecting_tsp(p_result):
+
     """
     Prize-Collecting TSP with load-dependent travel costs.
+    Flow-based formulation (no big-M load variables).
     """
 
     # Map prizes to nodes
     prizes = {i: p_result.get(f"p_{i}", 0.0) for i in N}
     prizes[0] = 0.0  # depot has no prize
 
-    m = Model("PrizeCollectingTSP")
+    m = Model("PrizeCollectingTSP_Flow")
 
     # Decision variables
-    x = m.addVars(V, V, vtype=GRB.BINARY, name="x")  # arc used
-    y = m.addVars(V, vtype=GRB.BINARY, name="y")     # node visited
-    u = m.addVars(V, vtype=GRB.CONTINUOUS, lb=0, ub=len(V), name="u")  # subtour elim (MTZ)
-    load = m.addVars(V, vtype=GRB.CONTINUOUS, lb=0, ub=Q_EV, name="load")  # cumulative load at node
+    x = m.addVars(V, V, vtype=GRB.BINARY, name="x")      # arc used
+    y = m.addVars(V, vtype=GRB.BINARY, name="y")         # node visited
+    f = m.addVars(V, V, vtype=GRB.CONTINUOUS, lb=0.0, ub=Q_EV, name="f")  # flow on arc
 
-    # Objective: distance * cumulative load - collected prizes
+    # Objective: travel cost depends on load transported, minus collected prizes
     m.setObjective(
-        quicksum(a[i, j] * load[i] * x[i, j] for i in V for j in V if i != j) * GV_cost
-        - quicksum(prizes[i] * y[i] for i in V),
+        quicksum(a[0, j] * x[0, j] * GV_cost for j in N)   # base distance cost
+        + quicksum(a[i, j] * f[i, j] * GV_cost for i in V for j in V if i != j) # load * distance cost
+        - quicksum(prizes[i] * y[i] for i in V),                                # collected prizes
         GRB.MINIMIZE
     )
 
-    # Flow balance
+    # Flow balance: each visited node must have exactly one in/out arc
     for i in V:
         m.addConstr(quicksum(x[i, j] for j in V if j != i) == y[i])
         m.addConstr(quicksum(x[j, i] for j in V if j != i) == y[i])
 
     # Depot must be visited
     m.addConstr(y[0] == 1)
-    m.addConstr(load[0] == 0)
 
-    # Load progression constraints
-    M = Q_EV*10
+    # Truck starts empty at depot: no load leaves depot initially
+    m.addConstr(quicksum(f[0, j] for j in V if j != 0) == 0, name="DepotStartEmpty")
+
+
+    # Truck returns to depot carrying total pickups collected
+    m.addConstr(quicksum(f[j, 0] for j in V if j != 0) ==
+                quicksum(q[i] * y[i] for i in N),
+                name="DepotReturnFull")
+
+    # Flow capacity: if arc is not used, no flow
     for i in V:
-        for j in N:
+        for j in V:
             if i != j:
-                # if arc i->j is used, enforce load[j] >= load[i] + q[j]
-                m.addConstr(load[j] >= load[i] + q[j] - M*(1 - x[i, j]))
+                m.addConstr(f[i, j] <= Q_EV * x[i, j])
 
-    # Subtour elimination (MTZ)
-    for i in N:
-        for j in N:
-            if i != j:
-                m.addConstr(u[i] - u[j] + (len(V)) * x[i, j] <= len(V) - 1)
+    # Flow conservation for pickups
+    for i in N:  # customers only
+        m.addConstr(
+            quicksum(f[i, j] for j in V if j != i)
+            - quicksum(f[j, i] for j in V if j != i)
+            == q[i] * y[i]
+        )
 
-    m.setParam('OutputFlag', 0)
+    # Optimize
+    m.setParam("OutputFlag", 1)
+    m.write("prize_collecting_tsp.lp")
     m.optimize()
 
     if m.status == GRB.OPTIMAL:
@@ -319,10 +336,12 @@ def prize_collecting_tsp(p_result):
                 break
             current = nxt
 
-        # Compute load-dependent travel cost from solution
-        travel_cost = sum(a[tour[i], tour[i+1]] * load[tour[i]].X for i in range(len(tour)-1)) * GV_cost
+        # Compute travel cost and collected prizes
+        travel_cost = gv_tsp_cost(tour)
         collected_prizes = sum(prizes[i] for i in tour)
+
         return tour, m.objVal, travel_cost, collected_prizes
     else:
         return None, None, None, None
+
 

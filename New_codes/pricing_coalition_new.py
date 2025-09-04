@@ -59,7 +59,7 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None, feas
                 end_5 = time.perf_counter()
 
                 RG_DP_time += end_5-start_5
-                if not new_route or prize_collecting_tsp_cost > -tol:
+                if not new_route or (tsp_tour_cost - total_payments) > -tol:
                     break
                 else:
                     new_constraints.add((tuple(new_route), tsp_tour_cost))

@@ -5,7 +5,7 @@ rand_seed = 111
 rnd.seed(42)
 
 
-NODES = 30
+NODES = 10
 k = min(round(NODES*0.5),2)
 grid_size = 50                                                               #number of clients
 xc = np.random.uniform(low=- grid_size/2, high=grid_size/2, size=NODES+1)
@@ -15,7 +15,7 @@ yc[0]=0
 w_dv = 1.2
 w_ev = 1
 theta = 0.3
-tol = 1e-6
+tol = 1e-4
 N = [i for i in range(1,NODES+1)]                                            #set of customer nodes
 V = [0] + N                                                                  #set of all nodes (customer+depot)
 
@@ -32,12 +32,12 @@ num_EV = math.ceil(NODES*0.3)
 unlimited_EV = False
 col_dp_cutoff = 1000
 
-use_column_heuristic = False
-always_generate_rows = True
+#use_column_heuristic = False
+#always_generate_rows = True
 #use_column_heuristic = False
 #always_generate_rows = False
-#use_column_heuristic = True
-#always_generate_rows = False
+use_column_heuristic = True
+always_generate_rows = False
 
 dom_heuristic = False
 plot_enabled = 0

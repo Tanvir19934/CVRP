@@ -55,14 +55,15 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None, feas
 
                 start_5 = time.perf_counter()
 
-                new_route, prize_collecting_tsp_cost, tsp_tour_cost, total_payments = prize_collecting_tsp(p_result)
+                new_route = prize_collecting_tsp(p_result)
                 end_5 = time.perf_counter()
 
                 RG_DP_time += end_5-start_5
-                if not new_route or (tsp_tour_cost - total_payments) > -tol:
+                if not new_route:
                     break
                 else:
-                    new_constraints.add((tuple(new_route), tsp_tour_cost))
+                    for item in new_route:
+                        new_constraints.add((tuple(item[0]), item[2]))
             end_3 = time.perf_counter()
             RG_time +=  end_3-start_3
 
@@ -166,13 +167,14 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None, feas
                 print(f"RG iteration count: {RG_iteration}")
                 
                 start_5 = time.perf_counter()
-                new_route, prize_collecting_tsp_cost, tsp_tour_cost, total_payments = prize_collecting_tsp(p_result)
+                new_route = prize_collecting_tsp(p_result)
                 end_5 = time.perf_counter()
                 RG_DP_time += end_5-start_5
-                if not new_route or prize_collecting_tsp_cost > -tol:
+                if not new_route:
                     break
                 else:
-                    new_constraints.add((tuple(new_route), tsp_tour_cost))
+                    for item in new_route:
+                        new_constraints.add((tuple(item[0]), item[2]))
                 if True:
                     p_result, y_r_result, master_prob_model, status = master_prob.relaxedLP(branching_arc, new_columns_to_add, new_constraints, False)
                     num_lp+=1

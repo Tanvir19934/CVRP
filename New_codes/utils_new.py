@@ -1,5 +1,5 @@
 from config_new import (
-    q, a, EV_velocity, gamma, gamma_l, EV_cost, 
+    q, a, EV_velocity, gamma, gamma_l, EV_cost, tol, 
     GV_cost, w_dv, w_ev, theta, battery_threshold, V, N, Q_EV
 )
 from gurobipy import Model, GRB, quicksum
@@ -257,14 +257,13 @@ def create_excel_for_log_file(log_file):
 
     print(f"Data successfully saved to {excel_filename}")
 
-
 from gurobipy import Model, GRB, quicksum
 
 def prize_collecting_tsp(p_result):
-
     """
     Prize-Collecting TSP with load-dependent travel costs.
     Flow-based formulation (no big-M load variables).
+    Collects all negative-valued solutions.
     """
 
     # Map prizes to nodes
@@ -278,7 +277,7 @@ def prize_collecting_tsp(p_result):
     y = m.addVars(V, vtype=GRB.BINARY, name="y")         # node visited
     f = m.addVars(V, V, vtype=GRB.CONTINUOUS, lb=0.0, ub=Q_EV, name="f")  # flow on arc
 
-    # Objective: travel cost depends on load transported, minus collected prizes
+    # Objective = base distance cost + load*distance cost – collected prizes
     m.setObjective(
         quicksum(a[0, j] * x[0, j] * GV_cost for j in N)   # base distance cost
         + quicksum(a[i, j] * f[i, j] * GV_cost for i in V for j in V if i != j) # load * distance cost
@@ -294,9 +293,8 @@ def prize_collecting_tsp(p_result):
     # Depot must be visited
     m.addConstr(y[0] == 1)
 
-    # Truck starts empty at depot: no load leaves depot initially
+    # Truck starts empty at depot
     m.addConstr(quicksum(f[0, j] for j in V if j != 0) == 0, name="DepotStartEmpty")
-
 
     # Truck returns to depot carrying total pickups collected
     m.addConstr(quicksum(f[j, 0] for j in V if j != 0) ==
@@ -317,31 +315,37 @@ def prize_collecting_tsp(p_result):
             == q[i] * y[i]
         )
 
-    # Optimize
+    # Allow Gurobi to search for multiple solutions
     m.setParam("OutputFlag", 1)
-    m.write("prize_collecting_tsp.lp")
+
     m.optimize()
 
-    if m.status == GRB.OPTIMAL:
-        # Extract tour
-        tour = [0]
-        current = 0
-        while True:
-            next_nodes = [j for j in V if j != current and x[current, j].X > 0.5]
-            if not next_nodes:
-                break
-            nxt = next_nodes[0]
-            tour.append(nxt)
-            if nxt == 0:
-                break
-            current = nxt
+    results = []
 
-        # Compute travel cost and collected prizes
-        travel_cost = gv_tsp_cost(tour)
-        collected_prizes = sum(prizes[i] for i in tour)
+    if m.SolCount > 0:
+        for k in range(m.SolCount):
+            m.setParam(GRB.Param.SolutionNumber, k)
+            obj_val = m.PoolObjVal
+            if obj_val < -tol:  # only store negative solutions
+                # Extract tour
+                tour = [0]
+                current = 0
+                while True:
+                    next_nodes = [j for j in V if j != current and x[current, j].Xn > 0.5]
+                    if not next_nodes:
+                        break
+                    nxt = next_nodes[0]
+                    tour.append(nxt)
+                    if nxt == 0:
+                        break
+                    current = nxt
 
-        return tour, m.objVal, travel_cost, collected_prizes
-    else:
-        return None, None, None, None
+                travel_cost = gv_tsp_cost(tour)
+                collected_prizes = sum(prizes[i] for i in tour)
+
+                results.append((tour, obj_val, travel_cost, collected_prizes))
+
+    return results
+
 
 

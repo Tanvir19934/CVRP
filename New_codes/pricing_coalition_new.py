@@ -1,6 +1,6 @@
-from models_coalition_new import SubProblem, MasterProblem, RowGeneratingSubProblem
-from utils_new import check_values, tsp_tour
-from config_new import N, q, Q_EV, always_generate_rows, use_column_heuristic, rand_seed
+from models_coalition_new import SubProblem, MasterProblem
+from utils_new import check_values, tsp_tour, prize_collecting_tsp
+from config_new import N, q, Q_EV, always_generate_rows, use_column_heuristic, rand_seed, tol
 import time
 import copy
 import random
@@ -15,7 +15,6 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None, feas
     col_int_flag = 0
     RG_time, CG_time, RG_DP_time, CG_DP_time, LP_time = 0, 0, 0, 0, 0
     new_columns_to_add=set()
-    new_constr = set()
     if parent_constraints is not None and not always_generate_rows:
         new_constraints = copy.deepcopy(parent_constraints)
     else:
@@ -25,7 +24,6 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None, feas
     num_lp = 0
     master_prob = MasterProblem(forbidden_set)
     sub_problem = SubProblem(forbidden_set)
-    row_generating_subproblem = RowGeneratingSubProblem(forbidden_set)
 
     start_4 = time.perf_counter()
     
@@ -53,26 +51,25 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None, feas
                 LP_time += end_lp-start_lp
                 num_lp+=1
                 if not y_r_result:
-                    return None, None, None, None, status, CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time, RG_DP_time, LP_time, tsp_memo, feasibility_memo, global_tsp_memo, num_lp, L, new_constraints
+                    return None, None, None, None, status, CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time, RG_DP_time, LP_time, tsp_memo, feasibility_memo, global_tsp_memo, num_lp, new_constraints
 
                 start_5 = time.perf_counter()
-                if L is None:
-                    L = row_generating_subproblem.dy_prog(N,q,Q_EV)
-                new_constr, tsp_memo = row_generating_subproblem.generate_constr(tsp_memo,p_result,L)
+
+                new_route, prize_collecting_tsp_cost, tsp_tour_cost, total_payments = prize_collecting_tsp(p_result)
                 end_5 = time.perf_counter()
 
                 RG_DP_time += end_5-start_5
-                if not new_constr:
+                if not new_route or prize_collecting_tsp_cost > -tol:
                     break
-                for array in new_constr:
-                    new_constraints.add(tuple(array))
+                else:
+                    new_constraints.add((tuple(new_route), tsp_tour_cost))
             end_3 = time.perf_counter()
             RG_time +=  end_3-start_3
 
             ''' This is the CGSP, at this point our solution is RGSP feasible and CGSP feasible but not optimum, meaning there may be better routes to add '''
             dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle = master_prob.getDuals()
             if dual_values_delta==None:
-                return None, None, None, None, status, CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time, RG_DP_time, LP_time, tsp_memo, feasibility_memo, global_tsp_memo, num_lp, L, new_constraints
+                return None, None, None, None, status, CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time, RG_DP_time, LP_time, tsp_memo, feasibility_memo, global_tsp_memo, num_lp, new_constraints
             start_2 = time.perf_counter()
             new_columns, feasibility_memo = sub_problem.dy_prog(dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle, feasibility_memo, False)
             end_2 = time.perf_counter()
@@ -121,12 +118,12 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None, feas
             LP_time += end_lp-start_lp
             num_lp+=1
             if not y_r_result:
-                return None, None, None, None, status, CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time, RG_DP_time, LP_time, tsp_memo, feasibility_memo, global_tsp_memo, num_lp, L, new_constraints
+                return None, None, None, None, status, CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time, RG_DP_time, LP_time, tsp_memo, feasibility_memo, global_tsp_memo, num_lp, new_constraints
 
             ''' This is the CGSP, at this point our solution is RGSP feasible and CGSP feasible but not optimum, meaning there may be better routes to add '''
             dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle = master_prob.getDuals()
             if dual_values_delta==None:
-                return None, None, None, None, status, CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time, RG_DP_time, LP_time, tsp_memo, feasibility_memo, global_tsp_memo, num_lp, L, new_constraints
+                return None, None, None, None, status, CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time, RG_DP_time, LP_time, tsp_memo, feasibility_memo, global_tsp_memo, num_lp, new_constraints
             start_2 = time.perf_counter()
             new_columns, feasibility_memo = sub_problem.dy_prog(dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle, feasibility_memo, False)
             end_2 = time.perf_counter()
@@ -169,20 +166,18 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None, feas
                 print(f"RG iteration count: {RG_iteration}")
                 
                 start_5 = time.perf_counter()
-                if L is None:
-                    L = row_generating_subproblem.dy_prog(N,q,Q_EV)
-                new_constr, tsp_memo = row_generating_subproblem.generate_constr(tsp_memo,p_result,L)
+                new_route, prize_collecting_tsp_cost, tsp_tour_cost, total_payments = prize_collecting_tsp(p_result)
                 end_5 = time.perf_counter()
                 RG_DP_time += end_5-start_5
-                if not new_constr:
+                if not new_route or prize_collecting_tsp_cost > -tol:
                     break
-                for array in new_constr:
-                    new_constraints.add(tuple(array))
+                else:
+                    new_constraints.add((tuple(new_route), tsp_tour_cost))
                 if True:
                     p_result, y_r_result, master_prob_model, status = master_prob.relaxedLP(branching_arc, new_columns_to_add, new_constraints, False)
                     num_lp+=1
                     if not y_r_result:
-                        return None, None, None, None, status, CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time, RG_DP_time, LP_time, tsp_memo, feasibility_memo, global_tsp_memo, num_lp, L, new_constraints
+                        return None, None, None, None, status, CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time, RG_DP_time, LP_time, tsp_memo, feasibility_memo, global_tsp_memo, num_lp, new_constraints
 
                 2
 
@@ -201,4 +196,4 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None, feas
     CG_time = end_4-start_4
 
     return y_r_result, not_fractional, master_prob_model, master_prob_model.ObjVal, master_prob_model.status, \
-        CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time, RG_DP_time, LP_time, tsp_memo, feasibility_memo, global_tsp_memo, num_lp, L, new_constraints
+        CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time, RG_DP_time, LP_time, tsp_memo, feasibility_memo, global_tsp_memo, num_lp, new_constraints

@@ -5,7 +5,7 @@ rand_seed = 111
 rnd.seed(42)
 
 
-NODES = 10
+NODES = 5
 k = min(round(NODES*0.5),2)
 grid_size = 50                                                               #number of clients
 xc = np.random.uniform(low=- grid_size/2, high=grid_size/2, size=NODES+1)
@@ -32,12 +32,12 @@ row_dp_cutoff = 0
 col_dp_cutoff = 0
 row_dp_time_limit = 300
 
-#use_column_heuristic = False
-#always_generate_rows = True
+use_column_heuristic = False
+always_generate_rows = True
 #use_column_heuristic = False
 #always_generate_rows = False
-use_column_heuristic = True
-always_generate_rows = False
+#use_column_heuristic = True
+#always_generate_rows = False
 
 dom_heuristic = False
 plot_enabled = 0
@@ -88,3 +88,4 @@ dist = {(i,j): np.hypot(xc[i]-xc[j], yc[i]- yc[j]) for (i,j) in arc_set}
 best_obj = 0
 for i in range(1, NODES+1):
     best_obj+= 2*w_dv*a[(0,i)]
+best_obj = best_obj * 1.5 #just to be safe

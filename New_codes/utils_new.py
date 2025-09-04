@@ -1,4 +1,4 @@
-from config_new import q, a, EV_velocity, gamma, gamma_l, EV_cost, GV_cost, w_dv, w_ev, theta, battery_threshold
+from config_new import q, a, EV_velocity, gamma, gamma_l, EV_cost, GV_cost, w_dv, w_ev, theta, battery_threshold, V, N, Q_EV
 from gurobipy import Model, GRB, quicksum
 import itertools
 from itertools import permutations
@@ -253,3 +253,76 @@ def create_excel_for_log_file(log_file):
     df.to_excel(excel_filename, index=False)
 
     print(f"Data successfully saved to {excel_filename}")
+
+
+def prize_collecting_tsp(p_result):
+    """
+    Prize-Collecting TSP with load-dependent travel costs.
+    """
+
+    # Map prizes to nodes
+    prizes = {i: p_result.get(f"p_{i}", 0.0) for i in N}
+    prizes[0] = 0.0  # depot has no prize
+
+    m = Model("PrizeCollectingTSP")
+
+    # Decision variables
+    x = m.addVars(V, V, vtype=GRB.BINARY, name="x")  # arc used
+    y = m.addVars(V, vtype=GRB.BINARY, name="y")     # node visited
+    u = m.addVars(V, vtype=GRB.CONTINUOUS, lb=0, ub=len(V), name="u")  # subtour elim (MTZ)
+    load = m.addVars(V, vtype=GRB.CONTINUOUS, lb=0, ub=Q_EV, name="load")  # cumulative load at node
+
+    # Objective: distance * cumulative load - collected prizes
+    m.setObjective(
+        quicksum(a[i, j] * load[i] * x[i, j] for i in V for j in V if i != j) * GV_cost
+        - quicksum(prizes[i] * y[i] for i in V),
+        GRB.MINIMIZE
+    )
+
+    # Flow balance
+    for i in V:
+        m.addConstr(quicksum(x[i, j] for j in V if j != i) == y[i])
+        m.addConstr(quicksum(x[j, i] for j in V if j != i) == y[i])
+
+    # Depot must be visited
+    m.addConstr(y[0] == 1)
+    m.addConstr(load[0] == 0)
+
+    # Load progression constraints
+    M = Q_EV*10
+    for i in V:
+        for j in N:
+            if i != j:
+                # if arc i->j is used, enforce load[j] >= load[i] + q[j]
+                m.addConstr(load[j] >= load[i] + q[j] - M*(1 - x[i, j]))
+
+    # Subtour elimination (MTZ)
+    for i in N:
+        for j in N:
+            if i != j:
+                m.addConstr(u[i] - u[j] + (len(V)) * x[i, j] <= len(V) - 1)
+
+    m.setParam('OutputFlag', 0)
+    m.optimize()
+
+    if m.status == GRB.OPTIMAL:
+        # Extract tour
+        tour = [0]
+        current = 0
+        while True:
+            next_nodes = [j for j in V if j != current and x[current, j].X > 0.5]
+            if not next_nodes:
+                break
+            nxt = next_nodes[0]
+            tour.append(nxt)
+            if nxt == 0:
+                break
+            current = nxt
+
+        # Compute load-dependent travel cost from solution
+        travel_cost = sum(a[tour[i], tour[i+1]] * load[tour[i]].X for i in range(len(tour)-1)) * GV_cost
+        collected_prizes = sum(prizes[i] for i in tour)
+        return tour, m.objVal, travel_cost, collected_prizes
+    else:
+        return None, None, None, None
+

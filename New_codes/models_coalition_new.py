@@ -150,100 +150,176 @@ class SubProblem:
         else:
             return False
     
+    @staticmethod
+    def ng_label_dominates(existing_label, candidate_label):
+        """
+        Both labels at the same node.
+        Keep your resource ordering: reduced_cost <=, load/time/battery as appropriate.
+        Crucial change: use S ⊆ S on the NG memory sets.
+        """
+        rc_e, load_e, batt_e, S_e = existing_label.resource_vector
+        rc_c, load_c, batt_c, S_c = candidate_label.resource_vector
 
-    def dy_prog(self, dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle, feasibility_memo={}, IFB=False):
-        # Initialize the sets of labels
+        # Example (adjust resource inequalities to your model’s sense):
+        cost_ok   = rc_e <= rc_c
+        load_ok   = load_e <= load_c
+        batt_ok   = batt_e >= batt_c   # if higher battery is "better"; flip if opposite
+        S_ok      = S_e.issubset(S_c)
 
-        U = []  # Priority queue for undominated labels
-        L = defaultdict(list)  # Dictionary to store the sets of labels at each node
+        return cost_ok and load_ok and batt_ok and S_ok
+
+    @staticmethod
+    def ng_block(current_S, next_node):
+        # Block revisiting only if next_node is in current NG memory
+        return next_node in current_S
+    @staticmethod
+    def ng_update(S, current_node, next_node, NG):
+        """
+        Projection/update rule:
+        S' = (S ∩ NG(next_node)) ∪ ({current_node} if current_node ∈ NG(next_node) else ∅) ∪ {next_node}
+        Use frozenset so labels hash/compare nicely.
+        """
+        S_proj = S & NG[next_node]
+        if current_node in NG[next_node]:
+            S_proj = S_proj | {current_node}
+        S_new = S_proj | {next_node}
+        return frozenset(S_new)
+
+
+    def dy_prog(self, dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle,
+                feasibility_memo={}, IFB=False, NG=None):
+        """
+        Same signature, add NG dict (node -> set of neighbors). If NG is None, fall back to elementary.
+        """
+        U = []                     # PQ of labels
+        L = defaultdict(list)      # labels stored per node
         N.extend(['s','t'])
         start_node = 's'
-        
-        initial_resource_vector = (-dual_values_vehicle, 0, 0, set('s'))  # (reduced_cost, load, battery)
+
+        # ---- initialize NG memory ----
+        init_S = frozenset()  # start with empty memory (depot not tracked)
+        initial_resource_vector = (-dual_values_vehicle, 0, 0, init_S)
         initial_label = Label(start_node, initial_resource_vector, None)
+
         heapq.heappush(U, initial_label)
-        print("\nExecuting CG DP...\n")
+        print("\nExecuting CG DP (NG) ...\n")
         neg_count = 0
         start = time.perf_counter()
+
         while U:
             current_label = heapq.heappop(U)
-            #current_label = U.pop()
-            current_node = current_label.node
-            # Check for dominance and add label to the set of labels if not dominated
+            current_node  = current_label.node
+
+            # ----- dominance check at current node (using NG) -----
             is_dominated = False
-
-            current_path = reconstruct_path(current_label)
-            current_path_load = sum(q[i] for i in current_path if i!=0)
-
-
             for label in L[current_node]:
-                if self.label_domination_check_old(label, current_label):
-                    is_dominated = True
-                    break
+                # Use NG-aware dominance
+                if NG is None:
+                    # fallback to your original checker
+                    if self.label_domination_check(label, current_label):
+                        is_dominated = True
+                        break
+                else:
+                    if self.ng_label_dominates(label, current_label):
+                        is_dominated = True
+                        break
 
             if not is_dominated:
-                    
-                    #Extend the label along all arcs leaving the current node
-                    neigh = list(set(N)-set([current_node]))
-                    if current_node=='s':
+                # Store (so later arrivals can be compared against this)
+                heapq.heappush(L[current_node], current_label)
+
+                # ----- stop at sink -----
+                if current_node == 't':
+                    if current_label.resource_vector[0] < 0:
+                        neg_count += 1
+                    if IFB and neg_count >= col_dp_cutoff:
+                        break
+                    continue
+
+                # ----- neighbors to extend -----
+                neigh = list(set(N) - {current_node})
+                if current_node == 's':
+                    if 't' in neigh:
                         neigh.remove('t')
-                    if current_node!='s':
+                else:
+                    if 's' in neigh:
                         neigh.remove('s')
-                    if current_node=='t':
+
+                # reconstruct for reduced cost + memo keys (unchanged)
+                current_path = reconstruct_path(current_label)
+                current_path_load = sum(q[i] for i in current_path if i != 0)
+                rc, load, batt, S = current_label.resource_vector
+
+                for new_node in neigh:
+                    # Forbidden arcs remain
+                    c_conv = 0 if current_node in ('s','t') else current_node
+                    n_conv = 0 if new_node    in ('s','t') else new_node
+                    if (c_conv, n_conv) in self.forbidden_set:
                         continue
 
-                    for new_node in neigh:
-                        if new_node in current_label.resource_vector[-1]:
-                            continue
-                        if new_node=='t' or new_node=='s':
-                            new_node_converted = 0
-                        else: new_node_converted=new_node
-                        if current_node=='t' or current_node=='s':
-                            current_node_converted=0
-                        else: current_node_converted = current_node
-                        if (current_node_converted,new_node_converted) in self.forbidden_set:
-                            continue
-                        if new_node=='t':
-                            new_path = current_path + [0]
+                    # ---- NG: block only if new_node is in current NG memory ----
+                    if NG is not None and self.ng_block(S, new_node):
+                        continue
 
-                        else:
-                            new_path = current_path + [new_node]
-                        
-                        if tuple(new_path) in feasibility_memo:
-                            new_load, new_battery = feasibility_memo[tuple(new_path)]
-                        else:
-                            new_load, new_battery   = self.feasibility_check(current_node, new_node, current_label.resource_vector[1], current_label.resource_vector[2])
-                            if current_path_load!=Q_EV and new_load is not None:
-                                feasibility_memo[tuple(new_path)] = (new_load, new_battery)
+                    # Build new path for feasibility memo + reduced cost calc (unchanged)
+                    if new_node == 't':
+                        new_path = current_path + [0]
+                    else:
+                        new_path = current_path + [new_node]
 
-                        if new_load is not None:
-                            resource_vector = (new_load, new_battery)
-                            new_label = Label(new_node, resource_vector, current_label)
-                            reduced_cost = self.calculate_reduced_cost(new_path, dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle, False, current_label, new_label)
-                            new_label.resource_vector = (reduced_cost, new_load, new_battery, current_label.resource_vector[-1].union({new_node})) #update the resource vector with reduced cost
+                    if tuple(new_path) in feasibility_memo:
+                        new_load, new_battery = feasibility_memo[tuple(new_path)]
+                    else:
+                        new_load, new_battery = self.feasibility_check(
+                            current_node, new_node, load, batt
+                        )
+                        if current_path_load != Q_EV and new_load is not None:
+                            feasibility_memo[tuple(new_path)] = (new_load, new_battery)
 
-                            #Add all feasible extensions to U (if no constraint violation)
-                            heapq.heappush(U, new_label)
-                            heapq.heappush(L[new_node], new_label)
-            
+                    if new_load is None:
+                        continue
+
+                    # ---- NG: update memory ----
+                    if NG is not None:
+                        S_new = self.ng_update(S, current_node, new_node, NG)
+                    else:
+                        # Elementary fallback: carry full visited set
+                        S_new = S | {new_node}  # (your original did union on visited)
+
+                    # Build new label
+                    new_label = Label(new_node, (0.0, new_load, new_battery, S_new), current_label)
+
+                    # Reduced cost calculation (unchanged)
+                    reduced_cost = self.calculate_reduced_cost(
+                        new_path, dual_values_delta, dual_values_subsidy, dual_values_IR,
+                        dual_values_vehicle, False, current_label, new_label
+                    )
+                    new_label.resource_vector = (reduced_cost, new_load, new_battery, S_new)
+
+                    # Push to open + (optionally) to L[new_node] so future arrivals compare
+                    heapq.heappush(U, new_label)
+                    # (Don’t immediately push to L[new_node]; push after passing dominance when popped)
+                    # If you want eager per-node pools, keep this next line but know you’ll compare twice:
+                    # heapq.heappush(L[new_node], new_label)
+
             if IFB and neg_count >= col_dp_cutoff:
                 break
-            if current_label.resource_vector[0]<0 and current_node=='t':
-                neg_count+=1               
+
+        # Gather negative columns at sink (unchanged)
         sink_node = 't'
         new_routes = {}
         for item in L[sink_node]:
-            route = reconstruct_path(item)
-            if len(route)!=3 and item.resource_vector[0]<0 and abs(item.resource_vector[0])>tol:
+            route = reconstruct_path(item)  # full path via predecessors
+            if len(route) != 3 and item.resource_vector[0] < 0 and abs(item.resource_vector[0]) > tol:
+                # (Optional) filter here to keep only elementary routes if you like
                 new_routes[tuple(route)] = item.resource_vector[0]
-            
-        N.remove('s')
-        N.remove('t')
+
+        N.remove('s'); N.remove('t')
 
         end = time.perf_counter()
         print(f"CG DP time: {end-start:.2f} seconds")
-
         return new_routes, feasibility_memo
+
 
 class MasterProblem:
 

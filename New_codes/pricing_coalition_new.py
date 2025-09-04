@@ -1,6 +1,6 @@
 from models_coalition_new import SubProblem, MasterProblem
-from utils_new import check_values, tsp_tour, prize_collecting_tsp
-from config_new import N, q, Q_EV, always_generate_rows, use_column_heuristic, rand_seed, tol
+from utils_new import check_values, tsp_tour, prize_collecting_tsp, build_NG
+from config_new import N, q, Q_EV, always_generate_rows, use_column_heuristic, rand_seed, tol, a
 import time
 import copy
 import random
@@ -19,6 +19,9 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None, feas
         new_constraints = copy.deepcopy(parent_constraints)
     else:
         new_constraints = set()
+    
+    NG = build_NG(neighbors_k=3, N_customers=[i for i in N if i not in ('s','t')], dist=a)
+
 
 
     num_lp = 0
@@ -73,11 +76,16 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None, feas
                 return None, None, None, None, status, CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time, RG_DP_time, LP_time, tsp_memo, feasibility_memo, global_tsp_memo, num_lp, new_constraints
             start_2 = time.perf_counter()
             if CG_iteration == 1:
-                new_columns, feasibility_memo = sub_problem.dy_prog(dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle, feasibility_memo, True)
+                new_columns, feasibility_memo = sub_problem.dy_prog(dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle, feasibility_memo, True, NG )
             else:
-                new_columns, feasibility_memo = sub_problem.dy_prog(dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle, feasibility_memo, False)
+                new_columns, feasibility_memo = sub_problem.dy_prog(dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle, feasibility_memo, False, NG)
             end_2 = time.perf_counter()
-            
+            new_columns = {
+                route: rc
+                for route, rc in new_columns.items()
+                if len(set(route[1:-1])) == len(route[1:-1])   # keep only elementary
+            }
+
             if not new_columns:
                 break
 
@@ -130,9 +138,9 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None, feas
                 return None, None, None, None, status, CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time, RG_DP_time, LP_time, tsp_memo, feasibility_memo, global_tsp_memo, num_lp, new_constraints
             start_2 = time.perf_counter()
             if CG_iteration == 1:
-                new_columns, feasibility_memo = sub_problem.dy_prog(dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle, feasibility_memo, True)
+                new_columns, feasibility_memo = sub_problem.dy_prog(dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle, feasibility_memo, True, NG)
             else:
-                new_columns, feasibility_memo = sub_problem.dy_prog(dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle, feasibility_memo, False)            
+                new_columns, feasibility_memo = sub_problem.dy_prog(dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle, feasibility_memo, False, NG)
             end_2 = time.perf_counter()
             if not new_columns:
                 break

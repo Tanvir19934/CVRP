@@ -65,6 +65,21 @@ def reconstruct_path(label):
     if path[-1]=='t':
         path[-1]= 0
     return path
+def build_NG(neighbors_k, N_customers, dist):
+    """
+    neighbors_k: int, size k of NG(i)
+    N_customers: list of customer nodes (exclude 's','t')
+    dist[i][j]: distance or generalized metric used to define nearest neighbors
+    """
+    NG = {i: set() for i in N_customers + ['s','t']}
+    for i in N:
+        # pick k nearest among customers; always include i itself
+        knn = sorted([j for j in N_customers if j != i], key=lambda j: dist[i,j])[:neighbors_k-1]
+        NG[i] = set(knn) | {i}
+    # Depots: keep empty so they don't pollute memory
+    NG['s'] = set()
+    NG['t'] = set()
+    return NG
 
 def construct_tour(edges):
     next_node_map = {i: j for i, j in edges}
@@ -326,7 +341,7 @@ def prize_collecting_tsp(p_result):
         for k in range(m.SolCount):
             m.setParam(GRB.Param.SolutionNumber, k)
             obj_val = m.PoolObjVal
-            if obj_val < -tol:  # only store negative solutions
+            if obj_val < -tol and abs(obj_val)>abs(tol):  # only store negative solutions
                 # Extract tour
                 tour = [0]
                 current = 0

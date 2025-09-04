@@ -127,7 +127,30 @@ class SubProblem:
         )
 
         return le and lt
+
+
+    def label_domination_check_old(self, existing_label, current_label):
+
+        # Assume resource_vector = [res0, res1, res2, visited_set]
+
+        num_dims = 3
+        existing_res = existing_label.resource_vector
+        current_res   = current_label.resource_vector
+
+        # 1) Check numeric domination
+        numeric_le  = all(existing_res[i]  <= current_res[i]
+                        for i in range(num_dims))
+        numeric_lt  = any(existing_res[i]  <  current_res[i]
+                        for i in range(num_dims))
+
+
+        # 3) Combine them
+        if numeric_le and True and numeric_lt:
+            return True
+        else:
+            return False
     
+
     def dy_prog(self, dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle, feasibility_memo={}, IFB=False):
         # Initialize the sets of labels
 
@@ -154,7 +177,7 @@ class SubProblem:
 
 
             for label in L[current_node]:
-                if self.label_domination_check(label, current_label):
+                if self.label_domination_check_old(label, current_label):
                     is_dominated = True
                     break
 

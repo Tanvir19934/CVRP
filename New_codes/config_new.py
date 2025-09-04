@@ -5,7 +5,7 @@ rand_seed = 111
 rnd.seed(42)
 
 
-NODES = 10
+NODES = 25
 k = min(round(NODES*0.5),2)
 grid_size = 50                                                               #number of clients
 xc = np.random.uniform(low=- grid_size/2, high=grid_size/2, size=NODES+1)
@@ -30,14 +30,14 @@ total_dem = sum(q)                                                           #to
 #Other parameters
 num_EV = math.ceil(NODES*0.3)
 unlimited_EV = False
-col_dp_cutoff = 1000
+col_dp_cutoff = 100
 
 #use_column_heuristic = False
 #always_generate_rows = True
-#use_column_heuristic = False
-#always_generate_rows = False
-use_column_heuristic = True
+use_column_heuristic = False
 always_generate_rows = False
+#use_column_heuristic = True
+#always_generate_rows = False
 
 dom_heuristic = False
 plot_enabled = 0

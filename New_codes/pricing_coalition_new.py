@@ -72,7 +72,10 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None, feas
             if dual_values_delta==None:
                 return None, None, None, None, status, CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time, RG_DP_time, LP_time, tsp_memo, feasibility_memo, global_tsp_memo, num_lp, new_constraints
             start_2 = time.perf_counter()
-            new_columns, feasibility_memo = sub_problem.dy_prog(dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle, feasibility_memo, False)
+            if CG_iteration == 1:
+                new_columns, feasibility_memo = sub_problem.dy_prog(dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle, feasibility_memo, True)
+            else:
+                new_columns, feasibility_memo = sub_problem.dy_prog(dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle, feasibility_memo, False)
             end_2 = time.perf_counter()
             
             if not new_columns:
@@ -126,9 +129,11 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None, feas
             if dual_values_delta==None:
                 return None, None, None, None, status, CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time, RG_DP_time, LP_time, tsp_memo, feasibility_memo, global_tsp_memo, num_lp, new_constraints
             start_2 = time.perf_counter()
-            new_columns, feasibility_memo = sub_problem.dy_prog(dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle, feasibility_memo, False)
+            if CG_iteration == 1:
+                new_columns, feasibility_memo = sub_problem.dy_prog(dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle, feasibility_memo, True)
+            else:
+                new_columns, feasibility_memo = sub_problem.dy_prog(dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle, feasibility_memo, False)            
             end_2 = time.perf_counter()
-
             if not new_columns:
                 break
 
@@ -161,9 +166,9 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None, feas
         if check_values(y_r_result):
             col_int_flag = 1
             print("Integer solution has been hit, starting row generation")
-            RG_iteration += 1
             
             while True:
+                RG_iteration+=1
                 print(f"RG iteration count: {RG_iteration}")
                 
                 start_5 = time.perf_counter()

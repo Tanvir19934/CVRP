@@ -91,39 +91,42 @@ class SubProblem:
         return reduced_cost
 
     def label_domination_check(self, existing_label, current_label):
+        """
+        Check if existing_label dominates current_label.
 
-        # Assume resource_vector = [res0, res1, res2, visited_set]
-        dom_heuristic = False
+        Resource vector format:
+            [reduced_cost, current_load, battery_consumed, visited_set]
 
-        num_dims = 3
-        existing_res = existing_label.resource_vector
-        current_res   = current_label.resource_vector
+        Rules:
+        - Reduced cost: lower is better
+        - Current load: lower is better (means more remaining capacity)
+        - Battery consumed: lower is better (means more remaining battery)
+        - Visited set: smaller set (subset) is better
+        - At least one resource strictly better
+        """
 
-        # 1) Check numeric domination
-        numeric_le  = all(existing_res[i] + tol <= current_res[i]
-                        for i in range(num_dims))
-        numeric_lt  = any(existing_res[i] + tol <  current_res[i]
-                        for i in range(num_dims))
+        e_rc, e_load, e_batt, e_set = existing_label.resource_vector
+        c_rc, c_load, c_batt, c_set = current_label.resource_vector
 
-        # 2) Check set‑inclusion domination
-        label_visited = existing_res[3]
-        cur_visited   = current_res[3]
+        # No worse in all dimensions (<= case)
+        le = (
+            e_rc   <= c_rc and
+            e_load <= c_load and
+            e_batt <= c_batt and
+            e_set.issubset(c_set)
+            #c_set.issubset(e_set)
+        )
 
-        # “⊆” for subset, and “⊂” for proper subset
-        subset_le     = label_visited.issubset(cur_visited)
-        #subset_le     = cur_visited.issubset(label_visited)
-        #subset_lt     = label_visited != cur_visited
-        if label_visited == cur_visited:
-            pass
+        # Strictly better in at least one dimension (< case)
+        lt = (
+            e_rc   < c_rc or
+            e_load < c_load or
+            e_batt < c_batt or
+            (e_set < c_set)   # proper subset
+            #(c_set < e_set)
+        )
 
-        if dom_heuristic:
-            subset_le = len(cur_visited) < len(label_visited)
-
-        # 3) Combine them
-        if numeric_le and True and numeric_lt:
-            return True
-        else:
-            return False
+        return le and lt
     
     def dy_prog(self, dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle, feasibility_memo={}, IFB=False):
         # Initialize the sets of labels
@@ -200,7 +203,7 @@ class SubProblem:
                             heapq.heappush(U, new_label)
                             heapq.heappush(L[new_node], new_label)
             
-            if neg_count >= col_dp_cutoff:
+            if IFB and neg_count >= col_dp_cutoff:
                 break
             if current_label.resource_vector[0]<0 and current_node=='t':
                 neg_count+=1               

@@ -48,15 +48,6 @@ def check_values(d, tolerance=1e-5):
             return False
     return True
 
-def code_status(use_column_heuristic, always_generate_rows):
-    if use_column_heuristic==False and always_generate_rows==True:
-        code=1
-    elif use_column_heuristic==False and always_generate_rows==False:
-        code=2
-    elif use_column_heuristic==True and always_generate_rows==False:
-        code=3
-    return code
-
 def partial_path(label,current_node):
     node = current_node
     path = []
@@ -162,6 +153,14 @@ def print_metadata(Total_CG_iteration, Total_RG_iteration, num_nodes_explored,
     print(f"root_obj_val: {root_obj_val}")
     print(f"Total number of LPs solved: {Total_num_lp}")
 
+def code_status(use_column_heuristic, always_generate_rows):
+    if use_column_heuristic==False and always_generate_rows==True:
+        code=1
+    elif use_column_heuristic==False and always_generate_rows==False:
+        code=2
+    elif use_column_heuristic==True and always_generate_rows==False:
+        code=3
+    return code
 
 def generate_tsp_cache(N, k):
     print(f"\nCreating initial TSP memo... \ntotal {N}C{k} combinations\n")

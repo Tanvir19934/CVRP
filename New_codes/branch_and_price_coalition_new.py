@@ -130,7 +130,7 @@ def branching() -> None:
 
         if plot_enabled and outer_iter % 10 == 0:
             # Update the plot every 10 iterations
-            update_plot(outer_iter, ((best_objective - root_obj_val) / best_objective) * 100)
+            update_plot(outer_iter, ((best_objective - root_obj_val) / best_objective) * 100, iterations, lp_gaps)
 
         if node.obj_val  > best_objective:
             print("\n\033[1mPruning the node as its obj is worse than the best integer solution found so far\033[0m\n")

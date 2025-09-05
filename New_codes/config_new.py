@@ -5,7 +5,7 @@ rand_seed = 111
 rnd.seed(42)
 
 
-NODES = 25
+NODES = 30
 k = min(round(NODES*0.5),2)
 grid_size = 50                                                               #number of clients
 xc = np.random.uniform(low=- grid_size/2, high=grid_size/2, size=NODES+1)
@@ -88,4 +88,4 @@ dist = {(i,j): np.hypot(xc[i]-xc[j], yc[i]- yc[j]) for (i,j) in arc_set}
 best_obj = 0
 for i in range(1, NODES+1):
     best_obj+= 2*w_dv*a[(0,i)]
-best_obj = best_obj * 1.5 #just to be safe
+best_obj = best_obj * 1.1 #just to be safe

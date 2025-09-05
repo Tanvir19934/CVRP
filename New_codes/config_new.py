@@ -5,7 +5,7 @@ rand_seed = 111
 rnd.seed(42)
 
 
-NODES = 15
+NODES = 30
 k = min(round(NODES*0.5),2)
 grid_size = 50                                                               #number of clients
 xc = np.random.uniform(low=- grid_size/2, high=grid_size/2, size=NODES+1)
@@ -15,7 +15,7 @@ yc[0]=0
 w_dv = 1.2
 w_ev = 1
 theta = 0.3
-tol = 1e-4
+tol = 1e-3
 N = [i for i in range(1,NODES+1)]                                            #set of customer nodes
 V = [0] + N                                                                  #set of all nodes (customer+depot)
 

@@ -170,16 +170,16 @@ class SubProblem:
         le = (
             e_rc   <= c_rc   + tol and
             e_load <= c_load + tol and
-            e_batt <= c_batt + tol and
-            S_e.issubset(S_c)
+            e_batt <= c_batt + tol 
+            and S_e.issubset(S_c)
         )
 
         # Strictly better in at least one dimension
         lt = (
             e_rc   < c_rc   - tol or
             e_load < c_load - tol or
-            e_batt < c_batt - tol or
-            (S_e < S_c)  # proper subset
+            e_batt < c_batt - tol 
+            or (S_e < S_c)  # proper subset
         )
 
         return le and lt

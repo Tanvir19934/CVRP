@@ -1,16 +1,17 @@
-import heapq
 from pricing_coalition_new import column_generation
 from config_new import (
-    V, Q_EV, q, NODES,k, plot_enabled, use_column_heuristic, 
+    V, Q_EV, q, NODES,k, plot_enabled, use_column_heuristic,
     always_generate_rows, N, rand_seed, best_obj, SEARCH_MODE
     )
 from collections import defaultdict
 import copy
 import time
 import random
-from utils_new import print_solution, save_to_excel, tsp_tour, gv_tsp_cost, ev_travel_cost
+from utils_new import (
+    print_solution, save_to_excel, gv_tsp_cost, ev_travel_cost, print_metadata,
+    generate_tsp_cache, update_plot, make_stack, code_status
+    )
 import pandas as pd
-from itertools import combinations
 import matplotlib.pyplot as plt
 from gurobipy import GRB
 
@@ -31,56 +32,6 @@ class Node:
 
     def __lt__(self, other):
         return self.obj_val < other.obj_val  #For heap implementation. The heapq.heapify() will heapify the list based on this criteria.
-
-def generate_tsp_cache(N, k):
-    print(f"\nCreating initial TSP memo... \ntotal {N}C{k} combinations\n")
-    tsp_memo = {}
-    global_tsp_memo = {}
-    customers = list(range(1, N + 1)) 
-    all_combinations = []
-      
-    for i in range(1, k + 1):
-        for comb in combinations(customers, i):
-            all_combinations.append((0,) + comb + (0,))
-    for item in all_combinations:
-        if sum(q[i] for i in item) <= Q_EV:
-            candidate_route, tsp_cost = tsp_tour(item)
-            tsp_memo[item] = (tuple(candidate_route),tsp_cost)
-            global_tsp_memo[item] = (tuple(candidate_route),tsp_cost)
-        else:
-            candidate_route, tsp_cost = tsp_tour(item)
-            global_tsp_memo[item] = (tuple(candidate_route),tsp_cost)
-
-    print(f"\nFinished creating initial TSP memo\n")
-    time.sleep(1)
-    return tsp_memo, global_tsp_memo
-
-def update_plot(outer_iter, lp_gap):
-    global iterations, lp_gaps
-    """Updates the LP gap plot dynamically."""
-    if not plot_enabled:
-        return  # Do nothing if plotting is disabled
-
-    # Append new data
-    iterations.append(outer_iter)
-    lp_gaps.append(lp_gap)
-
-    # Static figure and axis setup (only first time)
-    if not hasattr(update_plot, "fig"):
-        plt.ion()  # Enable interactive mode
-        update_plot.fig, update_plot.ax = plt.subplots()
-        update_plot.line, = update_plot.ax.plot([], [], marker='o', linestyle='-')
-
-    # Update the plot
-    update_plot.line.set_xdata(iterations)
-    update_plot.line.set_ydata(lp_gaps)
-    update_plot.ax.relim()  # Recompute limits
-    update_plot.ax.autoscale_view()  # Adjust view
-    update_plot.ax.set_xlabel("Outer Iteration")
-    update_plot.ax.set_ylabel("LP Gap (%)")
-    update_plot.ax.set_title("LP Gap vs. Outer Iteration")
-    plt.draw()
-    plt.pause(0.01)  # Pause for smooth updating
 
 def branching() -> None:
 
@@ -118,18 +69,10 @@ def branching() -> None:
     if root_not_fractional:
         print("Optimal solution found at the root node: did not need branching")
         obj, total_miles, EV_miles, Total_payments, Subsidy, payments, solution_routes = print_solution(root_master_prob_model)
-        print(f"Total CG iterations: {Total_CG_iteration}")
-        print(f"Total RG iterations: {Total_RG_iteration}")
-        print(f"Total nodes explored: {num_nodes_explored}")
-        print(f"Total RG time: {Total_RG_time}")
-        print(f"Total CG time: {Total_CG_time}")
-        print(f"Total RG DP time: {Total_RG_DP_time}")
-        print(f"Total CG DP time: {Total_CG_DP_time}")
-        print(f"Total LP time: {Total_LP_time:.2f}")
-        #print(f"tsp cache time: {tsp_cache_time}")
-        print("LP gap(%): ", ((obj-root_obj_val)/obj)*100)
-        print(f"root_obj_val: {root_obj_val}")
-        print(f"Total number of LPs solved: {Total_num_lp}")
+        print_metadata(Total_CG_iteration, Total_RG_iteration, num_nodes_explored,
+              Total_RG_time, Total_CG_time, Total_RG_DP_time, Total_CG_DP_time,
+              Total_LP_time, tsp_cache_time, obj, root_obj_val, Total_num_lp)
+
         return obj, total_miles, EV_miles, Total_payments, Subsidy, payments, solution_routes, root_obj_val, num_nodes_explored, tsp_cache_time, Total_num_lp, tsp_memo
     root_node = Node(0, "root_node", set(), None, set())
     left_not_fractional = right_not_fractional = False
@@ -139,33 +82,7 @@ def branching() -> None:
     root_node.model = root_master_prob_model
     root_node.constraints = root_constraints
 
-    if SEARCH_MODE == "fifo":
-        from collections import deque
-        stack = deque()
-        def push(x): stack.append(x)
-        def pop():  return stack.popleft()
-    elif SEARCH_MODE == "heap":
-        import heapq
-        stack = []
-        def push(x): heapq.heappush(stack, x)
-        def pop():  return heapq.heappop(stack)
-    elif SEARCH_MODE == "mixed":
-        import heapq, random
-        stack = []
-        def push(x): heapq.heappush(stack, x)
-        def pop():
-            # 80% best-first, 20% random (as you had)
-            if random.random() < 0.8:
-                return heapq.heappop(stack)
-            else:
-                idx = random.randint(0, len(stack)-1)
-                node = stack[idx]
-                stack[idx] = stack[-1]
-                stack.pop()
-                heapq.heapify(stack)
-                return node
-    else:
-        raise ValueError("Unknown SEARCH_MODE")
+    stack, push, pop = make_stack(SEARCH_MODE)
 
     def _process_child(status, obj_val, not_fractional, model, solution, node):
         """
@@ -195,7 +112,6 @@ def branching() -> None:
             push(node)  # promising → explore later
         else:
             print(f"\033[1m[PRUNE LB]\033[0m LB {obj_val:.6g} ≥ UB {best_objective:.6g}")
-
 
     best_node = None
     best_objective = best_obj
@@ -267,8 +183,6 @@ def branching() -> None:
 
             _process_child(left_status, left_obj_val, left_not_fractional, left_model, left_result, left_node)
 
-
-
             # Create right branch node
             right_node = Node(node.depth + 1, f'{branching_arc}={1}', copy.deepcopy(node.forbidden), node, copy.deepcopy(node.constraints))
             for item in V:
@@ -296,10 +210,6 @@ def branching() -> None:
             
             _process_child(right_status, right_obj_val, right_not_fractional, right_model, right_result, right_node)
 
-
-
-
-
     if plot_enabled:
         plt.ioff()
         plt.show()
@@ -310,18 +220,9 @@ def branching() -> None:
     else:
         print("No optimal solution found.")
     
-    print(f"Total CG iterations: {Total_CG_iteration}")
-    print(f"Total RG iterations: {Total_RG_iteration}")
-    print(f"Total nodes explored: {num_nodes_explored}")
-    print(f"Total RG time: {Total_RG_time:.2f}")
-    print(f"Total CG time: {Total_CG_time:.2f}")
-    print(f"Total RG DP time: {Total_RG_DP_time:.2f}")
-    print(f"Total CG DP time: {Total_CG_DP_time:.2f}")
-    print(f"Total LP time: {Total_LP_time:.2f}")
-    print(f"tsp cache time: {tsp_cache_time}")
-    print(f"LP gap(%): {((obj-root_obj_val)/obj)*100}")
-    print(f"root_obj_val: {root_obj_val}")
-    print(f"Total number of LPs solved: {Total_num_lp}")
+    print_metadata(Total_CG_iteration, Total_RG_iteration, num_nodes_explored,
+              Total_RG_time, Total_CG_time, Total_RG_DP_time, Total_CG_DP_time,
+              Total_LP_time, tsp_cache_time, obj, root_obj_val, Total_num_lp)
     
     return obj, total_miles, EV_miles, Total_payments, Subsidy, payments, solution_routes, root_obj_val, num_nodes_explored, tsp_cache_time, Total_num_lp, tsp_memo
 
@@ -335,19 +236,14 @@ def track_time_iterations(CG_iteration, RG_iteration, RG_time, CG_time, RG_DP_ti
     Total_RG_DP_time+=RG_DP_time
     Total_LP_time+=LP_time
 
-
 def main():
         start = time.perf_counter()
         obj, total_miles, EV_miles, Total_payments, Subsidy, payments, solution_routes, root_obj_val, num_nodes_explored, tsp_cache_time, Total_num_lp, tsp_memo = branching()
         end = time.perf_counter()
         print(f"Execution time for nodes={NODES}: {end - start}")
         Execution_time = end - start
-        if use_column_heuristic==False and always_generate_rows==True:
-            code=1
-        elif use_column_heuristic==False and always_generate_rows==False:
-            code=2
-        elif use_column_heuristic==True and always_generate_rows==False:
-            code=3
+        code = code_status(use_column_heuristic, always_generate_rows)
+        
         data = {
             "Nodes": [NODES],
             "Obj": [obj],
@@ -368,8 +264,6 @@ def main():
             "Total number of LPs solved": [Total_num_lp],
             "code": [code]
         }
-
-
         payments[0]=0
         flag = 0
         for item in tsp_memo:

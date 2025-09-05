@@ -5,7 +5,8 @@ rand_seed = 111
 rnd.seed(42)
 
 
-NODES = 29
+NODES = 25
+SEARCH_MODE = "heap"
 k = min(round(NODES*0.5),2)
 grid_size = 50                                                               #number of clients
 xc = np.random.uniform(low=- grid_size/2, high=grid_size/2, size=NODES+1)
@@ -40,7 +41,7 @@ always_generate_rows = False
 #always_generate_rows = False
 
 dom_heuristic = False
-plot_enabled = 0
+plot_enabled = 1
 
 if unlimited_EV:
     num_EV = NODES

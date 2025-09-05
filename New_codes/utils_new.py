@@ -331,7 +331,7 @@ def prize_collecting_tsp(p_result):
         )
 
     # Allow Gurobi to search for multiple solutions
-    m.setParam("OutputFlag", 1)
+    m.setParam("OutputFlag", 0)
 
     m.optimize()
 

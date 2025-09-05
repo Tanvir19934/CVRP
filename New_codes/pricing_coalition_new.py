@@ -20,7 +20,7 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None, feas
     else:
         new_constraints = set()
     
-    NG = build_NG(neighbors_k=3, N_customers=[i for i in N if i not in ('s','t')], dist=a)
+    NG = build_NG(neighbors_k=5, N_customers=[i for i in N if i not in ('s','t')], dist=a)
 
 
 

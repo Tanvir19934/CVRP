@@ -1,5 +1,5 @@
 from config_new import (
-    q, a, EV_velocity, gamma, gamma_l, EV_cost, tol, 
+    q, a, EV_velocity, gamma, gamma_l, EV_cost, tol, plot_enabled, NODES, SEARCH_MODE,
     GV_cost, w_dv, w_ev, theta, battery_threshold, V, N, Q_EV
 )
 from gurobipy import Model, GRB, quicksum
@@ -10,7 +10,12 @@ import pandas as pd
 import os
 import re
 import numpy as np
-
+from itertools import combinations
+from collections import deque
+import heapq
+import random
+import time
+import matplotlib.pyplot as plt
 np.random.seed(42)
 
 def ev_travel_cost(route):
@@ -43,6 +48,14 @@ def check_values(d, tolerance=1e-5):
             return False
     return True
 
+def code_status(use_column_heuristic, always_generate_rows):
+    if use_column_heuristic==False and always_generate_rows==True:
+        code=1
+    elif use_column_heuristic==False and always_generate_rows==False:
+        code=2
+    elif use_column_heuristic==True and always_generate_rows==False:
+        code=3
+    return code
 
 def partial_path(label,current_node):
     node = current_node
@@ -65,21 +78,6 @@ def reconstruct_path(label):
     if path[-1]=='t':
         path[-1]= 0
     return path
-def build_NG(neighbors_k, N_customers, dist):
-    """
-    neighbors_k: int, size k of NG(i)
-    N_customers: list of customer nodes (exclude 's','t')
-    dist[i][j]: distance or generalized metric used to define nearest neighbors
-    """
-    NG = {i: set() for i in N_customers + ['s','t']}
-    for i in N:
-        # pick k nearest among customers; always include i itself
-        knn = sorted([j for j in N_customers if j != i], key=lambda j: dist[i,j])[:neighbors_k-1]
-        NG[i] = set(knn) | {i}
-    # Depots: keep empty so they don't pollute memory
-    NG['s'] = set()
-    NG['t'] = set()
-    return NG
 
 def construct_tour(edges):
     next_node_map = {i: j for i, j in edges}
@@ -144,6 +142,115 @@ def print_solution(final_model) -> None:
 
     return final_model.getObjective().getValue(), total_dv_miles_traveled*w_dv + total_ev_miles_traveled*w_ev \
         , total_ev_miles_traveled, sum(payments.values()), sum(c_r.values())-sum(payments.values()), payments, solution_routes
+
+def print_metadata(Total_CG_iteration, Total_RG_iteration, num_nodes_explored,
+                  Total_RG_time, Total_CG_time, Total_RG_DP_time, Total_CG_DP_time,
+                  Total_LP_time, tsp_cache_time, obj, root_obj_val, Total_num_lp):
+    """
+    Print a summary of branch-and-price performance stats.
+    """
+    print(f"Total CG iterations: {Total_CG_iteration}")
+    print(f"Total RG iterations: {Total_RG_iteration}")
+    print(f"Total nodes explored: {num_nodes_explored}")
+    print(f"Total RG time: {Total_RG_time:.2f}")
+    print(f"Total CG time: {Total_CG_time:.2f}")
+    print(f"Total RG DP time: {Total_RG_DP_time:.2f}")
+    print(f"Total CG DP time: {Total_CG_DP_time:.2f}")
+    print(f"Total LP time: {Total_LP_time:.2f}")
+    print(f"tsp cache time: {tsp_cache_time}")
+    print(f"LP gap(%): {((obj - root_obj_val) / obj) * 100}")
+    print(f"root_obj_val: {root_obj_val}")
+    print(f"Total number of LPs solved: {Total_num_lp}")
+
+
+def generate_tsp_cache(N, k):
+    print(f"\nCreating initial TSP memo... \ntotal {N}C{k} combinations\n")
+    tsp_memo = {}
+    global_tsp_memo = {}
+    customers = list(range(1, N + 1)) 
+    all_combinations = []
+      
+    for i in range(1, k + 1):
+        for comb in combinations(customers, i):
+            all_combinations.append((0,) + comb + (0,))
+    for item in all_combinations:
+        if sum(q[i] for i in item) <= Q_EV:
+            candidate_route, tsp_cost = tsp_tour(item)
+            tsp_memo[item] = (tuple(candidate_route),tsp_cost)
+            global_tsp_memo[item] = (tuple(candidate_route),tsp_cost)
+        else:
+            candidate_route, tsp_cost = tsp_tour(item)
+            global_tsp_memo[item] = (tuple(candidate_route),tsp_cost)
+
+    print(f"\nFinished creating initial TSP memo\n")
+    time.sleep(1)
+    return tsp_memo, global_tsp_memo
+
+def update_plot(outer_iter, lp_gap):
+    global iterations, lp_gaps
+    """Updates the LP gap plot dynamically."""
+    if not plot_enabled:
+        return  # Do nothing if plotting is disabled
+
+    # Append new data
+    iterations.append(outer_iter)
+    lp_gaps.append(lp_gap)
+
+    # Static figure and axis setup (only first time)
+    if not hasattr(update_plot, "fig"):
+        plt.ion()  # Enable interactive mode
+        update_plot.fig, update_plot.ax = plt.subplots()
+        update_plot.line, = update_plot.ax.plot([], [], marker='o', linestyle='-')
+
+    # Update the plot
+    update_plot.line.set_xdata(iterations)
+    update_plot.line.set_ydata(lp_gaps)
+    update_plot.ax.relim()  # Recompute limits
+    update_plot.ax.autoscale_view()  # Adjust view
+    update_plot.ax.set_xlabel("Outer Iteration")
+    update_plot.ax.set_ylabel("LP Gap (%)")
+    update_plot.ax.set_title("LP Gap vs. Outer Iteration")
+    plt.draw()
+    plt.pause(0.01)  # Pause for smooth updating
+
+def make_stack(search_mode="fifo"):
+    """
+    Create a stack structure based on the specified search mode.
+    Returns
+    -------
+    stack : deque | list
+    push  : function push(node)
+    pop   : function -> node
+    """
+
+    if search_mode == "fifo":
+        stack = deque()
+        def push(x): stack.append(x)
+        def pop():  return stack.popleft()
+
+    elif search_mode == "heap":
+        stack = []
+        def push(x): heapq.heappush(stack, x)
+        def pop():  return heapq.heappop(stack)
+
+    elif search_mode == "mixed":
+        stack = []
+        def push(x): heapq.heappush(stack, x)
+        def pop():
+            # 80% best-first, 20% random (same behavior as before)
+            if random.random() < 0.8:
+                return heapq.heappop(stack)
+            idx = random.randint(0, len(stack) - 1)
+            node = stack[idx]
+            stack[idx] = stack[-1]
+            stack.pop()
+            heapq.heapify(stack)
+            return node
+    else:
+        raise ValueError(f"Unknown SEARCH_MODE: {search_mode}")
+    return stack, push, pop
+
+
 
 def generate_all_possible_routes(N):
     
@@ -331,7 +438,7 @@ def prize_collecting_tsp(p_result):
         )
 
     # Allow Gurobi to search for multiple solutions
-    m.setParam("OutputFlag", 0)
+    m.setParam("OutputFlag", 1)
 
     m.optimize()
 
@@ -361,6 +468,3 @@ def prize_collecting_tsp(p_result):
                 results.append((tour, obj_val, travel_cost, collected_prizes))
 
     return results
-
-
-

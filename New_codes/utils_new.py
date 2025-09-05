@@ -341,7 +341,7 @@ def prize_collecting_tsp(p_result):
         for k in range(m.SolCount):
             m.setParam(GRB.Param.SolutionNumber, k)
             obj_val = m.PoolObjVal
-            if obj_val < -tol or abs(obj_val) < tol:
+            if obj_val < -tol and abs(obj_val) > 0.001:
                 # Extract tour
                 tour = [0]
                 current = 0

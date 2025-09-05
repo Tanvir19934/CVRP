@@ -142,6 +142,11 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None, feas
             else:
                 new_columns, feasibility_memo = sub_problem.dy_prog(dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle, feasibility_memo, False, NG)
             end_2 = time.perf_counter()
+            new_columns = {
+                route: rc
+                for route, rc in new_columns.items()
+                if len(set(route[1:-1])) == len(route[1:-1])   # keep only elementary
+            }
             if not new_columns:
                 break
 

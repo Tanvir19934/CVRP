@@ -151,22 +151,39 @@ class SubProblem:
             return False
     
     @staticmethod
-    def ng_label_dominates(existing_label, candidate_label):
+    def ng_label_dominates(existing_label, candidate_label, tol=1e-9):
         """
-        Both labels at the same node.
-        Keep your resource ordering: reduced_cost <=, load/time/battery as appropriate.
-        Crucial change: use S ⊆ S on the NG memory sets.
+        Returns True iff existing_label dominates candidate_label at the SAME node
+        under NG-relaxation. Resource vector:
+        [reduced_cost, current_load, battery_consumed, S_ng]
+        where lower is better for all three numeric components.
+        Set comparison uses S_existing ⊆ S_candidate (and strict ⊂ allowed for lt).
         """
-        rc_e, load_e, batt_e, S_e = existing_label.resource_vector
-        rc_c, load_c, batt_c, S_c = candidate_label.resource_vector
+        if existing_label.node != candidate_label.node:
+            return False
 
-        # Example (adjust resource inequalities to your model’s sense):
-        cost_ok   = rc_e <= rc_c
-        load_ok   = load_e <= load_c
-        batt_ok   = batt_e >= batt_c   # if higher battery is "better"; flip if opposite
-        S_ok      = S_e.issubset(S_c)
+        tol = 0
+        e_rc, e_load, e_batt, S_e = existing_label.resource_vector
+        c_rc, c_load, c_batt, S_c = candidate_label.resource_vector
 
-        return cost_ok and load_ok and batt_ok and S_ok
+        # Non-worse in all dimensions (<= with tolerance)
+        le = (
+            e_rc   <= c_rc   + tol and
+            e_load <= c_load + tol and
+            e_batt <= c_batt + tol and
+            S_e.issubset(S_c)
+        )
+
+        # Strictly better in at least one dimension
+        lt = (
+            e_rc   < c_rc   - tol or
+            e_load < c_load - tol or
+            e_batt < c_batt - tol or
+            (S_e < S_c)  # proper subset
+        )
+
+        return le and lt
+
 
     @staticmethod
     def ng_block(current_S, next_node):

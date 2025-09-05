@@ -183,6 +183,7 @@ def branching() -> None:
                 best_node = node
         else:  
             if node.obj_val  > best_objective and best_node is not None:
+                print("\n\033[1mPruning the node as its obj is worse than the best integer solution found so far\033[0m\n")
                 continue
             else:
 

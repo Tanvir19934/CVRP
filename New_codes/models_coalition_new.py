@@ -177,7 +177,7 @@ class SubProblem:
 
 
             for label in L[current_node]:
-                if self.label_domination_check_old(label, current_label):
+                if self.label_domination_check(label, current_label):
                     is_dominated = True
                     break
 

@@ -102,7 +102,7 @@ def branching() -> None:
         node.solution = solution
 
         if not_fractional:  # integral ⇒ fathom (update UB, don't push)
-            if obj_val < best_objective - tol:
+            if obj_val < best_objective:
                 best_objective = obj_val
                 best_node = node
                 int_count += 1
@@ -110,7 +110,7 @@ def branching() -> None:
             return
 
         # Fractional: prune by bound or keep
-        if obj_val < best_objective - 0.1:
+        if obj_val < best_objective:
             push(node)  # promising → explore later
         else:
             print(f"\033[1m[PRUNE LB]\033[0m LB {obj_val:.6g} ≥ UB {best_objective:.6g}")
@@ -280,5 +280,6 @@ def main():
 
 if __name__ == "__main__":
     main()
-    plt.show()
-    input("Press Enter to exit...")
+    if plot_enabled:
+        plt.show()
+        input("Press Enter to exit...")

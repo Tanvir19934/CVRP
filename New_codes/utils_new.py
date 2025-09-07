@@ -162,6 +162,39 @@ def code_status(use_column_heuristic, always_generate_rows):
         code=3
     return code
 
+def validate_solution(payments, tsp_memo, N, solution_routes):
+    """
+    Check solution validity: payment violations, IR violations,
+    and compute EV travel costs for solution routes.
+    """
+    payments[0] = 0
+
+    # --- Payment violations ---
+    payment_flag = False
+    for item in tsp_memo:
+        pay = sum(payments[i] for i in item)
+        if pay > tsp_memo[item][1] + 0.1:
+            payment_flag = True
+            print("Payment violation:")
+            print("  Route:", item)
+            print("  Total payments:", pay)
+            print("  TSP cost:", tsp_memo[item][1])
+    if not payment_flag:
+        print("No payment violations")
+
+    # --- IR violations ---
+    ir_flag = False
+    for i in N:
+        if payments[i] > gv_tsp_cost((0, i, 0)) + 0.01:
+            ir_flag = True
+            print(f"IR violation at node {i}: payment={payments[i]}, IR cost={gv_tsp_cost((0, i, 0))}")
+    if not ir_flag:
+        print("No IR violations")
+
+    # --- EV travel cost check ---
+    for route in solution_routes:
+        ev_travel_cost(route)
+
 def generate_tsp_cache(N, k):
     print(f"\nCreating initial TSP memo... \ntotal {N}C{k} combinations\n")
     tsp_memo = {}
@@ -185,8 +218,7 @@ def generate_tsp_cache(N, k):
     time.sleep(1)
     return tsp_memo, global_tsp_memo
 
-def update_plot(outer_iter, lp_gap):
-    global iterations, lp_gaps
+def update_plot(outer_iter, lp_gap, iterations, lp_gaps):
     """Updates the LP gap plot dynamically."""
     if not plot_enabled:
         return  # Do nothing if plotting is disabled
@@ -245,6 +277,10 @@ def make_stack(search_mode="fifo"):
             stack.pop()
             heapq.heapify(stack)
             return node
+    elif search_mode == "lifo":
+        stack = []
+        def push(x): stack.append(x)
+        def pop():  return stack.pop()
     else:
         raise ValueError(f"Unknown SEARCH_MODE: {search_mode}")
     return stack, push, pop

@@ -189,6 +189,7 @@ class SubProblem:
     def ng_block(current_S, next_node):
         # Block revisiting only if next_node is in current NG memory
         return next_node in current_S
+    
     @staticmethod
     def ng_update(S, current_node, next_node, NG):
         """

@@ -4,9 +4,9 @@ rnd = np.random
 rand_seed = 111
 rnd.seed(42)
 
-
-NODES = 10
+NODES = 25
 SEARCH_MODE = "heap"
+num_neighbors = min(round(NODES*0.35),2)
 k = min(round(NODES*0.5),2)
 grid_size = 50                                                               #number of clients
 xc = np.random.uniform(low=- grid_size/2, high=grid_size/2, size=NODES+1)
@@ -35,10 +35,10 @@ col_dp_cutoff = 10000000
 
 #use_column_heuristic = False
 #always_generate_rows = True
-use_column_heuristic = False
-always_generate_rows = False
-#use_column_heuristic = True
+#use_column_heuristic = False
 #always_generate_rows = False
+use_column_heuristic = True
+always_generate_rows = False
 
 dom_heuristic = False
 plot_enabled = 1

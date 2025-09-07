@@ -8,8 +8,8 @@ import copy
 import time
 import random
 from utils_new import (
-    print_solution, save_to_excel, gv_tsp_cost, ev_travel_cost, print_metadata,
-    generate_tsp_cache, update_plot, make_stack, code_status
+    print_solution, save_to_excel, print_metadata,
+    generate_tsp_cache, update_plot, make_stack, code_status, validate_solution
     )
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -66,6 +66,7 @@ def branching() -> None:
 
     track_time_iterations(CG_iteration, RG_iteration, RG_time, CG_time, RG_DP_time, CG_DP_time, LP_time)
     Total_num_lp+=num_lp
+    
     if root_not_fractional:
         print("Optimal solution found at the root node: did not need branching")
         obj, total_miles, EV_miles, Total_payments, Subsidy, payments, solution_routes = print_solution(root_master_prob_model)
@@ -74,6 +75,7 @@ def branching() -> None:
               Total_LP_time, tsp_cache_time, obj, root_obj_val, Total_num_lp)
 
         return obj, total_miles, EV_miles, Total_payments, Subsidy, payments, solution_routes, root_obj_val, num_nodes_explored, tsp_cache_time, Total_num_lp, tsp_memo
+    
     root_node = Node(0, "root_node", set(), None, set())
     left_not_fractional = right_not_fractional = False
     root_node.solution = root_y_r_result
@@ -108,7 +110,7 @@ def branching() -> None:
             return
 
         # Fractional: prune by bound or keep
-        if obj_val < best_objective - tol:
+        if obj_val < best_objective - 0.1:
             push(node)  # promising → explore later
         else:
             print(f"\033[1m[PRUNE LB]\033[0m LB {obj_val:.6g} ≥ UB {best_objective:.6g}")
@@ -131,6 +133,8 @@ def branching() -> None:
         if plot_enabled and outer_iter % 10 == 0:
             # Update the plot every 10 iterations
             update_plot(outer_iter, ((best_objective - root_obj_val) / best_objective) * 100, iterations, lp_gaps)
+            plt.show()
+
 
         if node.obj_val  > best_objective:
             print("\n\033[1mPruning the node as its obj is worse than the best integer solution found so far\033[0m\n")
@@ -210,10 +214,6 @@ def branching() -> None:
             
             _process_child(right_status, right_obj_val, right_not_fractional, right_model, right_result, right_node)
 
-    if plot_enabled:
-        plt.ioff()
-        plt.show()
-
     if best_node:
         print("Optimal solution found:")
         obj, total_miles, EV_miles, Total_payments, Subsidy, payments, solution_routes = print_solution(best_node.model)
@@ -241,8 +241,8 @@ def main():
         obj, total_miles, EV_miles, Total_payments, Subsidy, payments, solution_routes, root_obj_val, num_nodes_explored, tsp_cache_time, Total_num_lp, tsp_memo = branching()
         end = time.perf_counter()
         print(f"Execution time for nodes={NODES}: {end - start}")
-        Execution_time = end - start
         code = code_status(use_column_heuristic, always_generate_rows)
+        validate_solution(payments, tsp_memo, N, solution_routes)
         
         data = {
             "Nodes": [NODES],
@@ -260,30 +260,10 @@ def main():
             "Total RG DP time": [Total_RG_DP_time],
             #"TSP cache time": [tsp_cache_time],
             "Total LP relaxation time": [Total_LP_time],
-            "Total execution time": [Execution_time],
+            "Total execution time": [end-start],
             "Total number of LPs solved": [Total_num_lp],
             "code": [code]
         }
-        payments[0]=0
-        flag = 0
-        for item in tsp_memo:
-            pay = sum(payments[i] for i in item)
-            if pay > tsp_memo[item][1]+0.1:
-                flag = 1
-                print(item)
-                print(sum([payments[i] for i in item]))
-                print(tsp_memo[item][1])
-        if flag==0:
-            print("No payment violations")
-        flag = 0
-        for i in N:
-            if payments[i] > 0.01+gv_tsp_cost((0,i,0)):
-                flag = 1
-        if flag==0:
-            print("No IR violations")
-
-        for i in solution_routes:
-            ev_travel_cost(i)
         
         df = pd.DataFrame(data)
         file_name = "Results/results.xlsx" 
@@ -300,3 +280,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+    plt.show()
+    input("Press Enter to exit...")

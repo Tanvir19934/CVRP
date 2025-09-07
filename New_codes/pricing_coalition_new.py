@@ -1,6 +1,6 @@
 from models_coalition_new import SubProblem, MasterProblem
 from utils_new import check_values, tsp_tour, prize_collecting_tsp, build_NG
-from config_new import N, q, Q_EV, always_generate_rows, use_column_heuristic, rand_seed, tol, a
+from config_new import N, q, Q_EV, always_generate_rows, use_column_heuristic, rand_seed, tol, a, num_neighbors
 import time
 import copy
 import random
@@ -20,9 +20,7 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None, feas
     else:
         new_constraints = set()
     
-    NG = build_NG(neighbors_k=5, N_customers=[i for i in N if i not in ('s','t')], dist=a)
-
-
+    NG = build_NG(neighbors_k=num_neighbors, N_customers=[i for i in N if i not in ('s','t')], dist=a)
 
     num_lp = 0
     master_prob = MasterProblem(forbidden_set)

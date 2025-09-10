@@ -102,7 +102,7 @@ def branching() -> None:
         node.solution = solution
 
         if not_fractional:  # integral ⇒ fathom (update UB, don't push)
-            if obj_val < best_objective - tol:
+            if obj_val < best_objective:
                 best_objective = obj_val
                 best_node = node
                 int_count += 1
@@ -110,7 +110,7 @@ def branching() -> None:
             return
 
         # Fractional: prune by bound or keep
-        if obj_val < best_objective - 0.1:
+        if obj_val < best_objective + 0.5:
             push(node)  # promising → explore later
         else:
             print(f"\033[1m[PRUNE LB]\033[0m LB {obj_val:.6g} ≥ UB {best_objective:.6g}")
@@ -130,13 +130,13 @@ def branching() -> None:
         print(f"\nCurrent best = {best_objective}")
         print(f"\nCurrent best's LP gap = {((best_objective - root_obj_val) / best_objective) * 100}%")
 
-        if plot_enabled and outer_iter % 10 == 0:
+        if plot_enabled and outer_iter % 20 == 0:
             # Update the plot every 10 iterations
             update_plot(outer_iter, ((best_objective - root_obj_val) / best_objective) * 100, iterations, lp_gaps)
             plt.show()
 
 
-        if node.obj_val  > best_objective:
+        if node.obj_val  > best_objective + 0.5:
             print("\n\033[1mPruning the node as its obj is worse than the best integer solution found so far\033[0m\n")
             continue
         else:

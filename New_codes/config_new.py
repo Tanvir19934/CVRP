@@ -4,8 +4,8 @@ rnd = np.random
 rand_seed = 111
 rnd.seed(42)
 
-NODES = 30
-num_neighbors = round(NODES*0.4)
+NODES = 29
+num_neighbors = round(NODES*0.6)
 SEARCH_MODE = "heap"
 k = min(round(NODES*0.5),2)
 grid_size = 50                                                               #number of clients

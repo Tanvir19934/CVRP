@@ -4,8 +4,8 @@ rnd = np.random
 rand_seed = 111
 rnd.seed(42)
 
-NODES = 29
-num_neighbors = round(NODES*0.6)
+NODES = 50
+num_neighbors = min(round(NODES*0.2),40)
 SEARCH_MODE = "heap"
 k = min(round(NODES*0.5),2)
 grid_size = 50                                                               #number of clients
@@ -31,7 +31,7 @@ total_dem = sum(q)                                                           #to
 #Other parameters
 num_EV = math.ceil(NODES*0.3)
 unlimited_EV = False
-col_dp_cutoff = 100000000
+col_dp_cutoff = 100
 
 #use_column_heuristic = False
 #always_generate_rows = True

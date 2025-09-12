@@ -8,7 +8,7 @@ import copy
 import time
 import random
 from utils_new import (
-    print_solution, save_to_excel, print_metadata,
+    print_solution, save_to_excel, print_metadata, timed,
     generate_tsp_cache, update_plot, make_stack, code_status, validate_solution
     )
 import pandas as pd
@@ -61,7 +61,11 @@ def branching() -> None:
     
     
     # Create the root node by solving the initial rmp
+    start_root = time.perf_counter()
     root_y_r_result, root_not_fractional, root_master_prob_model, root_obj_val, status, CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time, RG_DP_time, LP_time, tsp_memo, feasibility_memo, global_tsp_memo, num_lp, root_constraints = column_generation(None, forbidden_set={}, tsp_memo=tsp_memo, L = None, feasibility_memo=feasibility_memo, global_tsp_memo=global_tsp_memo, initial = True, parent_constraints = set())
+    end_root = time.perf_counter()
+    Root_execution_time = end_root - start_root
+    print(f"Root node execution time: {Root_execution_time} seconds")
     print(f"root_obj_val: {root_obj_val}\n\n")
 
     track_time_iterations(CG_iteration, RG_iteration, RG_time, CG_time, RG_DP_time, CG_DP_time, LP_time)

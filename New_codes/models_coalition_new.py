@@ -313,14 +313,12 @@ class SubProblem:
                         dual_values_vehicle, False, current_label, new_label
                     )
                     new_label.resource_vector = (reduced_cost, new_load, new_battery, S_new)
-
-                    # Push to open + (optionally) to L[new_node] so future arrivals compare
                     heapq.heappush(U, new_label)
-                    # (Don’t immediately push to L[new_node]; push after passing dominance when popped)
-                    # If you want eager per-node pools, keep this next line but know you’ll compare twice:
-                    # heapq.heappush(L[new_node], new_label)
+                    if reduced_cost < -tol and new_node == 't':
+                        neg_count += 1
+                    
 
-            if IFB and neg_count >= col_dp_cutoff:
+            if (IFB and neg_count >= col_dp_cutoff) or neg_count >= 10000:
                 break
 
         # Gather negative columns at sink (unchanged)

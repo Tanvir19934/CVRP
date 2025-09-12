@@ -180,6 +180,16 @@ def code_status(use_column_heuristic, always_generate_rows):
         code=3
     return code
 
+def timed(func):
+    def wrapper(*args, **kwargs):
+        start = time.perf_counter()
+        result = func(*args, **kwargs)
+        end = time.perf_counter()
+        print(f"{func.__name__} executed in {end - start:.6f} seconds")
+        return result
+    return wrapper
+
+
 def validate_solution(payments, tsp_memo, N, solution_routes):
     """
     Check solution validity: payment violations, IR violations,

@@ -28,7 +28,7 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None, feas
 
     start_4 = time.perf_counter()
     
-    if False:
+    if always_generate_rows or initial:
         while True:
             CG_iteration+=1
             flag = 0
@@ -178,7 +178,7 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None, feas
             col_int_flag = 1
             print("Integer solution has been hit, starting row generation")
             
-            while not True:
+            while True:
                 RG_iteration+=1
                 print(f"RG iteration count: {RG_iteration}")
                 

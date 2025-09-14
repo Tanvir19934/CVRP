@@ -225,11 +225,11 @@ class SubProblem:
                             #Add all feasible extensions to U (if no constraint violation)
                             heapq.heappush(U, new_label)
                             heapq.heappush(L[new_node], new_label)
-            
+                            if reduced_cost < -tol and new_node=='t':
+                                neg_count+=1        
             if IFB and neg_count >= col_dp_cutoff:
                 break
-            if current_label.resource_vector[0]<0 and current_node=='t':
-                neg_count+=1               
+                             
         sink_node = 't'
         new_routes = {}
         for item in L[sink_node]:

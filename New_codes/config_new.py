@@ -5,7 +5,7 @@ rand_seed = 111
 rnd.seed(42)
 
 
-NODES = 50
+NODES = 25
 SEARCH_MODE = "heap"
 k = min(round(NODES*0.5),2)
 grid_size = 50                                                               #number of clients
@@ -33,15 +33,15 @@ num_EV = math.ceil(NODES*0.3)
 unlimited_EV = False
 col_dp_cutoff = 1000
 
-use_column_heuristic = False
-always_generate_rows = True
+#use_column_heuristic = False
+#always_generate_rows = True
 #use_column_heuristic = False
 #always_generate_rows = False
-#use_column_heuristic = True
-#always_generate_rows = False
+use_column_heuristic = True
+always_generate_rows = False
 
 dom_heuristic = False
-plot_enabled = 1
+plot_enabled = 0
 
 if unlimited_EV:
     num_EV = NODES

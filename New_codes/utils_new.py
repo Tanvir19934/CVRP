@@ -1,5 +1,5 @@
 from config_new import (
-    q, a, EV_velocity, gamma, gamma_l, EV_cost, tol, plot_enabled, NODES, SEARCH_MODE,
+    q, a, EV_velocity, gamma, gamma_l, EV_cost, tol, plot_enabled,
     GV_cost, w_dv, w_ev, theta, battery_threshold, V, N, Q_EV
 )
 from gurobipy import Model, GRB, quicksum

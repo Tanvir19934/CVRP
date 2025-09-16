@@ -1,15 +1,11 @@
-Results/
-New_codes/
-*.xlsx
-*.xls
-*.csv
-*.lp
-*.mps
-*.ilp
-*.log
-leet.py
-scratch.py
-untitled.py
-*.pyc
-__pycache__/
-pricing_coalition_notstable.py
+# Ignore everything
+*
+
+# But track these files
+!New_codes/.gitignore
+!New_codes/models_coalition_new.py
+!New_codes/pricing_coalition_new.py
+!New_codes/branch_and_price_coalition_new.py
+!New_codes/utils_new.py
+!New_codes/config_new.py
+!New_codes/README.md

@@ -97,6 +97,7 @@ def run_RGSP(master_prob, branching_arc, new_columns_to_add, new_constraints,
     "RGSP ends here, we are now RGSP feasible"
 
     return p_result, y_r_result, master_prob_model, status, CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time, RG_DP_time, LP_time, tsp_memo, feasibility_memo, global_tsp_memo, num_lp, new_constraints
+
 def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None, feasibility_memo={}, global_tsp_memo={}, initial = False, parent_constraints=set()):
 
     not_fractional = False
@@ -138,7 +139,7 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None, feas
                 CG_DP_time, status, NG
             )
             if not new_columns:  # NG found nothing
-                print("⚠️ NG found no improving columns — running exact pricing to certify.")
+                print("NG found no improving columns — running exact pricing to certify.")
                 new_columns, feasibility_memo, CG_DP_time, status = run_CGSP(
                     master_prob, sub_problem, feasibility_memo, CG_iteration,
                   CG_DP_time, status, None
@@ -180,7 +181,7 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None, feas
                 CG_DP_time, status, NG
             )
             if not new_columns:  # NG found nothing
-                print("⚠️ NG found no improving columns — running exact pricing to certify.")
+                print("NG found no improving columns — running exact pricing to certify.")
                 new_columns, feasibility_memo, CG_DP_time, status = run_CGSP(
                     master_prob, sub_problem, feasibility_memo, CG_iteration,
                   CG_DP_time, status, None

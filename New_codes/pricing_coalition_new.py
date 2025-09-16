@@ -69,7 +69,6 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None, feas
     if always_generate_rows or initial:
         while True:
             CG_iteration+=1
-            flag = 0
             print(f"CG iteration count: {CG_iteration}")
             
             (p_result, y_r_result, master_prob_model, status,
@@ -94,12 +93,7 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None, feas
             
             if not new_columns:
                 break
-
-            for item in new_columns:
-                if tuple(item) not in new_columns_to_add:
-                    flag = 1
-                    break
-                            
+ 
             CG_DP_time+=end_2-start_2
 
             # add the new routes with negative reduced costs to the set
@@ -121,7 +115,6 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None, feas
     else:
         while True:
             CG_iteration+=1
-            flag = 0
             print(f"CG iteration count: {CG_iteration}")
             start_lp = time.perf_counter()
             if CG_iteration == 1:
@@ -145,13 +138,6 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None, feas
                 new_columns, feasibility_memo = sub_problem.dy_prog(dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle, feasibility_memo, False)            
             end_2 = time.perf_counter()
             if not new_columns:
-                break
-
-            for item in new_columns:
-                if tuple(item) not in new_columns_to_add:
-                    flag = 1
-                    break
-            if flag == 0:
                 break
                             
             CG_DP_time+=end_2-start_2

@@ -124,7 +124,8 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None,
 
             new_columns, feasibility_memo, stats["CG_DP_time"], status, new_columns_to_add, new_constraints = run_CGSP(
                 master_prob, sub_problem, new_columns_to_add, feasibility_memo,
-                new_constraints, stats, status)
+                new_constraints, stats, status
+                )
 
             if not new_columns:  # stop if no new columns
                 break
@@ -154,8 +155,10 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None,
                     new_constraints=new_constraints, **stats
                 )
 
-            new_columns, feasibility_memo, stats["CG_DP_time"], status, new_columns_to_add, new_constraints = run_CGSP(master_prob, sub_problem, new_columns_to_add, feasibility_memo,
-            new_constraints, stats, status)
+            new_columns, feasibility_memo, stats["CG_DP_time"], status, new_columns_to_add, new_constraints = run_CGSP(
+                master_prob, sub_problem, new_columns_to_add, feasibility_memo, 
+                new_constraints, stats, status
+                )
 
             if not new_columns:
                 break

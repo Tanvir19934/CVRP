@@ -1,0 +1,15 @@
+Results/
+New_codes/
+*.xlsx
+*.xls
+*.csv
+*.lp
+*.mps
+*.ilp
+*.log
+leet.py
+scratch.py
+untitled.py
+*.pyc
+__pycache__/
+pricing_coalition_notstable.py

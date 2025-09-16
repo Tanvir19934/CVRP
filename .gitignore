@@ -1,12 +1,10 @@
-#ignore all images
-*.png
-*.ilp
-*.lp
-*.pkl
-*.csv
+*
+
 !.gitignore
-.DS_Store
-*copy*
-*.pyc
-tempCodeRunnerFile.py
-.cache.sqlite
+!New_codes/models_coalition_new.py
+!New_codes/pricing_coalition_new.py
+!New_codes/branch_and_price_coalition_new.py
+!New_codes/utils_new.py
+!New_codes/config_new.py
+!New_codes/README.md
+

@@ -61,12 +61,18 @@ def branching() -> None:
     
     
     # Create the root node by solving the initial rmp
-    root_y_r_result, root_not_fractional, root_master_prob_model, root_obj_val, status, CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time, RG_DP_time, LP_time, tsp_memo, feasibility_memo, global_tsp_memo, num_lp, root_constraints = column_generation(None, forbidden_set={}, tsp_memo=tsp_memo, L = None, feasibility_memo=feasibility_memo, global_tsp_memo=global_tsp_memo, initial = True, parent_constraints = set())
+    [
+        root_y_r_result, root_not_fractional, root_master_prob_model, root_obj_val, status, CG_iteration, RG_iteration, RG_time, CG_time, 
+        CG_DP_time, RG_DP_time, LP_time, tsp_memo, feasibility_memo, global_tsp_memo, num_lp, root_constraints
+    ] = column_generation(
+        None, forbidden_set={}, tsp_memo=tsp_memo, L=None, feasibility_memo=feasibility_memo, global_tsp_memo=global_tsp_memo, 
+        initial=True, parent_constraints=set()
+        )
     print(f"root_obj_val: {root_obj_val}\n\n")
 
     track_time_iterations(CG_iteration, RG_iteration, RG_time, CG_time, RG_DP_time, CG_DP_time, LP_time)
-    Total_num_lp+=num_lp
-    
+    Total_num_lp += num_lp
+
     if root_not_fractional:
         print("Optimal solution found at the root node: did not need branching")
         obj, total_miles, EV_miles, Total_payments, Subsidy, payments, solution_routes = print_solution(root_master_prob_model)

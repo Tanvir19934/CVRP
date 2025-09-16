@@ -85,6 +85,8 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None, feas
             # add the new routes with negative reduced costs to the set
             for array in new_columns:
                 new_columns_to_add.add(tuple(array))
+            
+            """CGSP ends here"""
 
         if use_column_heuristic:
             for array in new_columns_to_add:
@@ -137,6 +139,8 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None, feas
             # add the new routes with negative reduced costs to the set
             for array in new_columns:
                 new_columns_to_add.add(tuple(array))
+            
+            """CGSP ends here"""
         
         if use_column_heuristic:
             for array in new_columns_to_add:

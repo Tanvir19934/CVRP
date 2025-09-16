@@ -5,7 +5,7 @@ rand_seed = 111
 rnd.seed(42)
 
 NODES = 25
-num_neighbors = min(round(NODES*0.3),40)
+num_neighbors = min(round(NODES*0.2),40)
 SEARCH_MODE = "heap"
 k = min(round(NODES*0.5),2)
 grid_size = 50                                                               #number of clients

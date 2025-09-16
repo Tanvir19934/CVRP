@@ -6,6 +6,41 @@ import copy
 import random
 
 random.seed(rand_seed)
+
+def run_CGSP(master_prob, sub_problem, feasibility_memo, CG_iteration,
+                  CG_DP_time, status, NG):
+    """
+    Run one CGSP step: get duals, call subproblem DP, filter elementary routes,
+    and update timing + feasibility_memo.
+    """
+    dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle = master_prob.getDuals()
+    if dual_values_delta is None:
+        return None, feasibility_memo, CG_DP_time, status
+
+    start_2 = time.perf_counter()
+    if CG_iteration == 1:
+        new_columns, feasibility_memo = sub_problem.dy_prog(
+            dual_values_delta, dual_values_subsidy, dual_values_IR,
+            dual_values_vehicle, feasibility_memo, True, NG
+        )
+    else:
+        new_columns, feasibility_memo = sub_problem.dy_prog(
+            dual_values_delta, dual_values_subsidy, dual_values_IR,
+            dual_values_vehicle, feasibility_memo, False, NG
+        )
+    end_2 = time.perf_counter()
+    CG_DP_time += end_2 - start_2
+
+    # filter for elementary
+    new_columns = {
+        route: rc
+        for route, rc in new_columns.items()
+        if len(set(route[1:-1])) == len(route[1:-1])
+    }
+
+    return new_columns, feasibility_memo, CG_DP_time, status
+
+
 def apply_column_heuristic(new_columns_to_add, global_tsp_memo, new_constraints):
     """Apply column heuristic step to strengthen formulation."""
     if use_column_heuristic:
@@ -98,39 +133,27 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None, feas
                 LP_time, num_lp, tsp_memo, feasibility_memo, global_tsp_memo
             )
 
-            ''' This is the CGSP, at this point our solution is RGSP feasible and CGSP feasible but not optimum, meaning there may be better routes to add '''
-            dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle = master_prob.getDuals()
-            if dual_values_delta==None:
-                return None, None, None, None, status, CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time, RG_DP_time, LP_time, tsp_memo, feasibility_memo, global_tsp_memo, num_lp, new_constraints
-            start_2 = time.perf_counter()
-            if CG_iteration == 1:
-                new_columns, feasibility_memo = sub_problem.dy_prog(dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle, feasibility_memo, True, NG )
-            else:
-                new_columns, feasibility_memo = sub_problem.dy_prog(dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle, feasibility_memo, False, NG)
-            end_2 = time.perf_counter()
-            new_columns = {
-                route: rc
-                for route, rc in new_columns.items()
-                if len(set(route[1:-1])) == len(route[1:-1])   # keep only elementary
-            }
-
+            new_columns, feasibility_memo, CG_DP_time, status = run_CGSP(
+                master_prob, sub_problem, feasibility_memo, CG_iteration,
+                CG_DP_time, status, NG
+            )
+            if not new_columns:  # NG found nothing
+                print("⚠️ NG found no improving columns — running exact pricing to certify.")
+                new_columns, feasibility_memo, CG_DP_time, status = run_CGSP(
+                    master_prob, sub_problem, feasibility_memo, CG_iteration,
+                  CG_DP_time, status, None
+                )
             if not new_columns:
                 break
 
             for item in new_columns:
                 if tuple(item) not in new_columns_to_add:
                     flag = 1
-                    break
-            #if flag == 0:
-            #    break
-                            
-            CG_DP_time+=end_2-start_2
+                    break           
 
             # add the new routes with negative reduced costs to the set
             for array in new_columns:
                 new_columns_to_add.add(tuple(array))
-
-            2
 
         if use_column_heuristic:
             apply_column_heuristic(new_columns_to_add, global_tsp_memo, new_constraints)
@@ -152,21 +175,16 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None, feas
             if not y_r_result:
                 return None, None, None, None, status, CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time, RG_DP_time, LP_time, tsp_memo, feasibility_memo, global_tsp_memo, num_lp, new_constraints
 
-            ''' This is the CGSP, at this point our solution is RGSP feasible and CGSP feasible but not optimum, meaning there may be better routes to add '''
-            dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle = master_prob.getDuals()
-            if dual_values_delta==None:
-                return None, None, None, None, status, CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time, RG_DP_time, LP_time, tsp_memo, feasibility_memo, global_tsp_memo, num_lp, new_constraints
-            start_2 = time.perf_counter()
-            if CG_iteration == 1:
-                new_columns, feasibility_memo = sub_problem.dy_prog(dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle, feasibility_memo, True, NG)
-            else:
-                new_columns, feasibility_memo = sub_problem.dy_prog(dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle, feasibility_memo, False, NG)
-            end_2 = time.perf_counter()
-            new_columns = {
-                route: rc
-                for route, rc in new_columns.items()
-                if len(set(route[1:-1])) == len(route[1:-1])   # keep only elementary
-            }
+            new_columns, feasibility_memo, CG_DP_time, status = run_CGSP(
+                master_prob, sub_problem, feasibility_memo, CG_iteration,
+                CG_DP_time, status, NG
+            )
+            if not new_columns:  # NG found nothing
+                print("⚠️ NG found no improving columns — running exact pricing to certify.")
+                new_columns, feasibility_memo, CG_DP_time, status = run_CGSP(
+                    master_prob, sub_problem, feasibility_memo, CG_iteration,
+                  CG_DP_time, status, None
+                )
             if not new_columns:
                 break
 
@@ -177,8 +195,6 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None, feas
             if flag == 0:
                 break
                             
-            CG_DP_time+=end_2-start_2
-
             # add the new routes with negative reduced costs to the set
             for array in new_columns:
                 new_columns_to_add.add(tuple(array))

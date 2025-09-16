@@ -5,10 +5,10 @@ from collections import defaultdict
 import re
 import copy
 import time
-from utils_new import ev_travel_cost, reconstruct_path, tsp_tour
+from utils_new import ev_travel_cost, reconstruct_path
 from config_new import (
     col_dp_cutoff, battery_threshold, N, V, Q_EV, q, a, w_dv, w_ev, theta, tol, num_EV, gamma, 
-    gamma_l, EV_velocity, GV_cost, unlimited_EV, dom_heuristic, rand_seed, best_obj, GV_cost, EV_cost
+    gamma_l, EV_velocity, GV_cost, unlimited_EV, rand_seed, best_obj, GV_cost, EV_cost
 )
 import random
 random.seed(rand_seed)
@@ -206,11 +206,8 @@ class SubProblem:
 
     def dy_prog(self, dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle,
                 feasibility_memo={}, IFB=False, NG=None):
-        """
-        Same signature, add NG dict (node -> set of neighbors). If NG is None, fall back to elementary.
-        """
-        U = []                     # PQ of labels
-        L = defaultdict(list)      # labels stored per node
+        U = []                   
+        L = defaultdict(list)     
         N.extend(['s','t'])
         start_node = 's'
 
@@ -231,7 +228,8 @@ class SubProblem:
             # ----- dominance check at current node (using NG) -----
             is_dominated = False
             for label in L[current_node]:
-                # Use NG-aware dominance
+                
+                # NG-aware dominance
                 if NG is None:
                     # fallback to your original checker
                     if self.label_domination_check(label, current_label):
@@ -327,7 +325,6 @@ class SubProblem:
         for item in L[sink_node]:
             route = reconstruct_path(item)  # full path via predecessors
             if len(route) != 3 and item.resource_vector[0] < 0 and abs(item.resource_vector[0]) > tol:
-                # (Optional) filter here to keep only elementary routes if you like
                 new_routes[tuple(route)] = item.resource_vector[0]
 
         N.remove('s'); N.remove('t')

@@ -65,9 +65,11 @@ def branching() -> None:
     [
         root_y_r_result, root_not_fractional, root_master_prob_model, root_obj_val, status, CG_iteration, RG_iteration, RG_time, CG_time,
         CG_DP_time, RG_DP_time, LP_time, tsp_memo, feasibility_memo, global_tsp_memo, num_lp, root_constraints
-    ] = column_generation(
-        None, forbidden_set={}, tsp_memo=tsp_memo, L=None, feasibility_memo=feasibility_memo, global_tsp_memo=global_tsp_memo, 
-        initial=True, parent_constraints=set()
+    ] = unpack_result(
+            column_generation(
+            None, forbidden_set={}, tsp_memo=tsp_memo, L=None, feasibility_memo=feasibility_memo, global_tsp_memo=global_tsp_memo, 
+            initial=True, parent_constraints=set()
+            )
         )
     end_root = time.perf_counter()
     Root_execution_time = end_root - start_root
@@ -190,10 +192,12 @@ def branching() -> None:
             [
                 left_result, left_not_fractional, left_model, left_obj_val, left_status, CG_iteration, RG_iteration, RG_time, CG_time,
             CG_DP_time, RG_DP_time, LP_time, tsp_memo, feasibility_memo, global_tsp_memo, num_lp, left_constraints
-            ] = column_generation(
-                (branching_arc,0), left_node.forbidden, tsp_memo, feasibility_memo=feasibility_memo, global_tsp_memo=global_tsp_memo, 
-                initial = False, parent_constraints=copy.deepcopy(node.constraints)
-            )
+            ] = unpack_result(
+                    column_generation(
+                    (branching_arc,0), left_node.forbidden, tsp_memo, feasibility_memo=feasibility_memo, global_tsp_memo=global_tsp_memo, 
+                    initial = False, parent_constraints=copy.deepcopy(node.constraints)
+                    )
+                )
             track_time_iterations(CG_iteration, RG_iteration, RG_time, CG_time, RG_DP_time, CG_DP_time, LP_time)
             num_nodes_explored+=1
             Total_num_lp+=num_lp
@@ -223,10 +227,12 @@ def branching() -> None:
             [
                 right_result, right_not_fractional, right_model, right_obj_val, right_status, CG_iteration, RG_iteration, RG_time, CG_time, 
                 CG_DP_time, RG_DP_time, LP_time, tsp_memo, feasibility_memo, global_tsp_memo, num_lp, right_constraints
-            ] = column_generation(
-                (branching_arc,1), right_node.forbidden,tsp_memo, feasibility_memo=feasibility_memo, global_tsp_memo=global_tsp_memo, 
-                initial = False, parent_constraints=copy.deepcopy(node.constraints)
-            )
+            ] = unpack_result(
+                    column_generation(
+                    (branching_arc,1), right_node.forbidden,tsp_memo, feasibility_memo=feasibility_memo, global_tsp_memo=global_tsp_memo, 
+                    initial = False, parent_constraints=copy.deepcopy(node.constraints)
+                    )
+                )
             track_time_iterations(CG_iteration, RG_iteration, RG_time, CG_time, RG_DP_time, CG_DP_time, LP_time)
             num_nodes_explored+=1
             Total_num_lp+=num_lp

@@ -1,35 +1,27 @@
 from models_coalition_new import SubProblem, MasterProblem
-from utils_new import check_values, tsp_tour, prize_collecting_tsp, build_NG
-from config_new import N, q, Q_EV, always_generate_rows, use_column_heuristic, rand_seed, tol, a, num_neighbors
+from utils_new import check_values, tsp_tour, prize_collecting_tsp, build_NG, CGResult
+from config_new import N, always_generate_rows, use_column_heuristic, rand_seed, a, num_neighbors
 import time
 import copy
 import random
 
 random.seed(rand_seed)
 
+
 def run_CGSP(master_prob, sub_problem, feasibility_memo, CG_iteration,
-                  CG_DP_time, status, NG):
-    """
-    Run one CGSP step: get duals, call subproblem DP, filter elementary routes,
-    and update timing + feasibility_memo.
-    """
+             CG_DP_time, status, NG):
+    """Run one CGSP step: get duals, call subproblem DP, filter elementary routes,
+    and update timing + feasibility_memo."""
     dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle = master_prob.getDuals()
     if dual_values_delta is None:
         return None, feasibility_memo, CG_DP_time, status
 
     start_2 = time.perf_counter()
-    if CG_iteration == 1:
-        new_columns, feasibility_memo = sub_problem.dy_prog(
-            dual_values_delta, dual_values_subsidy, dual_values_IR,
-            dual_values_vehicle, feasibility_memo, True, NG
-        )
-    else:
-        new_columns, feasibility_memo = sub_problem.dy_prog(
-            dual_values_delta, dual_values_subsidy, dual_values_IR,
-            dual_values_vehicle, feasibility_memo, False, NG
-        )
-    end_2 = time.perf_counter()
-    CG_DP_time += end_2 - start_2
+    new_columns, feasibility_memo = sub_problem.dy_prog(
+        dual_values_delta, dual_values_subsidy, dual_values_IR,
+        dual_values_vehicle, feasibility_memo, (CG_iteration == 1), NG
+    )
+    CG_DP_time += time.perf_counter() - start_2
 
     # filter for elementary
     new_columns = {
@@ -56,16 +48,16 @@ def apply_column_heuristic(new_columns_to_add, global_tsp_memo, new_constraints)
 
 
 def run_RGSP(master_prob, branching_arc, new_columns_to_add, new_constraints,
-             CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time, RG_DP_time,
-             LP_time, num_lp, tsp_memo, feasibility_memo, global_tsp_memo):
-    ''' Now we are in the RGSP and making it RGSP feasible by iterating between RMP and RGSP until no constraints are found'''
+             stats, tsp_memo, feasibility_memo, global_tsp_memo):
+    """Run RGSP loop until no new constraints are found, update stats dict."""
     start_3 = time.perf_counter()
 
     while True:
-        RG_iteration += 1
-        print(f"RG iteration count: {RG_iteration}")
+        stats["RG_iteration"] += 1
+        print(f"RG iteration count: {stats['RG_iteration']}")
+
         start_lp = time.perf_counter()
-        if CG_iteration == 1 and RG_iteration == 1:
+        if stats["CG_iteration"] == 1 and stats["RG_iteration"] == 1:
             p_result, y_r_result, master_prob_model, status = master_prob.relaxedLP(
                 branching_arc, new_columns_to_add, new_constraints, True
             )
@@ -75,157 +67,156 @@ def run_RGSP(master_prob, branching_arc, new_columns_to_add, new_constraints,
                 branching_arc, new_columns_to_add, new_constraints, False
             )
             print(master_prob_model.ObjVal)
-        end_lp = time.perf_counter()
-        LP_time += end_lp - start_lp
-        num_lp += 1
+
+        stats["LP_time"] += time.perf_counter() - start_lp
+        stats["num_lp"] += 1
+
         if not y_r_result:
-            return None, None, None, None, status, CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time, RG_DP_time, LP_time, tsp_memo, feasibility_memo, global_tsp_memo, num_lp, new_constraints
+            return CGResult(
+                y_r_result=None, not_fractional=False,
+                model=None, objval=None, status=status,
+                tsp_memo=tsp_memo, feasibility_memo=feasibility_memo,
+                global_tsp_memo=global_tsp_memo,
+                new_constraints=new_constraints, **stats
+            )
 
         start_5 = time.perf_counter()
         new_route = prize_collecting_tsp(p_result)
-        end_5 = time.perf_counter()
+        stats["RG_DP_time"] += time.perf_counter() - start_5
 
-        RG_DP_time += end_5 - start_5
         if not new_route:
             break
-        else:
-            for item in new_route:
-                new_constraints.add((tuple(item[0]), item[2]))
-    end_3 = time.perf_counter()
-    RG_time += end_3 - start_3
+        for item in new_route:
+            new_constraints.add((tuple(item[0]), item[2]))
 
-    "RGSP ends here, we are now RGSP feasible"
+    stats["RG_time"] += time.perf_counter() - start_3
 
-    return p_result, y_r_result, master_prob_model, status, CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time, RG_DP_time, LP_time, tsp_memo, feasibility_memo, global_tsp_memo, num_lp, new_constraints
+    return (
+        p_result, y_r_result, master_prob_model, status,
+        tsp_memo, feasibility_memo, global_tsp_memo,
+        new_constraints, stats
+    )
 
-def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None, feasibility_memo={}, global_tsp_memo={}, initial = False, parent_constraints=set()):
+
+def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None,
+                      feasibility_memo={}, global_tsp_memo={}, initial=False,
+                      parent_constraints=set()):
 
     not_fractional = False
-    CG_iteration = 0
-    RG_iteration = 0
-    col_int_flag = 0
-    RG_time, CG_time, RG_DP_time, CG_DP_time, LP_time = 0, 0, 0, 0, 0
-    new_columns_to_add=set()
-    if parent_constraints is not None and not always_generate_rows:
-        new_constraints = copy.deepcopy(parent_constraints)
-    else:
-        new_constraints = set()
-    
-    NG = build_NG(neighbors_k=num_neighbors, N_customers=[i for i in N if i not in ('s','t')], dist=a)
+    stats = dict(CG_iteration=0, RG_iteration=0, RG_time=0, CG_time=0,
+                 CG_DP_time=0, RG_DP_time=0, LP_time=0, num_lp=0)
+    new_columns_to_add = set()
+    new_constraints = copy.deepcopy(parent_constraints) if (parent_constraints and not always_generate_rows) else set()
 
-    num_lp = 0
+    NG = build_NG(neighbors_k=num_neighbors, N_customers=[i for i in N if i not in ('s', 't')], dist=a)
+
     master_prob = MasterProblem(forbidden_set)
     sub_problem = SubProblem(forbidden_set)
 
     start_4 = time.perf_counter()
-    
+
     if always_generate_rows or initial:
         while True:
-            CG_iteration+=1
-            flag = 0
-            print(f"CG iteration count: {CG_iteration}")
-
+            stats["CG_iteration"] += 1
+            print(f"CG iteration count: {stats['CG_iteration']}")
 
             (p_result, y_r_result, master_prob_model, status,
-             CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time, RG_DP_time,
-             LP_time, tsp_memo, feasibility_memo, global_tsp_memo, num_lp, new_constraints) = run_RGSP(
+             tsp_memo, feasibility_memo, global_tsp_memo,
+             new_constraints, stats) = run_RGSP(
                 master_prob, branching_arc, new_columns_to_add, new_constraints,
-                CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time, RG_DP_time,
-                LP_time, num_lp, tsp_memo, feasibility_memo, global_tsp_memo
+                stats, tsp_memo, feasibility_memo, global_tsp_memo
             )
 
-            new_columns, feasibility_memo, CG_DP_time, status = run_CGSP(
-                master_prob, sub_problem, feasibility_memo, CG_iteration,
-                CG_DP_time, status, NG
+            new_columns, feasibility_memo, stats["CG_DP_time"], status = run_CGSP(
+                master_prob, sub_problem, feasibility_memo, stats["CG_iteration"],
+                stats["CG_DP_time"], status, NG
             )
+
             if not new_columns:  # NG found nothing
                 print("NG found no improving columns — running exact pricing to certify.")
-                new_columns, feasibility_memo, CG_DP_time, status = run_CGSP(
-                    master_prob, sub_problem, feasibility_memo, CG_iteration,
-                  CG_DP_time, status, None
+                new_columns, feasibility_memo, stats["CG_DP_time"], status = run_CGSP(
+                    master_prob, sub_problem, feasibility_memo, stats["CG_iteration"],
+                    stats["CG_DP_time"], status, NG=None
                 )
+
             if not new_columns:
                 break
 
-            for item in new_columns:
-                if tuple(item) not in new_columns_to_add:
-                    flag = 1
-                    break           
-
-            # add the new routes with negative reduced costs to the set
             for array in new_columns:
                 new_columns_to_add.add(tuple(array))
 
-        if use_column_heuristic:
-            apply_column_heuristic(new_columns_to_add, global_tsp_memo, new_constraints)
-            
-            
+        new_constraints, global_tsp_memo = apply_column_heuristic(
+            new_columns_to_add, global_tsp_memo, new_constraints
+        )
+
     else:
         while True:
-            CG_iteration+=1
-            flag = 0
-            print(f"CG iteration count: {CG_iteration}")
-            start_lp = time.perf_counter()
-            if CG_iteration == 1:
-                p_result, y_r_result, master_prob_model, status = master_prob.relaxedLP(branching_arc, new_columns_to_add, new_constraints,True)
-            else:
-                p_result, y_r_result, master_prob_model, status = master_prob.relaxedLP(branching_arc, new_columns_to_add, new_constraints,False)
-            end_lp = time.perf_counter()
-            LP_time += end_lp-start_lp
-            num_lp+=1
-            if not y_r_result:
-                return None, None, None, None, status, CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time, RG_DP_time, LP_time, tsp_memo, feasibility_memo, global_tsp_memo, num_lp, new_constraints
+            stats["CG_iteration"] += 1
+            print(f"CG iteration count: {stats['CG_iteration']}")
 
-            new_columns, feasibility_memo, CG_DP_time, status = run_CGSP(
-                master_prob, sub_problem, feasibility_memo, CG_iteration,
-                CG_DP_time, status, NG
+            start_lp = time.perf_counter()
+            p_result, y_r_result, master_prob_model, status = master_prob.relaxedLP(
+                branching_arc, new_columns_to_add, new_constraints, initial_lp=(stats["CG_iteration"] == 1)
             )
+            stats["LP_time"] += time.perf_counter() - start_lp
+            stats["num_lp"] += 1
+
+            if not y_r_result:
+                return CGResult(
+                    y_r_result=None, not_fractional=False,
+                    model=None, objval=None, status=status,
+                    tsp_memo=tsp_memo, feasibility_memo=feasibility_memo,
+                    global_tsp_memo=global_tsp_memo,
+                    new_constraints=new_constraints, **stats
+                )
+
+            new_columns, feasibility_memo, stats["CG_DP_time"], status = run_CGSP(
+                master_prob, sub_problem, feasibility_memo, stats["CG_iteration"],
+                stats["CG_DP_time"], status, NG
+            )
+
             if not new_columns:  # NG found nothing
                 print("NG found no improving columns — running exact pricing to certify.")
-                new_columns, feasibility_memo, CG_DP_time, status = run_CGSP(
-                    master_prob, sub_problem, feasibility_memo, CG_iteration,
-                  CG_DP_time, status, None
+                new_columns, feasibility_memo, stats["CG_DP_time"], status = run_CGSP(
+                    master_prob, sub_problem, feasibility_memo, stats["CG_iteration"],
+                    stats["CG_DP_time"], status, None
                 )
+
             if not new_columns:
                 break
 
-            for item in new_columns:
-                if tuple(item) not in new_columns_to_add:
-                    flag = 1
-                    break
-            if flag == 0:
-                break
-                            
-            # add the new routes with negative reduced costs to the set
             for array in new_columns:
                 new_columns_to_add.add(tuple(array))
-        
-        if use_column_heuristic:
-            apply_column_heuristic(new_columns_to_add, global_tsp_memo, new_constraints)
-        
-        start_3 = time.perf_counter()
+
+        new_constraints, global_tsp_memo = apply_column_heuristic(
+            new_columns_to_add, global_tsp_memo, new_constraints
+        )
+
         if check_values(y_r_result):
-            col_int_flag = 1
             print("Integer solution has been hit, starting row generation")
-            
+
             (p_result, y_r_result, master_prob_model, status,
-             CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time, RG_DP_time,
-             LP_time, tsp_memo, feasibility_memo, global_tsp_memo, num_lp, new_constraints) = run_RGSP(
+             tsp_memo, feasibility_memo, global_tsp_memo,
+             new_constraints, stats) = run_RGSP(
                 master_prob, branching_arc, new_columns_to_add, new_constraints,
-                CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time, RG_DP_time,
-                LP_time, num_lp, tsp_memo, feasibility_memo, global_tsp_memo
+                stats, tsp_memo, feasibility_memo, global_tsp_memo
             )
 
     if check_values(y_r_result):
         print("All non-zero values are 1")
         not_fractional = True
-    else:
-        if col_int_flag==1:
-            pass
-    
-    end_4 = time.perf_counter()
 
-    CG_time = end_4-start_4
+    stats["CG_time"] = time.perf_counter() - start_4
 
-    return y_r_result, not_fractional, master_prob_model, master_prob_model.ObjVal, master_prob_model.status, \
-        CG_iteration, RG_iteration, RG_time, CG_time, CG_DP_time, RG_DP_time, LP_time, tsp_memo, feasibility_memo, global_tsp_memo, num_lp, new_constraints
+    return CGResult(
+        y_r_result=y_r_result,
+        not_fractional=not_fractional,
+        model=master_prob_model,
+        objval=master_prob_model.ObjVal,
+        status=master_prob_model.status,
+        tsp_memo=tsp_memo,
+        feasibility_memo=feasibility_memo,
+        global_tsp_memo=global_tsp_memo,
+        new_constraints=new_constraints,
+        **stats
+    )

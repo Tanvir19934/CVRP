@@ -1,6 +1,7 @@
 *
 
 !.gitignore
+!New_codes/
 !New_codes/models_coalition_new.py
 !New_codes/pricing_coalition_new.py
 !New_codes/branch_and_price_coalition_new.py

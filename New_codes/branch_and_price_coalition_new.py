@@ -8,7 +8,7 @@ import copy
 import time
 import random
 from utils_new import (
-    print_solution, save_to_excel, print_metadata,
+    print_solution, save_to_excel, print_metadata, unpack_result,
     generate_tsp_cache, update_plot, make_stack, code_status, validate_solution
     )
 import pandas as pd
@@ -64,9 +64,11 @@ def branching() -> None:
     [
         root_y_r_result, root_not_fractional, root_master_prob_model, root_obj_val, status, CG_iteration, RG_iteration, RG_time, CG_time, 
         CG_DP_time, RG_DP_time, LP_time, tsp_memo, feasibility_memo, global_tsp_memo, num_lp, root_constraints
-    ] = column_generation(
-        None, forbidden_set={}, tsp_memo=tsp_memo, L=None, feasibility_memo=feasibility_memo, global_tsp_memo=global_tsp_memo, 
-        initial=True, parent_constraints=set()
+    ] = unpack_result(
+            column_generation(
+            None, forbidden_set={}, tsp_memo=tsp_memo, L=None, feasibility_memo=feasibility_memo, global_tsp_memo=global_tsp_memo, 
+            initial=True, parent_constraints=set()
+            )
         )
     print(f"root_obj_val: {root_obj_val}\n\n")
 
@@ -186,9 +188,11 @@ def branching() -> None:
             [
                 left_result, left_not_fractional, left_model, left_obj_val, left_status, CG_iteration, RG_iteration, RG_time, CG_time, 
                 CG_DP_time, RG_DP_time, LP_time, tsp_memo, feasibility_memo, global_tsp_memo, num_lp, left_constraints 
-            ] = column_generation(
-                (branching_arc,0), left_node.forbidden, tsp_memo, feasibility_memo=feasibility_memo, global_tsp_memo=global_tsp_memo, 
-                initial = False, parent_constraints=copy.deepcopy(node.constraints)
+            ] = unpack_result(
+                    column_generation(
+                        (branching_arc,0), left_node.forbidden, tsp_memo, feasibility_memo=feasibility_memo, global_tsp_memo=global_tsp_memo, 
+                        initial = False, parent_constraints=copy.deepcopy(node.constraints)
+                    )
                 )
             track_time_iterations(CG_iteration, RG_iteration, RG_time, CG_time, RG_DP_time, CG_DP_time, LP_time)
             num_nodes_explored+=1
@@ -219,9 +223,11 @@ def branching() -> None:
             [
                 right_result, right_not_fractional, right_model, right_obj_val, right_status, CG_iteration, RG_iteration, RG_time, CG_time, 
                 CG_DP_time, RG_DP_time, LP_time, tsp_memo, feasibility_memo, global_tsp_memo, num_lp, right_constraints
-            ] = column_generation(
-                (branching_arc,1), right_node.forbidden,tsp_memo, feasibility_memo=feasibility_memo, global_tsp_memo=global_tsp_memo, 
-                initial = False, parent_constraints=copy.deepcopy(node.constraints)
+            ] = unpack_result(
+                    column_generation(
+                        (branching_arc,1), right_node.forbidden,tsp_memo, feasibility_memo=feasibility_memo, global_tsp_memo=global_tsp_memo, 
+                        initial = False, parent_constraints=copy.deepcopy(node.constraints)
+                    )
                 )
             track_time_iterations(CG_iteration, RG_iteration, RG_time, CG_time, RG_DP_time, CG_DP_time, LP_time)
             num_nodes_explored+=1

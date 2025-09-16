@@ -16,6 +16,7 @@ import heapq
 import random
 import time
 import matplotlib.pyplot as plt
+from dataclasses import dataclass
 np.random.seed(42)
 
 def ev_travel_cost(route):
@@ -504,5 +505,32 @@ def prize_collecting_tsp(p_result):
 
     return results
 
+@dataclass
+class CGResult:
+    y_r_result: dict
+    not_fractional: bool
+    model: any
+    objval: float
+    status: int
+    CG_iteration: int
+    RG_iteration: int
+    RG_time: float
+    CG_time: float
+    CG_DP_time: float
+    RG_DP_time: float
+    LP_time: float
+    tsp_memo: dict
+    feasibility_memo: dict
+    global_tsp_memo: dict
+    num_lp: int
+    new_constraints: set
+
+def unpack_result(res: CGResult):
+    return (
+        res.y_r_result, res.not_fractional, res.model, res.objval, res.status,
+        res.CG_iteration, res.RG_iteration, res.RG_time, res.CG_time, res.CG_DP_time,
+        res.RG_DP_time, res.LP_time, res.tsp_memo, res.feasibility_memo,
+        res.global_tsp_memo, res.num_lp, res.new_constraints
+    )
 
 

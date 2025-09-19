@@ -1,5 +1,6 @@
+# ignore all files
 *
-
+# dont ignore these files
 !.gitignore
 !New_codes/
 !New_codes/models_coalition_new.py

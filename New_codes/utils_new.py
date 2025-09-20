@@ -457,6 +457,9 @@ class prize_collecting_tsp:
             )
         return self.m
 
+    def cg_tsp(self):
+        pass
+
     def rg_pctsp(self):
         """
         Prize-Collecting TSP with load-dependent travel costs.

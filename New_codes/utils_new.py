@@ -416,9 +416,12 @@ def create_excel_for_log_file(log_file):
     print(f"Data successfully saved to {excel_filename}")
 
 class prize_collecting_tsp:
-    def __init__(self, p_result, dual_values=None):
+    def __init__(self, p_result=None, dual_values_delta=None, dual_values_subsidy=None, dual_values_IR=None, dual_values_vehicle=None):
         self.p_result = p_result
-        self.dual_values = dual_values
+        self.dual_values_delta = dual_values_delta
+        self.dual_values_subsidy = dual_values_subsidy
+        self.dual_values_IR = dual_values_IR
+        self.dual_values_vehicle = dual_values_vehicle
 
     def pctsp(self):
         # Decision variables
@@ -457,8 +460,58 @@ class prize_collecting_tsp:
             )
         return self.m
 
-    def cg_tsp(self):
-        pass
+    def cg_pctsp(self):
+        self.m = self.pctsp()
+        self.b = self.m.addVars(V + ['t'], vtype=GRB.CONTINUOUS, ub = 1, lb = 0, name="b")         # battery level
+        self.m.addConstr(self.b[0] == 1, name="DepotBatteryFull")                          # depot starts with full battery
+        self.m.addConstrs(self.b[i] >= battery_threshold for i in V + ['t'])                       # min battery at customers
+        self.m.addConstrs(
+            self.b[j] <= self.b[i] - (a.get((i,j),a[i,0])/EV_velocity)*(gamma+gamma_l*self.f.get((i,j),self.f[i,0])) + (1-self.x[i,j])
+            for i in V for j in N + ['t'] if (i != j and (i!=0 and j!='t'))
+            )  # battery depletion
+        
+        self.m.setObjective(
+            quicksum(w_ev*a[i,j]*self.x[i,j]  for i in V for j in V if i != j)   # base distance cost
+            + (theta-self.dual_values_subsidy)* quicksum(260*EV_cost*(a[i,j]/EV_velocity)*(gamma+gamma_l*(self.f[i,j])) for i in V for j in V if i != j)
+            - quicksum(self.dual_values_delta[i]*self.y[i] for i in N)
+            - self.dual_values_vehicle
+            - quicksum(self.dual_values_IR[i]*self.y[i]* (a[i,0]*GV_cost*q[i]+a[i,0]*GV_cost) for i in N),
+            GRB.MINIMIZE
+        )
+        
+
+        # Allow Gurobi to search for multiple solutions
+        self.m.setParam("OutputFlag", 1)
+
+        self.m.optimize()
+        if self.m.Status == GRB.INFEASIBLE:
+            print("Model is infeasible; computing IIS...")
+            self.m.computeIIS()
+            self.m.write("model.ilp")
+
+        results = []
+
+        if self.m.SolCount > 0:
+            for k in range(self.m.SolCount):
+                self.m.setParam(GRB.Param.SolutionNumber, k)
+                obj_val = self.m.PoolObjVal
+                if obj_val < -tol and abs(obj_val) > 0.001:
+                    # Extract tour
+                    tour = [0]
+                    current = 0
+                    while True:
+                        next_nodes = [j for j in V if j != current and self.x[current, j].Xn > 0.5]
+                        if not next_nodes:
+                            break
+                        nxt = next_nodes[0]
+                        tour.append(nxt)
+                        if nxt == 0:
+                            break
+                        current = nxt
+
+                    results.append(tour)
+
+        return results
 
     def rg_pctsp(self):
         """

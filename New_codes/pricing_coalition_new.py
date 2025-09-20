@@ -15,10 +15,12 @@ def run_CGSP(master_prob, sub_problem, new_columns_to_add, feasibility_memo,
         return None, feasibility_memo, stats["CG_DP_time"], status, new_columns_to_add, new_constraints
 
     start_2 = time.perf_counter()
-    new_columns, feasibility_memo = sub_problem.dy_prog(
-        dual_values_delta, dual_values_subsidy, dual_values_IR,
-        dual_values_vehicle, feasibility_memo, stats["CG_iteration"] == 1
-    )
+    rg_pctsp_obj = prize_collecting_tsp(None, dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle)
+    new_columns = rg_pctsp_obj.cg_pctsp()
+    #new_columns, feasibility_memo = sub_problem.dy_prog(
+    #    dual_values_delta, dual_values_subsidy, dual_values_IR,
+    #    dual_values_vehicle, feasibility_memo, stats["CG_iteration"] == 1
+    #)
     stats["CG_DP_time"] += time.perf_counter() - start_2
 
     if not new_columns:
@@ -78,7 +80,8 @@ def run_RGSP(master_prob, branching_arc, new_columns_to_add, new_constraints,
             )
 
         start_5 = time.perf_counter()
-        new_route = prize_collecting_tsp(p_result)
+        rg_pctsp_obj = prize_collecting_tsp(p_result)
+        new_route = rg_pctsp_obj.rg_pctsp()
         stats["RG_DP_time"] += time.perf_counter() - start_5
 
         if not new_route:

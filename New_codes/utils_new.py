@@ -415,95 +415,157 @@ def create_excel_for_log_file(log_file):
 
     print(f"Data successfully saved to {excel_filename}")
 
-from gurobipy import Model, GRB, quicksum
+class prize_collecting_tsp:
+    def __init__(self, p_result=None, dual_values_delta=None, dual_values_subsidy=None, dual_values_IR=None, dual_values_vehicle=None):
+        self.p_result = p_result
+        self.dual_values_delta = dual_values_delta
+        self.dual_values_subsidy = dual_values_subsidy
+        self.dual_values_IR = dual_values_IR
+        self.dual_values_vehicle = dual_values_vehicle
 
-def prize_collecting_tsp(p_result):
-    """
-    Prize-Collecting TSP with load-dependent travel costs.
-    Flow-based formulation (no big-M load variables).
-    Collects all negative-valued solutions.
-    """
+    def pctsp(self):
+        # Decision variables
+        self.m = Model("PrizeCollectingTSP")
+        self.x = self.m.addVars(V, V, vtype=GRB.BINARY, name="x")      # arc used
+        self.y = self.m.addVars(V, vtype=GRB.BINARY, name="y")         # node visited
+        self.f = self.m.addVars(V, V, vtype=GRB.CONTINUOUS, lb=0.0, ub=Q_EV, name="f")  # flow on arc
+        # Flow balance: each visited node must have exactly one in/out arc
+        for i in V:
+            self.m.addConstr(quicksum(self.x[i, j] for j in V if j != i) == self.y[i])
+            self.m.addConstr(quicksum(self.x[j, i] for j in V if j != i) == self.y[i])
 
-    # Map prizes to nodes
-    prizes = {i: p_result.get(f"p_{i}", 0.0) for i in N}
-    prizes[0] = 0.0  # depot has no prize
+        # Depot must be visited
+        self.m.addConstr(self.y[0] == 1)
 
-    m = Model("PrizeCollectingTSP_Flow")
+        # Truck starts empty at depot
+        self.m.addConstr(quicksum(self.f[0, j] for j in V if j != 0) == 0, name="DepotStartEmpty")
 
-    # Decision variables
-    x = m.addVars(V, V, vtype=GRB.BINARY, name="x")      # arc used
-    y = m.addVars(V, vtype=GRB.BINARY, name="y")         # node visited
-    f = m.addVars(V, V, vtype=GRB.CONTINUOUS, lb=0.0, ub=Q_EV, name="f")  # flow on arc
+        # Truck returns to depot carrying total pickups collected
+        self.m.addConstr(quicksum(self.f[j, 0] for j in V if j != 0) ==
+                    quicksum(q[i] * self.y[i] for i in N),
+                    name="DepotReturnFull")
 
-    # Objective = base distance cost + load*distance cost – collected prizes
-    m.setObjective(
-        quicksum(a[0, j] * x[0, j] * GV_cost for j in N)   # base distance cost
-        + quicksum(a[i, j] * f[i, j] * GV_cost for i in V for j in V if i != j) # load * distance cost
-        - quicksum(prizes[i] * y[i] for i in V),                                # collected prizes
-        GRB.MINIMIZE
-    )
+        # Flow capacity: if arc is not used, no flow
+        for i in V:
+            for j in V:
+                if i != j:
+                    self.m.addConstr(self.f[i, j] <= Q_EV * self.x[i, j])
 
-    # Flow balance: each visited node must have exactly one in/out arc
-    for i in V:
-        m.addConstr(quicksum(x[i, j] for j in V if j != i) == y[i])
-        m.addConstr(quicksum(x[j, i] for j in V if j != i) == y[i])
+        # Flow conservation for pickups
+        for i in N:  # customers only
+            self.m.addConstr(
+                quicksum(self.f[i, j] for j in V if j != i)
+                - quicksum(self.f[j, i] for j in V if j != i)
+                == q[i] * self.y[i]
+            )
+        return self.m
 
-    # Depot must be visited
-    m.addConstr(y[0] == 1)
+    def cg_pctsp(self):
+        self.m = self.pctsp()
+        self.b = self.m.addVars(V + ['t'], vtype=GRB.CONTINUOUS, ub = 1, lb = 0, name="b")         # battery level
+        self.m.addConstr(self.b[0] == 1, name="DepotBatteryFull")                          # depot starts with full battery
+        self.m.addConstrs(self.b[i] >= battery_threshold for i in V + ['t'])                       # min battery at customers
+        self.m.addConstrs(
+            self.b[j] <= self.b[i] - (a.get((i,j),a[i,0])/EV_velocity)*(gamma+gamma_l*self.f.get((i,j),self.f[i,0])) + (1-self.x[i,j])
+            for i in V for j in N + ['t'] if (i != j and (i!=0 and j!='t'))
+            )  # battery depletion
+        
+        self.m.setObjective(
+            quicksum(w_ev*a[i,j]*self.x[i,j]  for i in V for j in V if i != j)   # base distance cost
+            + (theta-self.dual_values_subsidy)* quicksum(260*EV_cost*(a[i,j]/EV_velocity)*(gamma+gamma_l*(self.f[i,j])) for i in V for j in V if i != j)
+            - quicksum(self.dual_values_delta[i]*self.y[i] for i in N)
+            - self.dual_values_vehicle
+            - quicksum(self.dual_values_IR[i]*self.y[i]* (a[i,0]*GV_cost*q[i]+a[i,0]*GV_cost) for i in N),
+            GRB.MINIMIZE
+        )
+        
 
-    # Truck starts empty at depot
-    m.addConstr(quicksum(f[0, j] for j in V if j != 0) == 0, name="DepotStartEmpty")
+        # Allow Gurobi to search for multiple solutions
+        self.m.setParam("OutputFlag", 1)
 
-    # Truck returns to depot carrying total pickups collected
-    m.addConstr(quicksum(f[j, 0] for j in V if j != 0) ==
-                quicksum(q[i] * y[i] for i in N),
-                name="DepotReturnFull")
+        self.m.optimize()
+        if self.m.Status == GRB.INFEASIBLE:
+            print("Model is infeasible; computing IIS...")
+            self.m.computeIIS()
+            self.m.write("model.ilp")
 
-    # Flow capacity: if arc is not used, no flow
-    for i in V:
-        for j in V:
-            if i != j:
-                m.addConstr(f[i, j] <= Q_EV * x[i, j])
+        results = []
 
-    # Flow conservation for pickups
-    for i in N:  # customers only
-        m.addConstr(
-            quicksum(f[i, j] for j in V if j != i)
-            - quicksum(f[j, i] for j in V if j != i)
-            == q[i] * y[i]
+        if self.m.SolCount > 0:
+            for k in range(self.m.SolCount):
+                self.m.setParam(GRB.Param.SolutionNumber, k)
+                obj_val = self.m.PoolObjVal
+                if obj_val < -tol and abs(obj_val) > 0.001:
+                    # Extract tour
+                    tour = [0]
+                    current = 0
+                    while True:
+                        next_nodes = [j for j in V if j != current and self.x[current, j].Xn > 0.5]
+                        if not next_nodes:
+                            break
+                        nxt = next_nodes[0]
+                        tour.append(nxt)
+                        if nxt == 0:
+                            break
+                        current = nxt
+
+                    results.append(tour)
+
+        return results
+
+    def rg_pctsp(self):
+        """
+        Prize-Collecting TSP with load-dependent travel costs.
+        Flow-based formulation (no big-M load variables).
+        Collects all negative-valued solutions.
+        """
+
+        # Map prizes to nodes
+        prizes = {i: self.p_result.get(f"p_{i}", 0.0) for i in N}
+        prizes[0] = 0.0  # depot has no prize
+
+        self.m = self.pctsp()
+
+
+        # Objective = base distance cost + load*distance cost – collected prizes
+        self.m.setObjective(
+            quicksum(a[0, j] * self.x[0, j] * GV_cost for j in N)   # base distance cost
+            + quicksum(a[i, j] * self.f[i, j] * GV_cost for i in V for j in V if i != j) # load * distance cost
+            - quicksum(prizes[i] * self.y[i] for i in V),                                # collected prizes
+            GRB.MINIMIZE
         )
 
-    # Allow Gurobi to search for multiple solutions
-    m.setParam("OutputFlag", 1)
+        # Allow Gurobi to search for multiple solutions
+        self.m.setParam("OutputFlag", 1)
 
-    m.optimize()
+        self.m.optimize()
 
-    results = []
+        results = []
 
-    if m.SolCount > 0:
-        for k in range(m.SolCount):
-            m.setParam(GRB.Param.SolutionNumber, k)
-            obj_val = m.PoolObjVal
-            if obj_val < -tol and abs(obj_val) > 0.001:
-                # Extract tour
-                tour = [0]
-                current = 0
-                while True:
-                    next_nodes = [j for j in V if j != current and x[current, j].Xn > 0.5]
-                    if not next_nodes:
-                        break
-                    nxt = next_nodes[0]
-                    tour.append(nxt)
-                    if nxt == 0:
-                        break
-                    current = nxt
+        if self.m.SolCount > 0:
+            for k in range(self.m.SolCount):
+                self.m.setParam(GRB.Param.SolutionNumber, k)
+                obj_val = self.m.PoolObjVal
+                if obj_val < -tol and abs(obj_val) > 0.001:
+                    # Extract tour
+                    tour = [0]
+                    current = 0
+                    while True:
+                        next_nodes = [j for j in V if j != current and self.x[current, j].Xn > 0.5]
+                        if not next_nodes:
+                            break
+                        nxt = next_nodes[0]
+                        tour.append(nxt)
+                        if nxt == 0:
+                            break
+                        current = nxt
 
-                travel_cost = gv_tsp_cost(tour)
-                collected_prizes = sum(prizes[i] for i in tour)
+                    travel_cost = gv_tsp_cost(tour)
+                    collected_prizes = sum(prizes[i] for i in tour)
 
-                results.append((tour, obj_val, travel_cost, collected_prizes))
+                    results.append((tour, obj_val, travel_cost, collected_prizes))
 
-    return results
+        return results
 
 @dataclass
 class CGResult:
@@ -532,5 +594,4 @@ def unpack_result(res: CGResult):
         res.RG_DP_time, res.LP_time, res.tsp_memo, res.feasibility_memo,
         res.global_tsp_memo, res.num_lp, res.new_constraints
     )
-
 

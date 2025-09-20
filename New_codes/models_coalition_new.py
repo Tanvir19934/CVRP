@@ -245,6 +245,9 @@ class SubProblem:
 
         return new_routes, feasibility_memo
 
+    def cg_pc_tsp(self, dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle):
+        pass
+
 class MasterProblem:
 
     def __init__(self, forbidden=[]):

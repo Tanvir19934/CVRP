@@ -78,7 +78,8 @@ def run_RGSP(master_prob, branching_arc, new_columns_to_add, new_constraints,
             )
 
         start_5 = time.perf_counter()
-        new_route = prize_collecting_tsp(p_result)
+        rg_pctsp_obj = prize_collecting_tsp(p_result)
+        new_route = rg_pctsp_obj.rg_pctsp()
         stats["RG_DP_time"] += time.perf_counter() - start_5
 
         if not new_route:

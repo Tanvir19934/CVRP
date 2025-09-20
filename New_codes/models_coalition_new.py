@@ -69,6 +69,8 @@ class SubProblem:
             reduced_cost = curr.resource_vector[0] +  w_ev*a[(curr_node,ext_node)]
             reduced_cost += (theta-dual_values_subsidy)* (260*EV_cost*(a[(curr_node,ext_node)]/EV_velocity)*(gamma+gamma_l*(curr.resource_vector[1]))) 
             IR = dual_values_IR[ext_node]* (a[(ext_node,0)]*GV_cost*q[ext_node]+a[(ext_node,0)]*GV_cost)
+            if sum(dual_values_IR.values())>=3:
+                pass
             reduced_cost += -delta - IR # the dual value for vehicle is used at initial_resource_vector initializtion in dy_prog function
             return reduced_cost
 

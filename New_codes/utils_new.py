@@ -458,6 +458,7 @@ class prize_collecting_tsp:
                 - quicksum(self.f[j, i] for j in V if j != i)
                 == q[i] * self.y[i]
             )
+        self.m.update()
         return self.m
 
     def cg_pctsp(self):
@@ -472,12 +473,13 @@ class prize_collecting_tsp:
         
         self.m.setObjective(
             quicksum(w_ev*a[i,j]*self.x[i,j]  for i in V for j in V if i != j)   # base distance cost
-            + (theta-self.dual_values_subsidy)* quicksum(260*EV_cost*(a[i,j]/EV_velocity)*(gamma+gamma_l*(self.f[i,j])) for i in V for j in V if i != j)
+            + (theta-self.dual_values_subsidy)* quicksum(260*EV_cost*(a[i,j]/EV_velocity)*(gamma*self.x[i,j]+gamma_l*(self.f[i,j])) for i in N for j in V if i!=j) + quicksum(260*EV_cost*(a[0,j]/EV_velocity)*self.x[0,j]*gamma for j in N)
             - quicksum(self.dual_values_delta[i]*self.y[i] for i in N)
             - self.dual_values_vehicle
             - quicksum(self.dual_values_IR[i]*self.y[i]* (a[i,0]*GV_cost*q[i]+a[i,0]*GV_cost) for i in N),
             GRB.MINIMIZE
         )
+        self.m.update()
         
 
         # Allow Gurobi to search for multiple solutions
@@ -534,6 +536,8 @@ class prize_collecting_tsp:
             - quicksum(prizes[i] * self.y[i] for i in V),                                # collected prizes
             GRB.MINIMIZE
         )
+
+        self.m.update()
 
         # Allow Gurobi to search for multiple solutions
         self.m.setParam("OutputFlag", 1)

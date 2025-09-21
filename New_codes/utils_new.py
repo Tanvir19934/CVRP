@@ -416,8 +416,9 @@ def create_excel_for_log_file(log_file):
     print(f"Data successfully saved to {excel_filename}")
 
 class prize_collecting_tsp:
-    def __init__(self, p_result=None, dual_values_delta=None, dual_values_subsidy=None, dual_values_IR=None, dual_values_vehicle=None):
+    def __init__(self, p_result=None, forbidden_set=None, dual_values_delta=None, dual_values_subsidy=None, dual_values_IR=None, dual_values_vehicle=None):
         self.p_result = p_result
+        self.forbidden_set = forbidden_set
         self.dual_values_delta = dual_values_delta
         self.dual_values_subsidy = dual_values_subsidy
         self.dual_values_IR = dual_values_IR
@@ -463,20 +464,32 @@ class prize_collecting_tsp:
 
     def cg_pctsp(self):
         self.m = self.pctsp()
-        self.b = self.m.addVars(V + ['t'], vtype=GRB.CONTINUOUS, ub = 1, lb = 0, name="b")         # battery level
-        self.m.addConstr(self.b[0] == 1, name="DepotBatteryFull")                          # depot starts with full battery
-        self.m.addConstrs(self.b[i] >= battery_threshold for i in V + ['t'])                       # min battery at customers
+        
+        # battery level variables
+        self.b = self.m.addVars(V + ['t'], vtype=GRB.CONTINUOUS, ub = 1, lb = 0, name="b")
+
+        # depot starts with full battery       
+        self.m.addConstr(self.b[0] == 1, name="DepotBatteryFull")  
+
+        # min battery at customers                        
+        self.m.addConstrs(self.b[i] >= battery_threshold for i in V + ['t'])                       
+        
+        # battery depletion
         self.m.addConstrs(
             self.b[j] <= self.b[i] - (a.get((i,j),a[i,0])/EV_velocity)*(gamma+gamma_l*self.f.get((i,j),self.f[i,0])) + (1-self.x[i,j])
             for i in V for j in N + ['t'] if (i != j and (i!=0 and j!='t'))
-            )  # battery depletion
+            )
         
+        # forbid certain arcs
+        self.m.addConstrs((self.x[i, j] == 0 for (i, j) in self.forbidden_set), name="forbidden_arcs")
+
+        # Objective
         self.m.setObjective(
             quicksum(w_ev*a[i,j]*self.x[i,j]  for i in V for j in V if i != j)   # base distance cost
-            + (theta-self.dual_values_subsidy)* quicksum(260*EV_cost*(a[i,j]/EV_velocity)*(gamma*self.x[i,j]+gamma_l*(self.f[i,j])) for i in N for j in V if i!=j) + quicksum(260*EV_cost*(a[0,j]/EV_velocity)*self.x[0,j]*gamma for j in N)
+            + (theta-self.dual_values_subsidy)* quicksum(260*EV_cost*(a[i,j]/EV_velocity)*(gamma*self.x[i,j]+gamma_l*(self.f[i,j])) for i in N for j in V if i!=j) + (theta-self.dual_values_subsidy)*quicksum(260*EV_cost*(a[0,j]/EV_velocity)*gamma*self.x[0,j] for j in N)
             - quicksum(self.dual_values_delta[i]*self.y[i] for i in N)
             - self.dual_values_vehicle
-            - quicksum(self.dual_values_IR[i]*self.y[i]* (a[i,0]*GV_cost*q[i]+a[i,0]*GV_cost) for i in N),
+            - quicksum(self.dual_values_IR[i]*self.y[i]*(a[i,0]*GV_cost*q[i]+a[i,0]*GV_cost) for i in N),
             GRB.MINIMIZE
         )
         self.m.update()
@@ -550,7 +563,7 @@ class prize_collecting_tsp:
             for k in range(self.m.SolCount):
                 self.m.setParam(GRB.Param.SolutionNumber, k)
                 obj_val = self.m.PoolObjVal
-                if obj_val < -tol and abs(obj_val) > 0.001:
+                if (obj_val < -tol and abs(obj_val) > 0.001):
                     # Extract tour
                     tour = [0]
                     current = 0
@@ -565,7 +578,7 @@ class prize_collecting_tsp:
                         current = nxt
 
                     travel_cost = gv_tsp_cost(tour)
-                    collected_prizes = sum(prizes[i] for i in tour)
+                    collected_prizes = sum(prizes[i] for i in tour) 
 
                     results.append((tour, obj_val, travel_cost, collected_prizes))
 

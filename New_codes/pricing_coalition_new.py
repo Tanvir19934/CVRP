@@ -1,6 +1,6 @@
 from models_coalition_new import SubProblem, MasterProblem
 from utils_new import check_values, tsp_tour, prize_collecting_tsp, CGResult
-from config_new import always_generate_rows, use_column_heuristic, rand_seed
+from config_new import always_generate_rows, use_column_heuristic, rand_seed, run_dp
 import time
 import copy
 import random
@@ -8,19 +8,22 @@ import random
 random.seed(rand_seed)
 
 def run_CGSP(master_prob, sub_problem, new_columns_to_add, feasibility_memo,
-             new_constraints, stats, status):
+             new_constraints, stats, status, forbidden_set):
     """Run Column Generation Subproblem once (dual extraction + dy_prog)."""
     dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle = master_prob.getDuals()
     if dual_values_delta is None:
         return None, feasibility_memo, stats["CG_DP_time"], status, new_columns_to_add, new_constraints
 
     start_2 = time.perf_counter()
-    #cg_pctsp_obj = prize_collecting_tsp(None, dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle)
-    #new_columns = cg_pctsp_obj.cg_pctsp()
-    new_columns, feasibility_memo = sub_problem.dy_prog(
-        dual_values_delta, dual_values_subsidy, dual_values_IR,
-        dual_values_vehicle, feasibility_memo, stats["CG_iteration"] == 1
-    )
+    if run_dp:
+        new_columns, feasibility_memo = sub_problem.dy_prog(
+            dual_values_delta, dual_values_subsidy, dual_values_IR,
+            dual_values_vehicle, feasibility_memo, stats["CG_iteration"] == 1
+        )
+    else:
+        cg_pctsp_obj = prize_collecting_tsp(None, forbidden_set, dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle)
+        new_columns = cg_pctsp_obj.cg_pctsp()
+
     stats["CG_DP_time"] += time.perf_counter() - start_2
 
     for array in new_columns:
@@ -124,8 +127,8 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None,
 
             new_columns, feasibility_memo, stats["CG_DP_time"], status, new_columns_to_add, new_constraints = run_CGSP(
                 master_prob, sub_problem, new_columns_to_add, feasibility_memo,
-                new_constraints, stats, status
-                )
+                new_constraints, stats, status, forbidden_set
+            )
 
             if not new_columns:  # stop if no new columns
                 break

@@ -24,6 +24,7 @@ def run_CGSP(master_prob, sub_problem, new_columns_to_add, feasibility_memo,
         cg_pctsp_obj = prize_collecting_tsp(None, forbidden_set, dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle)
         new_columns = cg_pctsp_obj.cg_pctsp()
 
+
     stats["CG_DP_time"] += time.perf_counter() - start_2
 
     for array in new_columns:

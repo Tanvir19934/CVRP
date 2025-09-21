@@ -468,16 +468,23 @@ class prize_collecting_tsp:
         # battery level variables
         self.b = self.m.addVars(V + ['t'], vtype=GRB.CONTINUOUS, ub = 1, lb = 0, name="b")
 
+        # add arcs i → 't'. This is needed to track the remaining battery upon arrival at depot node 0 to avoid conflict with starting battery level at depot node 0
+        for i in N:
+            self.x[i, 't'] = self.m.addVar(vtype=GRB.BINARY, name=f"x[{i},t]")
+
+        # make 't' and 0 equivalent
+        self.m.addConstrs(self.x[i,'t'] == self.x[i,0] for i in N)  
+
         # depot starts with full battery       
         self.m.addConstr(self.b[0] == 1, name="DepotBatteryFull")  
 
         # min battery at customers                        
-        self.m.addConstrs(self.b[i] >= battery_threshold for i in V + ['t'])                       
-        
+        self.m.addConstrs(self.b[i] >= battery_threshold for i in V + ['t'])  
+                 
         # battery depletion
         self.m.addConstrs(
             self.b[j] <= self.b[i] - (a.get((i,j),a[i,0])/EV_velocity)*(gamma+gamma_l*self.f.get((i,j),self.f[i,0])) + (1-self.x[i,j])
-            for i in V for j in N + ['t'] if (i != j and (i!=0 and j!='t'))
+            for i in V for j in N + ['t'] if (i != j and not (i==0 and j=='t'))
             )
         
         # forbid certain arcs
@@ -489,7 +496,8 @@ class prize_collecting_tsp:
             + (theta-self.dual_values_subsidy)* quicksum(260*EV_cost*(a[i,j]/EV_velocity)*(gamma*self.x[i,j]+gamma_l*(self.f[i,j])) for i in N for j in V if i!=j) + (theta-self.dual_values_subsidy)*quicksum(260*EV_cost*(a[0,j]/EV_velocity)*gamma*self.x[0,j] for j in N)
             - quicksum(self.dual_values_delta[i]*self.y[i] for i in N)
             - self.dual_values_vehicle
-            - quicksum(self.dual_values_IR[i]*self.y[i]*(a[i,0]*GV_cost*q[i]+a[i,0]*GV_cost) for i in N),
+            - quicksum(self.dual_values_IR[i]*self.y[i]*(a[i,0]*GV_cost*q[i]+a[i,0]*GV_cost) for i in N)
+            - 0.0001*(self.b['t']),     # to encourage the correct battery level at depot, otherwise Gurobi may set it to artificially small value to reduce cost
             GRB.MINIMIZE
         )
         self.m.update()
@@ -497,6 +505,8 @@ class prize_collecting_tsp:
 
         # Allow Gurobi to search for multiple solutions
         self.m.setParam("OutputFlag", 1)
+
+        self.m.Params.OutputFlag = 0
 
         self.m.optimize()
         if self.m.Status == GRB.INFEASIBLE:
@@ -508,14 +518,14 @@ class prize_collecting_tsp:
 
         if self.m.SolCount > 0:
             for k in range(self.m.SolCount):
-                self.m.setParam(GRB.Param.SolutionNumber, k)
+                self.m.setParam(GRB.Param.SolutionNumber, k)    # Select solution k
                 obj_val = self.m.PoolObjVal
                 if obj_val < -tol and abs(obj_val) > 0.001:
                     # Extract tour
                     tour = [0]
                     current = 0
                     while True:
-                        next_nodes = [j for j in V if j != current and self.x[current, j].Xn > 0.5]
+                        next_nodes = [j for j in V if j != current and self.x[current, j].Xn > 0.5]  # Use Xn for solution pool
                         if not next_nodes:
                             break
                         nxt = next_nodes[0]
@@ -554,6 +564,8 @@ class prize_collecting_tsp:
 
         # Allow Gurobi to search for multiple solutions
         self.m.setParam("OutputFlag", 1)
+
+        self.m.Params.OutputFlag = 0
 
         self.m.optimize()
 

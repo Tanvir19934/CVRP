@@ -6,7 +6,10 @@ from matplotlib.lines import Line2D
 import random
 import numpy as np
 import pickle
-from config_new import N, V, Q_EV, q, a, NODES, grid_size, xc, yc, w_dv, w_ev, theta, MIP_start, gamma, gamma_l, battery_threshold, EV_cost, GV_cost, T_max_EV, T_max_GV, EV_velocity, GV_velocity, Q_GV, num_TV, num_GV, num_EV, E, D, K, A, r, st
+from config_new import (
+    N, Q_EV, q, a, NODES, grid_size, xc, yc, w_dv, w_ev, theta, MIP_start, gamma, gamma_l, battery_threshold, EV_cost, 
+    GV_cost, T_max_EV, EV_velocity, Q_GV, num_TV, E, D, K, st
+)
 from utils_new import generate_all_possible_routes, ev_travel_cost, tsp_tour, save_to_excel
 import pandas as pd
 import time

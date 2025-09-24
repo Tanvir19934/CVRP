@@ -203,7 +203,7 @@ def branching() -> None:
 
             _process_child(left_status, left_obj_val, left_not_fractional, left_model, left_result, left_node)
 
-            # Create right branch node
+            # Create right branch node 
             right_node = Node(node.depth + 1, f'{branching_arc}={1}', copy.deepcopy(node.forbidden), node, copy.deepcopy(node.constraints))
             for item in V:
                 if branching_arc[0]!=0 and branching_arc[1]!=0:             # for (x,y) type of arcs, forbid all (x,y) arcs for all x,y not 0
@@ -248,7 +248,10 @@ def branching() -> None:
               Total_RG_time, Total_CG_time, Total_RG_DP_time, Total_CG_DP_time,
               Total_LP_time, tsp_cache_time, obj, root_obj_val, Total_num_lp)
     
-    return obj, total_miles, EV_miles, Total_payments, Subsidy, payments, solution_routes, root_obj_val, num_nodes_explored, tsp_cache_time, Total_num_lp, tsp_memo
+    return (
+        obj, total_miles, EV_miles, Total_payments, Subsidy, payments, solution_routes, 
+        root_obj_val, num_nodes_explored, tsp_cache_time, Total_num_lp, tsp_memo
+    )
 
 def track_time_iterations(CG_iteration, RG_iteration, RG_time, CG_time, RG_DP_time, CG_DP_time, LP_time):
     global Total_CG_iteration, Total_RG_iteration, Total_RG_time, Total_CG_time, Total_RG_DP_time, Total_CG_DP_time, Total_LP_time
@@ -256,14 +259,18 @@ def track_time_iterations(CG_iteration, RG_iteration, RG_time, CG_time, RG_DP_ti
     Total_RG_iteration+=RG_iteration
     Total_RG_time+=RG_time
     Total_CG_time+=CG_time
-    Total_CG_DP_time+=CG_DP_time
+    Total_CG_DP_time+=CG_DP_time 
     Total_RG_DP_time+=RG_DP_time
     Total_LP_time+=LP_time
 
 def main():
         start = time.perf_counter()
-        obj, total_miles, EV_miles, Total_payments, Subsidy, payments, solution_routes, root_obj_val, num_nodes_explored, tsp_cache_time, Total_num_lp, tsp_memo = branching()
+        [
+            obj, total_miles, EV_miles, Total_payments, Subsidy, payments, solution_routes, 
+            root_obj_val, num_nodes_explored, tsp_cache_time, Total_num_lp, tsp_memo
+        ] = branching()
         end = time.perf_counter()
+        
         print(f"Execution time for nodes={NODES}: {end - start}")
         code = code_status(use_column_heuristic, always_generate_rows)
         validate_solution(payments, tsp_memo, N, solution_routes)

@@ -503,10 +503,12 @@ class prize_collecting_tsp:
         self.m.update()
         
 
-        # Allow Gurobi to search for multiple solutions
-        self.m.setParam("OutputFlag", 1)
-
+        # show/dont show log
         self.m.Params.OutputFlag = 0
+    
+        #self.m.Params.PoolSearchMode = 1     # find multiple solutions
+        #self.m.Params.PoolSolutions = 100    # maximum number of solutions to keep
+
 
         self.m.optimize()
         if self.m.Status == GRB.INFEASIBLE:
@@ -534,7 +536,8 @@ class prize_collecting_tsp:
                             break
                         current = nxt
 
-                    results.append(tour)
+                    if len(tour) > 3:
+                        results.append(tour)
 
         return results
 

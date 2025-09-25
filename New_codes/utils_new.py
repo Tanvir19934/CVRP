@@ -26,8 +26,8 @@ def ev_travel_cost(route):
     for i in range(len(route)-1):
         l+=q[route[i]]
         b = b - (a[route[i],route[i+1]]/EV_velocity)*(gamma+gamma_l*l) 
-        if b < battery_threshold:
-            raise ValueError(f"Battery level too low (below threshold of {battery_threshold}): {b} in route {route}")
+        #if b < battery_threshold:
+        #    raise ValueError(f"Battery level too low (below threshold of {battery_threshold}): {b} in route {route}")
     cost = 260*EV_cost*(1-b)
     return cost
 
@@ -466,26 +466,26 @@ class prize_collecting_tsp:
         self.m = self.pctsp()
         
         # battery level variables
-        self.b = self.m.addVars(V + ['t'], vtype=GRB.CONTINUOUS, ub = 1, lb = 0, name="b")
+        #self.b = self.m.addVars(V + ['t'], vtype=GRB.CONTINUOUS, ub = 1, lb = 0, name="b")
 
         # add arcs i → 't'. This is needed to track the remaining battery upon arrival at depot node 0 to avoid conflict with starting battery level at depot node 0
-        for i in N:
-            self.x[i, 't'] = self.m.addVar(vtype=GRB.BINARY, name=f"x[{i},t]")
+        #for i in N:
+        #    self.x[i, 't'] = self.m.addVar(vtype=GRB.BINARY, name=f"x[{i},t]")
 
         # make 't' and 0 equivalent
-        self.m.addConstrs(self.x[i,'t'] == self.x[i,0] for i in N)  
+        #self.m.addConstrs(self.x[i,'t'] == self.x[i,0] for i in N)  
 
         # depot starts with full battery       
-        self.m.addConstr(self.b[0] == 1, name="DepotBatteryFull")  
+        #self.m.addConstr(self.b[0] == 1, name="DepotBatteryFull")  
 
         # min battery at customers                        
-        self.m.addConstrs(self.b[i] >= battery_threshold for i in V + ['t'])  
+        #self.m.addConstrs(self.b[i] >= battery_threshold for i in V + ['t'])  
                  
         # battery depletion
-        self.m.addConstrs(
-            self.b[j] <= self.b[i] - (a.get((i,j),a[i,0])/EV_velocity)*(gamma+gamma_l*self.f.get((i,j),self.f[i,0])) + (1-self.x[i,j])
-            for i in V for j in N + ['t'] if (i != j and not (i==0 and j=='t'))
-            )
+        #self.m.addConstrs(
+        #    self.b[j] <= self.b[i] - (a.get((i,j),a[i,0])/EV_velocity)*(gamma+gamma_l*self.f.get((i,j),self.f[i,0])) + (1-self.x[i,j])
+        #    for i in V for j in N + ['t'] if (i != j and not (i==0 and j=='t'))
+        #    )
         
         # forbid certain arcs
         self.m.addConstrs((self.x[i, j] == 0 for (i, j) in self.forbidden_set), name="forbidden_arcs")
@@ -497,17 +497,17 @@ class prize_collecting_tsp:
             - quicksum(self.dual_values_delta[i]*self.y[i] for i in N)
             - self.dual_values_vehicle
             - quicksum(self.dual_values_IR[i]*self.y[i]*(a[i,0]*GV_cost*q[i]+a[i,0]*GV_cost) for i in N)
-            - 0.0001*(self.b['t']),     # to encourage the correct battery level at depot, otherwise Gurobi may set it to artificially small value to reduce cost
-            GRB.MINIMIZE
+            #- 0.0001*(self.b['t']),     # to encourage the correct battery level at depot, otherwise Gurobi may set it to artificially small value to reduce cost
+            ,GRB.MINIMIZE
         )
         self.m.update()
         
 
         # show/dont show log
-        self.m.Params.OutputFlag = 0
+        self.m.Params.OutputFlag = 1
     
-        #self.m.Params.PoolSearchMode = 1     # find multiple solutions
-        #self.m.Params.PoolSolutions = 100    # maximum number of solutions to keep
+        self.m.Params.PoolSearchMode = 1     # find multiple solutions
+        self.m.Params.PoolSolutions = 100    # maximum number of solutions to keep
 
 
         self.m.optimize()

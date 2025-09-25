@@ -38,6 +38,7 @@ class SubProblem:
         if new_load>Q_EV:
             return None, None
         else:
+            return new_load, 1
             new_battery = curr_battery + (a[(curr_node,extending_node)]/EV_velocity)*(gamma+gamma_l*curr_load)
 
             if extending_node != 0 and  new_battery + (a[(0,extending_node)]/EV_velocity)*(gamma+gamma_l*new_load) > 1 - battery_threshold:
@@ -45,7 +46,7 @@ class SubProblem:
             elif extending_node==0 and new_battery > 1 - battery_threshold:
                 return None, None
 
-        return new_load, new_battery
+        return new_load, 1
 
     def calculate_reduced_cost(self, route, dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle, DV=False, curr=None, ext=None):
 
@@ -114,7 +115,7 @@ class SubProblem:
         le = (
             e_rc   <= c_rc and
             e_load <= c_load and
-            e_batt <= c_batt and
+            #e_batt <= c_batt and
             e_set.issubset(c_set)
             #c_set.issubset(e_set)
         )
@@ -123,7 +124,7 @@ class SubProblem:
         lt = (
             e_rc   < c_rc or
             e_load < c_load or
-            e_batt < c_batt or
+            #e_batt < c_batt or
             (e_set < c_set)   # proper subset
             #(c_set < e_set)
         )
@@ -229,7 +230,7 @@ class SubProblem:
                             heapq.heappush(L[new_node], new_label)
                             if reduced_cost < -tol and new_node=='t':
                                 neg_count+=1        
-            if IFB and neg_count >= col_dp_cutoff:
+            if neg_count >= col_dp_cutoff:
                 break
                              
         sink_node = 't'
@@ -304,25 +305,25 @@ class MasterProblem:
 
         #CONSTRAINTS
         self.model.addConstrs((quicksum(delta[(i, route)] * self.y_r[route] for route in self.r_set) == 1 for i in N), name=f"delta_")
-        self.model.addConstr((quicksum(c_r[route]*self.y_r[route] for route in self.r_set if len(route)>3) - quicksum(self.p[i] for i in N)) >= 0, name="subsidy")
-        if unlimited_EV:
-            self.model.addConstr((quicksum(self.y_r[route] for route in self.r_set if len(route)>3) <= num_EV*10000), name="vehicle")
-        else: 
-            self.model.addConstr((quicksum(self.y_r[route] for route in self.r_set if len(route)>3) <= num_EV), name="vehicle")
-        self.model.addConstrs(((a[(i,0)]*GV_cost*q[i]+a[(i,0)]*GV_cost)*(quicksum(delta[(i, route)] * self.y_r[route] for route in self.r_set if len(route)>3)) - self.p[i] >= 0 for i in N), name=f"IR_")
+        #self.model.addConstr((quicksum(c_r[route]*self.y_r[route] for route in self.r_set if len(route)>3) - quicksum(self.p[i] for i in N)) >= 0, name="subsidy")
+        #if unlimited_EV:
+        #    self.model.addConstr((quicksum(self.y_r[route] for route in self.r_set if len(route)>3) <= num_EV*10000), name="vehicle")
+        #else: 
+        #    self.model.addConstr((quicksum(self.y_r[route] for route in self.r_set if len(route)>3) <= num_EV), name="vehicle")
+        #self.model.addConstrs(((a[(i,0)]*GV_cost*q[i]+a[(i,0)]*GV_cost)*(quicksum(delta[(i, route)] * self.y_r[route] for route in self.r_set if len(route)>3)) - self.p[i] >= 0 for i in N), name=f"IR_")
         self.model.update()
 
-        if new_constraints:
-            for route, cost in new_constraints:
-                self.model.addConstr((quicksum(self.p[i] for i in route if i!=0) <= cost), name=f"stability_{route}")
-                self.model.update()
+        #if new_constraints:
+        #    for route, cost in new_constraints:
+        #        self.model.addConstr((quicksum(self.p[i] for i in route if i!=0) <= cost), name=f"stability_{route}")
+        #        self.model.update()
 
         #SET OBJECTIVE
-        self.model.setObjective((quicksum(a_r[route]*self.y_r[route] for route in self.r_set if len(route)==3))*w_dv + (quicksum(a_r[route]*self.y_r[route] for route in self.r_set if len(route)>3))*w_ev +  theta*(quicksum(c_r[route]*self.y_r[route] for route in self.r_set if len(route)>3) - quicksum(self.p[i] for i in N)))
+        self.model.setObjective((quicksum(a_r[route]*self.y_r[route] for route in self.r_set if len(route)==3))*w_dv + (quicksum(a_r[route]*self.y_r[route] for route in self.r_set if len(route)>3))*w_ev)
         self.model.update()
 
         self.model.modelSense = GRB.MINIMIZE
-        self.model.Params.OutputFlag = 0
+        self.model.Params.OutputFlag = 1
         self.model.write("/Users/tanvirkaisar/Library/CloudStorage/OneDrive-UniversityofSouthernCalifornia/CVRP/Codes/New_codes/master_prob.lp")
         self.model.optimize()
 

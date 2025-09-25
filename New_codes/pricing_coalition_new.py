@@ -15,7 +15,6 @@ def run_CGSP(master_prob, sub_problem, new_columns_to_add, feasibility_memo,
         return None, feasibility_memo, stats["CG_DP_time"], status, new_columns_to_add, new_constraints
 
     start_2 = time.perf_counter()
-<<<<<<< HEAD
     if run_dp:
         new_columns, feasibility_memo = sub_problem.dy_prog(
             dual_values_delta, dual_values_subsidy, dual_values_IR,
@@ -24,15 +23,6 @@ def run_CGSP(master_prob, sub_problem, new_columns_to_add, feasibility_memo,
     else:
         cg_pctsp_obj = prize_collecting_tsp(None, forbidden_set, dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle)
         new_columns = cg_pctsp_obj.cg_pctsp()
-=======
-    rg_pctsp_obj = prize_collecting_tsp(None, dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle)
-    new_columns = rg_pctsp_obj.cg_pctsp()
-    #new_columns, feasibility_memo = sub_problem.dy_prog(
-    #    dual_values_delta, dual_values_subsidy, dual_values_IR,
-    #    dual_values_vehicle, feasibility_memo, stats["CG_iteration"] == 1
-    #)
-    stats["CG_DP_time"] += time.perf_counter() - start_2
->>>>>>> origin/main
 
 
     stats["CG_DP_time"] += time.perf_counter() - start_2
@@ -124,21 +114,21 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None,
 
     start_4 = time.perf_counter()
 
-    if always_generate_rows or initial:
+    if False:
         while True:
             stats["CG_iteration"] += 1
             print(f"CG iteration count: {stats['CG_iteration']}")
 
-            (p_result, y_r_result, master_prob_model, status,
-             tsp_memo, feasibility_memo, global_tsp_memo,
-             new_constraints, stats) = run_RGSP(
-                master_prob, branching_arc, new_columns_to_add, new_constraints,
-                stats, tsp_memo, feasibility_memo, global_tsp_memo
-            )
+            #(p_result, y_r_result, master_prob_model, status,
+            # tsp_memo, feasibility_memo, global_tsp_memo,
+            # new_constraints, stats) = run_RGSP(
+            #    master_prob, branching_arc, new_columns_to_add, new_constraints,
+            #    stats, tsp_memo, feasibility_memo, global_tsp_memo
+            #)
 
             new_columns, feasibility_memo, stats["CG_DP_time"], status, new_columns_to_add, new_constraints = run_CGSP(
                 master_prob, sub_problem, new_columns_to_add, feasibility_memo,
-                new_constraints, stats, status, forbidden_set
+                new_constraints, stats, 2, forbidden_set
             )
 
             if not new_columns:  # stop if no new columns
@@ -183,12 +173,12 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None,
 
         if check_values(y_r_result):
             print("Integer solution has been hit, starting row generation")
-            (p_result, y_r_result, master_prob_model, status,
-             tsp_memo, feasibility_memo, global_tsp_memo,
-             new_constraints, stats) = run_RGSP(
-                master_prob, branching_arc, new_columns_to_add, new_constraints,
-                stats, tsp_memo, feasibility_memo, global_tsp_memo
-            )
+            #(p_result, y_r_result, master_prob_model, status,
+            # tsp_memo, feasibility_memo, global_tsp_memo,
+            # new_constraints, stats) = run_RGSP(
+            #    master_prob, branching_arc, new_columns_to_add, new_constraints,
+            #    stats, tsp_memo, feasibility_memo, global_tsp_memo
+            #)
 
     if check_values(y_r_result):
         print("All non-zero values are 1")

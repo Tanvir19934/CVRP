@@ -618,12 +618,13 @@ class CGResult:
     global_tsp_memo: dict
     num_lp: int
     new_constraints: set
+    columns: set
 
 def unpack_result(res: CGResult):
     return (
         res.y_r_result, res.not_fractional, res.model, res.objval, res.status,
         res.CG_iteration, res.RG_iteration, res.RG_time, res.CG_time, res.CG_DP_time,
         res.RG_DP_time, res.LP_time, res.tsp_memo, res.feasibility_memo,
-        res.global_tsp_memo, res.num_lp, res.new_constraints
+        res.global_tsp_memo, res.num_lp, res.new_constraints, res.columns
     )
 

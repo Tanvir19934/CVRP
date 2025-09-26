@@ -326,10 +326,10 @@ class MasterProblem:
         self.model.write("/Users/tanvirkaisar/Library/CloudStorage/OneDrive-UniversityofSouthernCalifornia/CVRP/Codes/New_codes/master_prob.lp")
         self.model.optimize()
 
-        try:
+        if self.model.Status == GRB.INFEASIBLE:
+            print("Model is infeasible; computing IIS...")
             self.model.computeIIS()
             self.model.write("/Users/tanvirkaisar/Library/CloudStorage/OneDrive-UniversityofSouthernCalifornia/CVRP/Codes/New_codes/master_prob_iis.ilp")
-        except: pass
   
         if self.model.status!=GRB.OPTIMAL:
             return None, None, self.model, self.model.status
@@ -388,3 +388,81 @@ class MasterProblem:
     def get_RMP_cost(self) -> int:
         obj = self.model.getObjective()
         return obj.getValue()
+
+    def reduced_MIP(self, columns, new_constraints):
+        #override some config parameters
+        q[0] = 0
+        self.model = None
+
+        if columns:
+            self.r_set.update(columns)
+
+        c_r = {}
+        a_r = {item:0 for item in self.r_set}
+           
+        for item in self.r_set:
+            l = len(item)
+            for i in range(l-1):
+                a_r[item] += a[(item[i],item[i+1])]
+            if l>3:
+                c_r[item] = ev_travel_cost(item)
+        
+        delta = {}
+        for route in self.r_set:
+            for i in range(1,len(V)+1):
+                if i in route:
+                    delta[(i, route)] = 1
+                else:
+                    delta[(i, route)] = 0
+
+        self.model = Model('reduced_MIP')
+        
+        #DECISION VARIABLES
+        for item in self.r_set:
+            self.y_r[tuple(item)] = self.model.addVar(vtype=GRB.INTEGER, name=f"y_r_[{item}]", lb=0) #Integer here!
+        for i in N:
+            self.p[i] = self.model.addVar(vtype=GRB.CONTINUOUS, name = f"p_{i}", lb=0)
+        self.model.update()
+
+        #CONSTRAINTS
+        self.model.addConstrs((quicksum(delta[(i, route)] * self.y_r[route] for route in self.r_set) == 1 for i in N), name=f"delta_")
+        self.model.addConstr((quicksum(c_r[route]*self.y_r[route] for route in self.r_set if len(route)>3) - quicksum(self.p[i] for i in N)) >= 0, name="subsidy")
+        if unlimited_EV:
+            self.model.addConstr((quicksum(self.y_r[route] for route in self.r_set if len(route)>3) <= num_EV*10000), name="vehicle")
+        else: 
+            self.model.addConstr((quicksum(self.y_r[route] for route in self.r_set if len(route)>3) <= num_EV), name="vehicle")
+        self.model.addConstrs(((a[(i,0)]*GV_cost*q[i]+a[(i,0)]*GV_cost)*(quicksum(delta[(i, route)] * self.y_r[route] for route in self.r_set if len(route)>3)) - self.p[i] >= 0 for i in N), name=f"IR_")
+        self.model.update()
+
+        if new_constraints:
+            for route, cost in new_constraints:
+                self.model.addConstr((quicksum(self.p[i] for i in route if i!=0) <= cost), name=f"stability_{route}")
+                self.model.update()
+
+        #SET OBJECTIVE
+        self.model.setObjective((quicksum(a_r[route]*self.y_r[route] for route in self.r_set if len(route)==3))*w_dv + (quicksum(a_r[route]*self.y_r[route] for route in self.r_set if len(route)>3))*w_ev +  theta*(quicksum(c_r[route]*self.y_r[route] for route in self.r_set if len(route)>3) - quicksum(self.p[i] for i in N)))
+        self.model.update()
+
+        self.model.modelSense = GRB.MINIMIZE
+        self.model.Params.OutputFlag = 1
+        #self.model.write("/Users/tanvirkaisar/Library/CloudStorage/OneDrive-UniversityofSouthernCalifornia/CVRP/Codes/New_codes/master_prob.lp")
+        self.model.optimize()
+  
+        if self.model.status!=GRB.OPTIMAL:
+            return None, None, self.model, self.model.status
+
+        def get_vars(item,opt_route):
+            vars = [var for var in opt_route.getVars() if f"{item}" in var.VarName]
+            names = opt_route.getAttr('VarName', vars)
+            values = opt_route.getAttr('X', vars)
+            return dict(zip(names, values))
+
+        y_r_result = get_vars('y_r',self.model)
+        p_result = get_vars('p',self.model)
+        y_r_result_final = {}
+        for item in y_r_result:
+            if y_r_result[item]>0:
+                y_r_result_final[item] = y_r_result[item]
+                print(f"rlxd_{item}={y_r_result[item]}")
+                
+        return p_result, y_r_result_final, self.model, self.model.status

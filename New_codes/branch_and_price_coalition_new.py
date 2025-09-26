@@ -59,7 +59,7 @@ def branching() -> None:
     iterations = []
     lp_gaps = []
     
-    
+    start_3 = time.perf_counter()
     # Create the root node by solving the initial rmp
     [
         root_y_r_result, root_not_fractional, root_master_prob_model, root_obj_val, status, CG_iteration, RG_iteration, RG_time, CG_time, 
@@ -70,6 +70,9 @@ def branching() -> None:
             initial=True, parent_constraints=set()
             )
         )
+    end_3 = time.perf_counter()
+    root_node_time = end_3 - start_3
+    print(f"Time to solve root node: {root_node_time}")
     print(f"root_obj_val: {root_obj_val}\n\n")
 
     track_time_iterations(CG_iteration, RG_iteration, RG_time, CG_time, RG_DP_time, CG_DP_time, LP_time)
@@ -246,7 +249,7 @@ def branching() -> None:
     
     print_metadata(Total_CG_iteration, Total_RG_iteration, num_nodes_explored,
               Total_RG_time, Total_CG_time, Total_RG_DP_time, Total_CG_DP_time,
-              Total_LP_time, tsp_cache_time, obj, root_obj_val, Total_num_lp)
+              Total_LP_time, tsp_cache_time, obj, root_obj_val, Total_num_lp, root_node_time)
     
     return (
         obj, total_miles, EV_miles, Total_payments, Subsidy, payments, solution_routes, 

@@ -5,7 +5,7 @@ rand_seed = 111
 rnd.seed(42)
 
 
-NODES = 30
+NODES = 29
 SEARCH_MODE = "heap"
 run_dp = False
 k = min(round(NODES*0.5),2)

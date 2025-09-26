@@ -1,15 +1,13 @@
 from pricing_coalition_new import column_generation
 from config_new import (
     V, Q_EV, q, NODES,k, plot_enabled, use_column_heuristic,
-    always_generate_rows, N, rand_seed, best_obj, SEARCH_MODE
+    always_generate_rows, N, rand_seed
     )
-from collections import defaultdict
-import copy
 import time
 import random
 from utils_new import (
     print_solution, save_to_excel, print_metadata, unpack_result,
-    generate_tsp_cache, update_plot, make_stack, code_status, validate_solution
+    generate_tsp_cache, code_status, validate_solution
     )
 import pandas as pd
 import matplotlib.pyplot as plt

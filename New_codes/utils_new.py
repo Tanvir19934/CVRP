@@ -137,7 +137,7 @@ def print_solution(final_model) -> None:
 
 def print_metadata(Total_CG_iteration, Total_RG_iteration, num_nodes_explored,
                   Total_RG_time, Total_CG_time, Total_RG_DP_time, Total_CG_DP_time,
-                  Total_LP_time, tsp_cache_time, obj, root_obj_val, Total_num_lp):
+                  Total_LP_time, tsp_cache_time, obj, root_obj_val, Total_num_lp, root_node_time):
     """
     Print a summary of branch-and-price performance stats.
     """
@@ -153,6 +153,7 @@ def print_metadata(Total_CG_iteration, Total_RG_iteration, num_nodes_explored,
     print(f"LP gap(%): {((obj - root_obj_val) / obj) * 100}")
     print(f"root_obj_val: {root_obj_val}")
     print(f"Total number of LPs solved: {Total_num_lp}")
+    print(f"Time to solve root node: {root_node_time}")
 
 def code_status(use_column_heuristic, always_generate_rows):
     if use_column_heuristic==False and always_generate_rows==True:
@@ -566,7 +567,8 @@ class prize_collecting_tsp:
         self.m.update()
 
         # Allow Gurobi to search for multiple solutions
-        self.m.setParam("OutputFlag", 1)
+        #self.m.Params.PoolSearchMode = 1
+        #self.m.Params.PoolSolutions = 100
 
         self.m.Params.OutputFlag = 0
 

@@ -26,7 +26,7 @@ def ev_travel_cost(route):
     for i in range(len(route)-1):
         l+=q[route[i]]
         b = b - (a[route[i],route[i+1]]/EV_velocity)*(gamma+gamma_l*l) 
-        if b < battery_threshold:
+        if b < battery_threshold - tol:
             raise ValueError(f"Battery level too low (below threshold of {battery_threshold}): {b} in route {route}")
     cost = 260*EV_cost*(1-b)
     return cost

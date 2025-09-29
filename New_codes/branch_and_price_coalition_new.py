@@ -100,7 +100,7 @@ def branching() -> None:
     
     return (
         obj, total_miles, EV_miles, Total_payments, Subsidy, payments, solution_routes, 
-        root_obj_val, num_nodes_explored, tsp_cache_time, Total_num_lp, tsp_memo
+        root_obj_val, num_nodes_explored, tsp_cache_time, Total_num_lp, tsp_memo, root_node_time
     )
 
 def track_time_iterations(CG_iteration, RG_iteration, RG_time, CG_time, RG_DP_time, CG_DP_time, LP_time):
@@ -117,7 +117,7 @@ def main():
         start = time.perf_counter()
         [
             obj, total_miles, EV_miles, Total_payments, Subsidy, payments, solution_routes, 
-            root_obj_val, num_nodes_explored, tsp_cache_time, Total_num_lp, tsp_memo
+            root_obj_val, num_nodes_explored, tsp_cache_time, Total_num_lp, tsp_memo, root_node_time
         ] = branching()
         end = time.perf_counter()
         
@@ -141,6 +141,7 @@ def main():
             "Total RG DP time": [Total_RG_DP_time],
             #"TSP cache time": [tsp_cache_time],
             "Total LP relaxation time": [Total_LP_time],
+            "Root node time": [root_node_time],
             "Total execution time": [end-start],
             "Total number of LPs solved": [Total_num_lp],
             "code": [code]

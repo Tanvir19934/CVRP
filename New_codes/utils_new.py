@@ -493,10 +493,10 @@ class prize_collecting_tsp:
         # Objective
         self.m.setObjective(
             quicksum(w_ev*a[i,j]*self.x[i,j]  for i in V for j in V if i != j)   # base distance cost
-            + (theta-self.dual_values_subsidy)* quicksum(260*EV_cost*(a[i,j]/EV_velocity)*(gamma*self.x[i,j]+gamma_l*(self.f[i,j])) for i in N for j in V if i!=j) + (theta-self.dual_values_subsidy)*quicksum(260*EV_cost*(a[0,j]/EV_velocity)*gamma*self.x[0,j] for j in N)
+            #+ (theta-self.dual_values_subsidy)* quicksum(260*EV_cost*(a[i,j]/EV_velocity)*(gamma*self.x[i,j]+gamma_l*(self.f[i,j])) for i in N for j in V if i!=j) + (theta-self.dual_values_subsidy)*quicksum(260*EV_cost*(a[0,j]/EV_velocity)*gamma*self.x[0,j] for j in N)
             - quicksum(self.dual_values_delta[i]*self.y[i] for i in N)
-            - self.dual_values_vehicle
-            - quicksum(self.dual_values_IR[i]*self.y[i]*(a[i,0]*GV_cost*q[i]+a[i,0]*GV_cost) for i in N)
+            #- self.dual_values_vehicle
+            #- quicksum(self.dual_values_IR[i]*self.y[i]*(a[i,0]*GV_cost*q[i]+a[i,0]*GV_cost) for i in N)
             #- 0.0001*(self.b['t']),     # to encourage the correct battery level at depot, otherwise Gurobi may set it to artificially small value to reduce cost
             ,GRB.MINIMIZE
         )
@@ -504,12 +504,13 @@ class prize_collecting_tsp:
         
 
         # show/dont show log
-        self.m.Params.OutputFlag = 1
-    
-        self.m.Params.PoolSearchMode = 1     # find multiple solutions
-        self.m.Params.PoolSolutions = 100    # maximum number of solutions to keep
+        #self.m.Params.OutputFlag = 1
+        #self.m.Params.MIPGap = 0.000001
 
-
+        # pool settings
+        #self.m.Params.PoolSearchMode = 2
+        #self.m.Params.PoolSolutions = 1000
+        
         self.m.optimize()
         if self.m.Status == GRB.INFEASIBLE:
             print("Model is infeasible; computing IIS...")
@@ -517,6 +518,7 @@ class prize_collecting_tsp:
             self.m.write("model.ilp")
 
         results = []
+        vals = []
 
         if self.m.SolCount > 0:
             for k in range(self.m.SolCount):
@@ -525,6 +527,7 @@ class prize_collecting_tsp:
                 if obj_val < -tol and abs(obj_val) > 0.001:
                     # Extract tour
                     tour = [0]
+                    val = 0
                     current = 0
                     while True:
                         next_nodes = [j for j in V if j != current and self.x[current, j].Xn > 0.5]  # Use Xn for solution pool
@@ -538,64 +541,7 @@ class prize_collecting_tsp:
 
                     if len(tour) > 3:
                         results.append(tour)
-
-        return results
-
-    def rg_pctsp(self):
-        """
-        Prize-Collecting TSP with load-dependent travel costs.
-        Flow-based formulation (no big-M load variables).
-        Collects all negative-valued solutions.
-        """
-
-        # Map prizes to nodes
-        prizes = {i: self.p_result.get(f"p_{i}", 0.0) for i in N}
-        prizes[0] = 0.0  # depot has no prize
-
-        self.m = self.pctsp()
-
-
-        # Objective = base distance cost + load*distance cost – collected prizes
-        self.m.setObjective(
-            quicksum(a[0, j] * self.x[0, j] * GV_cost for j in N)   # base distance cost
-            + quicksum(a[i, j] * self.f[i, j] * GV_cost for i in V for j in V if i != j) # load * distance cost
-            - quicksum(prizes[i] * self.y[i] for i in V),                                # collected prizes
-            GRB.MINIMIZE
-        )
-
-        self.m.update()
-
-        # Allow Gurobi to search for multiple solutions
-        self.m.setParam("OutputFlag", 1)
-
-        self.m.Params.OutputFlag = 0
-
-        self.m.optimize()
-
-        results = []
-
-        if self.m.SolCount > 0:
-            for k in range(self.m.SolCount):
-                self.m.setParam(GRB.Param.SolutionNumber, k)
-                obj_val = self.m.PoolObjVal
-                if (obj_val < -tol and abs(obj_val) > 0.001):
-                    # Extract tour
-                    tour = [0]
-                    current = 0
-                    while True:
-                        next_nodes = [j for j in V if j != current and self.x[current, j].Xn > 0.5]
-                        if not next_nodes:
-                            break
-                        nxt = next_nodes[0]
-                        tour.append(nxt)
-                        if nxt == 0:
-                            break
-                        current = nxt
-
-                    travel_cost = gv_tsp_cost(tour)
-                    collected_prizes = sum(prizes[i] for i in tour) 
-
-                    results.append((tour, obj_val, travel_cost, collected_prizes))
+                        vals.append(obj_val)
 
         return results
 

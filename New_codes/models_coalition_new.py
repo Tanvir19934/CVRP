@@ -39,14 +39,6 @@ class SubProblem:
             return None, None
         else:
             return new_load, 1
-            new_battery = curr_battery + (a[(curr_node,extending_node)]/EV_velocity)*(gamma+gamma_l*curr_load)
-
-            if extending_node != 0 and  new_battery + (a[(0,extending_node)]/EV_velocity)*(gamma+gamma_l*new_load) > 1 - battery_threshold:
-                return None, None
-            elif extending_node==0 and new_battery > 1 - battery_threshold:
-                return None, None
-
-        return new_load, 1
 
     def calculate_reduced_cost(self, route, dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle, DV=False, curr=None, ext=None):
 
@@ -68,30 +60,10 @@ class SubProblem:
             else: ext_node = ext.node
             delta = dual_values_delta[ext_node]
             reduced_cost = curr.resource_vector[0] +  w_ev*a[(curr_node,ext_node)]
-            reduced_cost += (theta-dual_values_subsidy)* (260*EV_cost*(a[(curr_node,ext_node)]/EV_velocity)*(gamma+gamma_l*(curr.resource_vector[1]))) 
-            IR = dual_values_IR[ext_node]* (a[(ext_node,0)]*GV_cost*q[ext_node]+a[(ext_node,0)]*GV_cost)
-            if sum(dual_values_IR.values())>=3:
-                pass
-            reduced_cost += -delta - IR # the dual value for vehicle is used at initial_resource_vector initializtion in dy_prog function
+            #reduced_cost += (theta-dual_values_subsidy)* (260*EV_cost*(a[(curr_node,ext_node)]/EV_velocity)*(gamma+gamma_l*(curr.resource_vector[1]))) 
+            #IR = dual_values_IR[ext_node]* (a[(ext_node,0)]*GV_cost*q[ext_node]+a[(ext_node,0)]*GV_cost)
+            reduced_cost += -delta  # the dual value for vehicle is used at initial_resource_vector initializtion in dy_prog function
             return reduced_cost
-
-    def calculate_reduced_cost_old(self, route, dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle, DV=False, curr=None, ext=None):
-
-        reduced_cost = 0
-        delta_sum = [dual_values_delta[i] for i in route if i!=0]
-        if DV:
-            for i in range(0,len(route)-1):
-                reduced_cost += w_dv*a[(route[i],route[i+1])]
-            reduced_cost+=-sum(delta_sum)
-            return reduced_cost
-
-        for i in range(0,len(route)-1):
-            reduced_cost += w_ev*a[(route[i],route[i+1])]
-        reduced_cost+= (theta-dual_values_subsidy)*ev_travel_cost(route)
-        IR_sum = [dual_values_IR[i]* (a[(i,0)]*GV_cost*q[i]+a[(i,0)]*GV_cost) for i in route if i!=0]
-        reduced_cost += -sum(delta_sum) - sum(IR_sum) - dual_values_vehicle #(note the + sign for IR_sum)
-
-        return reduced_cost
 
     def label_domination_check(self, existing_label, current_label):
         """
@@ -132,28 +104,6 @@ class SubProblem:
         return le and lt
 
 
-    def label_domination_check_old(self, existing_label, current_label):
-
-        # Assume resource_vector = [res0, res1, res2, visited_set]
-
-        num_dims = 3
-        existing_res = existing_label.resource_vector
-        current_res   = current_label.resource_vector
-
-        # 1) Check numeric domination
-        numeric_le  = all(existing_res[i]  <= current_res[i]
-                        for i in range(num_dims))
-        numeric_lt  = any(existing_res[i]  <  current_res[i]
-                        for i in range(num_dims))
-
-
-        # 3) Combine them
-        if numeric_le and True and numeric_lt:
-            return True
-        else:
-            return False
-    
-
     def dy_prog(self, dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle, feasibility_memo={}, IFB=False):
         # Initialize the sets of labels
 
@@ -162,7 +112,7 @@ class SubProblem:
         N.extend(['s','t'])
         start_node = 's'
         
-        initial_resource_vector = (-dual_values_vehicle, 0, 0, set('s'))  # (reduced_cost, load, battery)
+        initial_resource_vector = (-0, 0, 0, set('s'))  # (reduced_cost, load, battery)
         initial_label = Label(start_node, initial_resource_vector, None)
         heapq.heappush(U, initial_label)
         print("\nExecuting CG DP...\n")
@@ -220,7 +170,7 @@ class SubProblem:
                                 feasibility_memo[tuple(new_path)] = (new_load, new_battery)
 
                         if new_load is not None:
-                            resource_vector = (new_load, new_battery)
+                            resource_vector = (0, new_load, new_battery, None)
                             new_label = Label(new_node, resource_vector, current_label)
                             reduced_cost = self.calculate_reduced_cost(new_path, dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle, False, current_label, new_label)
                             new_label.resource_vector = (reduced_cost, new_load, new_battery, current_label.resource_vector[-1].union({new_node})) #update the resource vector with reduced cost
@@ -245,6 +195,8 @@ class SubProblem:
 
         end = time.perf_counter()
         print(f"CG DP time: {end-start:.2f} seconds")
+        if (0, 7, 8, 24, 17, 0) in new_routes:
+            print(new_routes[(0, 7, 8, 24, 17, 0)])
 
         return new_routes, feasibility_memo
 
@@ -309,7 +261,7 @@ class MasterProblem:
         #if unlimited_EV:
         #    self.model.addConstr((quicksum(self.y_r[route] for route in self.r_set if len(route)>3) <= num_EV*10000), name="vehicle")
         #else: 
-        #    self.model.addConstr((quicksum(self.y_r[route] for route in self.r_set if len(route)>3) <= num_EV), name="vehicle")
+        self.model.addConstr((quicksum(self.y_r[route] for route in self.r_set if len(route)>3) <= num_EV), name="vehicle")
         #self.model.addConstrs(((a[(i,0)]*GV_cost*q[i]+a[(i,0)]*GV_cost)*(quicksum(delta[(i, route)] * self.y_r[route] for route in self.r_set if len(route)>3)) - self.p[i] >= 0 for i in N), name=f"IR_")
         self.model.update()
 

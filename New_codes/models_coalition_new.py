@@ -327,10 +327,9 @@ class MasterProblem:
         self.model.write("/Users/tanvirkaisar/Library/CloudStorage/OneDrive-UniversityofSouthernCalifornia/CVRP/Codes/New_codes/master_prob.lp")
         self.model.optimize()
 
-        try:
+        if self.model.status == GRB.INFEASIBLE:
             self.model.computeIIS()
             self.model.write("/Users/tanvirkaisar/Library/CloudStorage/OneDrive-UniversityofSouthernCalifornia/CVRP/Codes/New_codes/master_prob_iis.ilp")
-        except: pass
   
         if self.model.status!=GRB.OPTIMAL:
             return None, None, self.model, self.model.status

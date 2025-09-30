@@ -261,7 +261,7 @@ class MasterProblem:
         #if unlimited_EV:
         #    self.model.addConstr((quicksum(self.y_r[route] for route in self.r_set if len(route)>3) <= num_EV*10000), name="vehicle")
         #else: 
-        self.model.addConstr((quicksum(self.y_r[route] for route in self.r_set if len(route)>3) <= num_EV), name="vehicle")
+        #self.model.addConstr((quicksum(self.y_r[route] for route in self.r_set if len(route)>3) <= num_EV), name="vehicle")
         #self.model.addConstrs(((a[(i,0)]*GV_cost*q[i]+a[(i,0)]*GV_cost)*(quicksum(delta[(i, route)] * self.y_r[route] for route in self.r_set if len(route)>3)) - self.p[i] >= 0 for i in N), name=f"IR_")
         self.model.update()
 

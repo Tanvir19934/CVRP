@@ -6,6 +6,7 @@ rnd.seed(42)
 
 
 NODES = 15
+num_neighbors = min(round(NODES*0.2),40)
 SEARCH_MODE = "heap"
 run_dp = False
 k = min(round(NODES*0.5),2)

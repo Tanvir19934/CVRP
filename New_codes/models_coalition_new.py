@@ -74,24 +74,6 @@ class SubProblem:
             reduced_cost += -delta - IR # the dual value for vehicle is used at initial_resource_vector initializtion in dy_prog function
             return reduced_cost
 
-    def calculate_reduced_cost_old(self, route, dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle, DV=False, curr=None, ext=None):
-
-        reduced_cost = 0
-        delta_sum = [dual_values_delta[i] for i in route if i!=0]
-        if DV:
-            for i in range(0,len(route)-1):
-                reduced_cost += w_dv*a[(route[i],route[i+1])]
-            reduced_cost+=-sum(delta_sum)
-            return reduced_cost
-
-        for i in range(0,len(route)-1):
-            reduced_cost += w_ev*a[(route[i],route[i+1])]
-        reduced_cost+= (theta-dual_values_subsidy)*ev_travel_cost(route)
-        IR_sum = [dual_values_IR[i]* (a[(i,0)]*GV_cost*q[i]+a[(i,0)]*GV_cost) for i in route if i!=0]
-        reduced_cost += -sum(delta_sum) - sum(IR_sum) - dual_values_vehicle #(note the + sign for IR_sum)
-
-        return reduced_cost
-
     def label_domination_check(self, existing_label, current_label):
         """
         Check if existing_label dominates current_label.
@@ -130,28 +112,6 @@ class SubProblem:
 
         return le and lt
 
-
-    def label_domination_check_old(self, existing_label, current_label):
-
-        # Assume resource_vector = [res0, res1, res2, visited_set]
-
-        num_dims = 3
-        existing_res = existing_label.resource_vector
-        current_res   = current_label.resource_vector
-
-        # 1) Check numeric domination
-        numeric_le  = all(existing_res[i]  <= current_res[i]
-                        for i in range(num_dims))
-        numeric_lt  = any(existing_res[i]  <  current_res[i]
-                        for i in range(num_dims))
-
-
-        # 3) Combine them
-        if numeric_le and True and numeric_lt:
-            return True
-        else:
-            return False
-    
 
     def dy_prog(self, dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle, feasibility_memo={}, IFB=False):
         # Initialize the sets of labels
@@ -247,9 +207,6 @@ class SubProblem:
 
         return new_routes, feasibility_memo
 
-    def cg_pc_tsp(self, dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle):
-        pass
-
 class MasterProblem:
 
     def __init__(self, forbidden=[]):
@@ -258,7 +215,7 @@ class MasterProblem:
         self.p = {}
         self.r_set = set(tuple([0, node, 0]) for node in V if node != 0)
 
-    def relaxedLP(self, branching_arc, extended_set, new_constraints = None, initial_lp=False) -> None:
+    def relaxedLP(self, branching_arc, extended_set, new_constraints = None) -> None:
 
         #override some config parameters
         q[0] = 0

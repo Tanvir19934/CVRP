@@ -59,12 +59,12 @@ def run_RGSP(master_prob, branching_arc, new_columns_to_add, new_constraints,
         start_lp = time.perf_counter()
         if stats["CG_iteration"] == 1 and stats["RG_iteration"] == 1:
             p_result, y_r_result, master_prob_model, status = master_prob.relaxedLP(
-                branching_arc, new_columns_to_add, new_constraints, True
+                branching_arc, new_columns_to_add, new_constraints
             )
             break
         else:
             p_result, y_r_result, master_prob_model, status = master_prob.relaxedLP(
-                branching_arc, new_columns_to_add, new_constraints, False
+                branching_arc, new_columns_to_add, new_constraints
             )
             print(master_prob_model.ObjVal)
 
@@ -145,7 +145,7 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None,
 
             start_lp = time.perf_counter()
             p_result, y_r_result, master_prob_model, status = master_prob.relaxedLP(
-                branching_arc, new_columns_to_add, new_constraints, initial_lp=(stats["CG_iteration"] == 1)
+                branching_arc, new_columns_to_add, new_constraints
             )
             stats["LP_time"] += time.perf_counter() - start_lp
             stats["num_lp"] += 1

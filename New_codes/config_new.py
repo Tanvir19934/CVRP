@@ -5,7 +5,7 @@ rand_seed = 111
 rnd.seed(42)
 
 
-NODES = 30
+NODES = 25
 SEARCH_MODE = "heap"
 run_dp = False
 k = min(round(NODES*0.5),2)
@@ -22,8 +22,9 @@ N = [i for i in range(1,NODES+1)]                                            #se
 V = [0] + N                                                                  #set of all nodes (customer+depot)
 
 # Demands and capacities
-Q_EV = 10                                                                    #capacity of each EV
-Q_GV = 10                                                                    #capacity of each GV
+Q_EV = 10                                                                      #capacity of each EV
+Q_GV = 10                                                                      #capacity of each GV
+max_load = 2 # takes 1 hr for 25 nodes
 max_load = 7
 min_load = 1
 q = {i: rnd.randint(min_load,max_load) for i in N}                                         #demand for customers
@@ -36,10 +37,10 @@ col_dp_cutoff = 1000
 
 #use_column_heuristic = False
 #always_generate_rows = True
-#use_column_heuristic = False
-#always_generate_rows = False
-use_column_heuristic = True
+use_column_heuristic = False
 always_generate_rows = False
+#use_column_heuristic = True
+#always_generate_rows = False
 
 dom_heuristic = False
 plot_enabled = 0

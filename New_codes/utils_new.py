@@ -508,7 +508,7 @@ class prize_collecting_tsp:
         # return battery requirement at depot
         self.m.addConstrs(
             (
-                self.v[i, j] 
+                self.v[i, j] + (a[j,0]/EV_velocity) * (gamma * self.x[i, j] + gamma_l * self.f[i, j])
                 <= (1 - battery_threshold) * self.x[i, j]            
             )
             for i in V for j in V if i != j

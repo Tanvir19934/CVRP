@@ -5,10 +5,10 @@ from collections import defaultdict
 import re
 import copy
 import time
-from utils_new import ev_travel_cost, reconstruct_path, tsp_tour
+from utils_new import ev_travel_cost, reconstruct_path
 from config_new import (
     col_dp_cutoff, battery_threshold, N, V, Q_EV, q, a, w_dv, w_ev, theta, tol, num_EV, gamma, 
-    gamma_l, EV_velocity, GV_cost, unlimited_EV, dom_heuristic, rand_seed, best_obj, GV_cost, EV_cost
+    gamma_l, EV_velocity, GV_cost, unlimited_EV, timer, rand_seed, best_obj, GV_cost, EV_cost
 )
 import random
 random.seed(rand_seed)
@@ -167,6 +167,7 @@ class SubProblem:
 
     def dy_prog(self, dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle,
                 feasibility_memo={}, IFB=False, NG=None):
+        ng_dp_start = time.perf_counter()
         U = []                   
         L = defaultdict(list)     
         N.extend(['s','t'])
@@ -275,9 +276,10 @@ class SubProblem:
                     heapq.heappush(U, new_label)
                     if reduced_cost < -tol and new_node == 't':
                         neg_count += 1
-                    
 
-            if (IFB and neg_count >= col_dp_cutoff) or neg_count >= 10000:
+            ng_dp_time = time.perf_counter() - ng_dp_start
+            
+            if ng_dp_time > timer or neg_count >= 10000 or (IFB and neg_count >= col_dp_cutoff):
                 break
 
         # Gather negative columns at sink (unchanged)

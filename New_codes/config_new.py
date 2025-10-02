@@ -5,12 +5,13 @@ rand_seed = 111
 rnd.seed(42)
 
 
-NODES = 15
+NODES = 10
 num_neighbors = min(round(NODES*0.2),40)
 SEARCH_MODE = "heap"
 run_dp = False
 k = min(round(NODES*0.5),2)
 grid_size = 50                                                               #number of clients
+timer = min(round(NODES*10),300)
 xc = np.random.uniform(low=- grid_size/2, high=grid_size/2, size=NODES+1)
 yc = np.random.uniform(low=-grid_size/2, high=grid_size/2, size= NODES+1)
 xc[0]=0
@@ -79,7 +80,7 @@ GV_cost = 5
 
 EV_cost = 3.5
 GV_cost = 1
-
+c_e = (260*EV_cost)/EV_velocity
 
 # EV_cost = 2.3112 is on par with GV_cost = 1, i.e., equal cost
 

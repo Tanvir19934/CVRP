@@ -314,6 +314,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+    print("\a") 
     if plot_enabled:
         plt.show()
         input("Press Enter to exit...")

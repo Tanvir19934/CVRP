@@ -165,9 +165,8 @@ class SubProblem:
         S_new = S_proj | {next_node}
         return frozenset(S_new)
 
-    def dy_prog(self, dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle,
+    def dy_prog_ng(self, dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle,
                 feasibility_memo={}, IFB=False, NG=None):
-        ng_dp_start = time.perf_counter()
         U = []                   
         L = defaultdict(list)     
         N.extend(['s','t'])
@@ -277,7 +276,7 @@ class SubProblem:
                     if reduced_cost < -tol and new_node == 't':
                         neg_count += 1
 
-            ng_dp_time = time.perf_counter() - ng_dp_start
+            ng_dp_time = time.perf_counter() - start
             
             if ng_dp_time > timer or neg_count >= 10000 or (IFB and neg_count >= col_dp_cutoff):
                 break
@@ -294,6 +293,103 @@ class SubProblem:
 
         end = time.perf_counter()
         print(f"CG DP time: {end-start:.2f} seconds")
+        return new_routes, feasibility_memo
+
+    def dy_prog(self, dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle, feasibility_memo={}, IFB=False):
+        # Initialize the sets of labels
+
+        U = []  # Priority queue for undominated labels
+        L = defaultdict(list)  # Dictionary to store the sets of labels at each node
+        N.extend(['s','t'])
+        start_node = 's'
+        
+        initial_resource_vector = (-dual_values_vehicle, 0, 0, set('s'))  # (reduced_cost, load, battery)
+        initial_label = Label(start_node, initial_resource_vector, None)
+        heapq.heappush(U, initial_label)
+        print("\nExecuting CG DP...\n")
+        neg_count = 0
+        start = time.perf_counter()
+        while U:
+            current_label = heapq.heappop(U)
+            #current_label = U.pop()
+            current_node = current_label.node
+            # Check for dominance and add label to the set of labels if not dominated
+            is_dominated = False
+
+            current_path = reconstruct_path(current_label)
+            current_path_load = sum(q[i] for i in current_path if i!=0)
+
+
+            for label in L[current_node]:
+                if self.label_domination_check(label, current_label):
+                    is_dominated = True
+                    break
+
+            if not is_dominated:
+                    
+                    #Extend the label along all arcs leaving the current node
+                    neigh = list(set(N)-set([current_node]))
+                    if current_node=='s':
+                        neigh.remove('t')
+                    if current_node!='s':
+                        neigh.remove('s')
+                    if current_node=='t':
+                        continue
+
+                    for new_node in neigh:
+                        if new_node in current_label.resource_vector[-1]:
+                            continue
+                        if new_node=='t' or new_node=='s':
+                            new_node_converted = 0
+                        else: new_node_converted=new_node
+                        if current_node=='t' or current_node=='s':
+                            current_node_converted=0
+                        else: current_node_converted = current_node
+                        if (current_node_converted,new_node_converted) in self.forbidden_set:
+                            continue
+                        if new_node=='t':
+                            new_path = current_path + [0]
+
+                        else:
+                            new_path = current_path + [new_node]
+                        
+                        if tuple(new_path) in feasibility_memo:
+                            new_load, new_battery = feasibility_memo[tuple(new_path)]
+                        else:
+                            new_load, new_battery   = self.feasibility_check(current_node, new_node, current_label.resource_vector[1], current_label.resource_vector[2])
+                            if current_path_load!=Q_EV and new_load is not None:
+                                feasibility_memo[tuple(new_path)] = (new_load, new_battery)
+
+                        if new_load is not None:
+                            resource_vector = (new_load, new_battery)
+                            new_label = Label(new_node, resource_vector, current_label)
+                            reduced_cost = self.calculate_reduced_cost(new_path, dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle, False, current_label, new_label)
+                            new_label.resource_vector = (reduced_cost, new_load, new_battery, current_label.resource_vector[-1].union({new_node})) #update the resource vector with reduced cost
+
+                            #Add all feasible extensions to U (if no constraint violation)
+                            heapq.heappush(U, new_label)
+                            heapq.heappush(L[new_node], new_label)
+                            if reduced_cost < -tol and new_node=='t':
+                                neg_count+=1   
+
+            dp_time = time.perf_counter() - start
+            
+            if dp_time > timer or neg_count >= 10000 or (IFB and neg_count >= col_dp_cutoff):
+                break
+                             
+        sink_node = 't'
+        new_routes = {}
+        for item in L[sink_node]:
+            route = reconstruct_path(item)
+            if len(route)!=3 and item.resource_vector[0]<0 and abs(item.resource_vector[0])>tol:
+                new_routes[tuple(route)] = item.resource_vector[0]
+            
+        N.remove('s')
+        N.remove('t')
+
+        end = time.perf_counter()
+        print(f"CG DP time: {end-start:.2f} seconds")
+
         return new_routes, feasibility_memo
 
 class MasterProblem:

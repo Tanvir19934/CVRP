@@ -480,6 +480,7 @@ class prize_collecting_tsp:
         return self.m
 
     def cg_pctsp(self):
+        print("\n Executing pctsp for CG... \n")
         self.m = self.pctsp()
         
         # v_ij represents the fraction of usable battery consumed on arc (i,j)

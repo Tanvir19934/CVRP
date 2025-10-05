@@ -480,6 +480,7 @@ class prize_collecting_tsp:
         return self.m
 
     def cg_pctsp(self):
+        print("\n Executing pctsp for CG... \n")
         self.m = self.pctsp()
         
         # battery level variables

@@ -1,6 +1,6 @@
 from models_coalition_new import SubProblem, MasterProblem
-from utils_new import check_values, tsp_tour, prize_collecting_tsp, CGResult
-from config_new import always_generate_rows, use_column_heuristic, rand_seed, run_dp
+from utils_new import check_values, tsp_tour, prize_collecting_tsp, CGResult, build_NG
+from config_new import always_generate_rows, use_column_heuristic, rand_seed, run_dp, num_neighbors, a, N
 import time
 import copy
 import random
@@ -8,23 +8,42 @@ import random
 random.seed(rand_seed)
 
 def run_CGSP(master_prob, sub_problem, new_columns_to_add, feasibility_memo,
-             new_constraints, stats, status, forbidden_set):
+             new_constraints, stats, status, forbidden_set, NG):
     """Run Column Generation Subproblem once (dual extraction + dy_prog)."""
     dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle = master_prob.getDuals()
     if dual_values_delta is None:
         return None, feasibility_memo, stats["CG_DP_time"], status, new_columns_to_add, new_constraints
 
     start_2 = time.perf_counter()
-    if run_dp:
-        new_columns, feasibility_memo = sub_problem.dy_prog(
-            dual_values_delta, dual_values_subsidy, dual_values_IR,
-            dual_values_vehicle, feasibility_memo, stats["CG_iteration"] == 1
-        )
-    else:
+
+    new_columns, feasibility_memo = sub_problem.dy_prog_ng(
+        dual_values_delta, dual_values_subsidy, dual_values_IR,
+        dual_values_vehicle, feasibility_memo, stats["CG_iteration"] == 1, NG
+    )
+
+    # filter for elementary
+    new_columns = [
+        route
+        for route, rc in new_columns.items()
+        if len(set(route[1:-1])) == len(route[1:-1])
+    ]
+    
+    # certificate of ng optimality
+    new_columns_certificate = []
+    if not new_columns:
         cg_pctsp_obj = prize_collecting_tsp(None, forbidden_set, dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle)
-        new_columns = cg_pctsp_obj.cg_pctsp()
+        new_columns_certificate = cg_pctsp_obj.cg_pctsp()
+        #new_columns_certificate, feasibility_memo = sub_problem.dy_prog(
+        #    dual_values_delta, dual_values_subsidy, dual_values_IR,
+        #    dual_values_vehicle, feasibility_memo, stats["CG_iteration"] == 1
+        #)
 
+    # this means even though ng did not find column, we found columns in the certificate (which is exact dp or pctsp)
+    if new_columns_certificate:
+        print(f"\033[1mCertificate of optimality found {len(new_columns_certificate)} columns. Solution still not optimal.\033[0m")
+        new_columns.extend(new_columns_certificate)
 
+    
     stats["CG_DP_time"] += time.perf_counter() - start_2
 
     for array in new_columns:
@@ -59,7 +78,7 @@ def run_RGSP(master_prob, branching_arc, new_columns_to_add, new_constraints,
         start_lp = time.perf_counter()
         if initial:
             p_result, y_r_result, master_prob_model, status = master_prob.relaxedLP(
-                branching_arc, new_columns_to_add, new_constraints, True
+                branching_arc, new_columns_to_add, new_constraints
             )
         else:
             p_result, y_r_result, master_prob_model, status = master_prob.reduced_MIP(
@@ -106,6 +125,7 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None,
     stats = dict(CG_iteration=0, RG_iteration=0, RG_time=0, CG_time=0,
                  CG_DP_time=0, RG_DP_time=0, LP_time=0, num_lp=0)
     new_constraints = copy.deepcopy(parent_constraints) if (parent_constraints and not always_generate_rows) else set()
+    NG = build_NG(neighbors_k=num_neighbors, N_customers=[i for i in N if i not in ('s', 't')], dist=a)
     num_lp = 0
     master_prob = MasterProblem(forbidden_set)
     sub_problem = SubProblem(forbidden_set)
@@ -126,7 +146,7 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None,
 
             new_columns, feasibility_memo, stats["CG_DP_time"], status, new_columns_to_add, new_constraints = run_CGSP(
                 master_prob, sub_problem, new_columns_to_add, feasibility_memo,
-                new_constraints, stats, status, forbidden_set
+                new_constraints, stats, status, forbidden_set, NG
             )
 
             if not new_columns:  # stop if no new columns

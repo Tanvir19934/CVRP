@@ -5,10 +5,10 @@ from collections import defaultdict
 import re
 import copy
 import time
-from utils_new import ev_travel_cost, reconstruct_path, tsp_tour
+from utils_new import ev_travel_cost, reconstruct_path
 from config_new import (
     col_dp_cutoff, battery_threshold, N, V, Q_EV, q, a, w_dv, w_ev, theta, tol, num_EV, gamma, 
-    gamma_l, EV_velocity, GV_cost, unlimited_EV, dom_heuristic, rand_seed, best_obj, GV_cost, EV_cost
+    gamma_l, EV_velocity, GV_cost, unlimited_EV, timer, rand_seed, best_obj, GV_cost, EV_cost
 )
 import random
 random.seed(rand_seed)
@@ -74,24 +74,6 @@ class SubProblem:
             reduced_cost += -delta - IR # the dual value for vehicle is used at initial_resource_vector initializtion in dy_prog function
             return reduced_cost
 
-    def calculate_reduced_cost_old(self, route, dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle, DV=False, curr=None, ext=None):
-
-        reduced_cost = 0
-        delta_sum = [dual_values_delta[i] for i in route if i!=0]
-        if DV:
-            for i in range(0,len(route)-1):
-                reduced_cost += w_dv*a[(route[i],route[i+1])]
-            reduced_cost+=-sum(delta_sum)
-            return reduced_cost
-
-        for i in range(0,len(route)-1):
-            reduced_cost += w_ev*a[(route[i],route[i+1])]
-        reduced_cost+= (theta-dual_values_subsidy)*ev_travel_cost(route)
-        IR_sum = [dual_values_IR[i]* (a[(i,0)]*GV_cost*q[i]+a[(i,0)]*GV_cost) for i in route if i!=0]
-        reduced_cost += -sum(delta_sum) - sum(IR_sum) - dual_values_vehicle #(note the + sign for IR_sum)
-
-        return reduced_cost
-
     def label_domination_check(self, existing_label, current_label):
         """
         Check if existing_label dominates current_label.
@@ -130,28 +112,188 @@ class SubProblem:
 
         return le and lt
 
-
-    def label_domination_check_old(self, existing_label, current_label):
-
-        # Assume resource_vector = [res0, res1, res2, visited_set]
-
-        num_dims = 3
-        existing_res = existing_label.resource_vector
-        current_res   = current_label.resource_vector
-
-        # 1) Check numeric domination
-        numeric_le  = all(existing_res[i]  <= current_res[i]
-                        for i in range(num_dims))
-        numeric_lt  = any(existing_res[i]  <  current_res[i]
-                        for i in range(num_dims))
-
-
-        # 3) Combine them
-        if numeric_le and True and numeric_lt:
-            return True
-        else:
+    @staticmethod
+    def ng_label_dominates(existing_label, candidate_label, tol=1e-9):
+        """
+        Returns True iff existing_label dominates candidate_label at the SAME node
+        under NG-relaxation. Resource vector:
+        [reduced_cost, current_load, battery_consumed, S_ng]
+        where lower is better for all three numeric components.
+        Set comparison uses S_existing ⊆ S_candidate (and strict ⊂ allowed for lt).
+        """
+        if existing_label.node != candidate_label.node:
             return False
+
+        tol = 0
+        e_rc, e_load, e_batt, S_e = existing_label.resource_vector
+        c_rc, c_load, c_batt, S_c = candidate_label.resource_vector
+
+        # Non-worse in all dimensions (<= with tolerance)
+        le = (
+            e_rc   <= c_rc   + tol and
+            e_load <= c_load + tol and
+            e_batt <= c_batt + tol 
+            and S_e.issubset(S_c)
+        )
+
+        # Strictly better in at least one dimension
+        lt = (
+            e_rc   < c_rc   - tol or
+            e_load < c_load - tol or
+            e_batt < c_batt - tol 
+            or (S_e < S_c)  # proper subset
+        )
+
+        return le and lt
+
+
+    @staticmethod
+    def ng_block(current_S, next_node):
+        # Block revisiting only if next_node is in current NG memory
+        return next_node in current_S
     
+    @staticmethod
+    def ng_update(S, current_node, next_node, NG):
+        """
+        Projection/update rule:
+        S' = (S ∩ NG(next_node)) ∪ ({current_node} if current_node ∈ NG(next_node) else ∅) ∪ {next_node}
+        Use frozenset so labels hash/compare nicely.
+        """
+        S_proj = S & NG[next_node]
+        if current_node in NG[next_node]:
+            S_proj = S_proj | {current_node}
+        S_new = S_proj | {next_node}
+        return frozenset(S_new)
+
+    def dy_prog_ng(self, dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle,
+                feasibility_memo={}, IFB=False, NG=None):
+        U = []                   
+        L = defaultdict(list)     
+        N.extend(['s','t'])
+        start_node = 's'
+
+        # ---- initialize NG memory ----
+        init_S = frozenset()  # start with empty memory (depot not tracked)
+        initial_resource_vector = (-dual_values_vehicle, 0, 0, init_S)
+        initial_label = Label(start_node, initial_resource_vector, None)
+
+        heapq.heappush(U, initial_label)
+        print("\nExecuting CG DP (NG) ...\n")
+        neg_count = 0
+        start = time.perf_counter()
+
+        while U:
+            current_label = heapq.heappop(U)
+            current_node  = current_label.node
+
+            # ----- dominance check at current node (using NG) -----
+            is_dominated = False
+            for label in L[current_node]:
+                
+                # NG-aware dominance
+                if NG is None:
+                    # fallback to your original checker
+                    if self.label_domination_check(label, current_label):
+                        is_dominated = True
+                        break
+                else:
+                    if self.ng_label_dominates(label, current_label):
+                        is_dominated = True
+                        break
+
+            if not is_dominated:
+                # Store (so later arrivals can be compared against this)
+                heapq.heappush(L[current_node], current_label)
+
+                # ----- stop at sink -----
+                if current_node == 't':
+                    if current_label.resource_vector[0] < 0:
+                        neg_count += 1
+                    if IFB and neg_count >= col_dp_cutoff:
+                        break
+                    continue
+
+                # ----- neighbors to extend -----
+                neigh = list(set(N) - {current_node})
+                if current_node == 's':
+                    if 't' in neigh:
+                        neigh.remove('t')
+                else:
+                    if 's' in neigh:
+                        neigh.remove('s')
+
+                # reconstruct for reduced cost + memo keys (unchanged)
+                current_path = reconstruct_path(current_label)
+                current_path_load = sum(q[i] for i in current_path if i != 0)
+                rc, load, batt, S = current_label.resource_vector
+
+                for new_node in neigh:
+                    # Forbidden arcs remain
+                    c_conv = 0 if current_node in ('s','t') else current_node
+                    n_conv = 0 if new_node    in ('s','t') else new_node
+                    if (c_conv, n_conv) in self.forbidden_set:
+                        continue
+
+                    # ---- NG: block only if new_node is in current NG memory ----
+                    if NG is not None and self.ng_block(S, new_node):
+                        continue
+
+                    # Build new path for feasibility memo + reduced cost calc (unchanged)
+                    if new_node == 't':
+                        new_path = current_path + [0]
+                    else:
+                        new_path = current_path + [new_node]
+
+                    if tuple(new_path) in feasibility_memo:
+                        new_load, new_battery = feasibility_memo[tuple(new_path)]
+                    else:
+                        new_load, new_battery = self.feasibility_check(
+                            current_node, new_node, load, batt
+                        )
+                        if current_path_load != Q_EV and new_load is not None:
+                            feasibility_memo[tuple(new_path)] = (new_load, new_battery)
+
+                    if new_load is None:
+                        continue
+
+                    # ---- NG: update memory ----
+                    if NG is not None:
+                        S_new = self.ng_update(S, current_node, new_node, NG)
+                    else:
+                        # Elementary fallback: carry full visited set
+                        S_new = S | {new_node}  # (your original did union on visited)
+
+                    # Build new label
+                    new_label = Label(new_node, (0.0, new_load, new_battery, S_new), current_label)
+
+                    # Reduced cost calculation (unchanged)
+                    reduced_cost = self.calculate_reduced_cost(
+                        new_path, dual_values_delta, dual_values_subsidy, dual_values_IR,
+                        dual_values_vehicle, False, current_label, new_label
+                    )
+                    new_label.resource_vector = (reduced_cost, new_load, new_battery, S_new)
+                    heapq.heappush(U, new_label)
+                    if reduced_cost < -tol and new_node == 't':
+                        neg_count += 1
+
+            ng_dp_time = time.perf_counter() - start
+            
+            if ng_dp_time > timer or neg_count >= 10000 or (IFB and neg_count >= col_dp_cutoff):
+                break
+
+        # Gather negative columns at sink (unchanged)
+        sink_node = 't'
+        new_routes = {}
+        for item in L[sink_node]:
+            route = reconstruct_path(item)  # full path via predecessors
+            if len(route) != 3 and item.resource_vector[0] < 0 and abs(item.resource_vector[0]) > tol:
+                new_routes[tuple(route)] = item.resource_vector[0]
+
+        N.remove('s'); N.remove('t')
+
+        end = time.perf_counter()
+        print(f"CG DP time: {end-start:.2f} seconds")
+        return new_routes, feasibility_memo
 
     def dy_prog(self, dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle, feasibility_memo={}, IFB=False):
         # Initialize the sets of labels
@@ -228,8 +370,11 @@ class SubProblem:
                             heapq.heappush(U, new_label)
                             heapq.heappush(L[new_node], new_label)
                             if reduced_cost < -tol and new_node=='t':
-                                neg_count+=1        
-            if IFB and neg_count >= col_dp_cutoff:
+                                neg_count+=1   
+
+            dp_time = time.perf_counter() - start
+            
+            if dp_time > timer or neg_count >= 10000 or (IFB and neg_count >= col_dp_cutoff):
                 break
                              
         sink_node = 't'
@@ -247,9 +392,6 @@ class SubProblem:
 
         return new_routes, feasibility_memo
 
-    def cg_pc_tsp(self, dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle):
-        pass
-
 class MasterProblem:
 
     def __init__(self, forbidden=[]):
@@ -258,7 +400,7 @@ class MasterProblem:
         self.p = {}
         self.r_set = set(tuple([0, node, 0]) for node in V if node != 0)
 
-    def relaxedLP(self, branching_arc, extended_set, new_constraints = None, initial_lp=False) -> None:
+    def relaxedLP(self, branching_arc, extended_set, new_constraints = None) -> None:
 
         #override some config parameters
         q[0] = 0
@@ -326,8 +468,8 @@ class MasterProblem:
         self.model.write("/Users/tanvirkaisar/Library/CloudStorage/OneDrive-UniversityofSouthernCalifornia/CVRP/Codes/New_codes/master_prob.lp")
         self.model.optimize()
 
-        if self.model.Status == GRB.INFEASIBLE:
-            print("Model is infeasible; computing IIS...")
+        if self.model.status == GRB.INFEASIBLE:
+            print("Model is infeasible. Computing IIS...")
             self.model.computeIIS()
             self.model.write("/Users/tanvirkaisar/Library/CloudStorage/OneDrive-UniversityofSouthernCalifornia/CVRP/Codes/New_codes/master_prob_iis.ilp")
   

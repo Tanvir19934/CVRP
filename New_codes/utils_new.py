@@ -71,6 +71,22 @@ def reconstruct_path(label):
         path[-1]= 0
     return path
 
+def build_NG(neighbors_k, N_customers, dist):
+    """
+    neighbors_k: int, size k of NG(i)
+    N_customers: list of customer nodes (exclude 's','t')
+    dist[i][j]: distance or generalized metric used to define nearest neighbors
+    """
+    NG = {i: set() for i in N_customers + ['s','t']}
+    for i in N:
+        # pick k nearest among customers; always include i itself
+        knn = sorted([j for j in N_customers if j != i], key=lambda j: dist[i,j])[:neighbors_k-1]
+        NG[i] = set(knn) | {i}
+    # Depots: keep empty so they don't pollute memory
+    NG['s'] = set()
+    NG['t'] = set()
+    return NG
+
 def construct_tour(edges):
     next_node_map = {i: j for i, j in edges}
     # Start from any node (choosing the first node from the first edge)

@@ -483,30 +483,38 @@ class prize_collecting_tsp:
         print("\n Executing pctsp for CG... \n")
         self.m = self.pctsp()
         
-        # battery level variables
-        self.b = self.m.addVars(V + ['t'], vtype=GRB.CONTINUOUS, ub = 1, lb = 0, name="b")
+        # v_ij represents the fraction of usable battery consumed on arc (i,j)
+        self.v = self.m.addVars(V, V, vtype=GRB.CONTINUOUS, lb=0.0, ub = 1, name="v")
 
         # add arcs i → 't'. This is needed to track the remaining battery upon arrival at depot node 0 to avoid conflict with starting battery level at depot node 0
-        for i in N:
-            self.x[i, 't'] = self.m.addVar(vtype=GRB.BINARY, name=f"x[{i},t]")
+        #for i in N:
+        #    self.x[i, 't'] = self.m.addVar(vtype=GRB.BINARY, name=f"x[{i},t]")
 
         # make 't' and 0 equivalent
-        self.m.addConstrs(self.x[i,'t'] == self.x[i,0] for i in N)  
+        #self.m.addConstrs(self.x[i,'t'] == self.x[i,0] for i in N)  
 
-        # depot starts with full battery       
-        self.m.addConstr(self.b[0] == 1, name="DepotBatteryFull")  
-
-        # min battery at customers                        
-        self.m.addConstrs(self.b[i] >= battery_threshold for i in V + ['t'])  
-                 
-        # battery depletion
-        self.m.addConstrs(
-            self.b[j] <= self.b[i] - (a.get((i,j),a[i,0])/EV_velocity)*(gamma+gamma_l*self.f.get((i,j),self.f[i,0])) + (1-self.x[i,j])
-            for i in V for j in N + ['t'] if (i != j and not (i==0 and j=='t'))
-            )
-        
         # forbid certain arcs
         self.m.addConstrs((self.x[i, j] == 0 for (i, j) in self.forbidden_set), name="forbidden_arcs")
+                 
+        # battery initialization
+        self.m.addConstrs(self.v[0, j] == ((a[0,j]/EV_velocity)) * gamma * self.x[0, j] for j in N)
+
+        # Battery flow conservation
+        for i in N:
+            lhs = quicksum(self.v[i, j] for j in V if j != i) - quicksum(self.v[j, i] for j in V if j != i)
+            rhs = quicksum((a[i,j]/EV_velocity) * (gamma * self.x[i, j] + gamma_l * self.f[i, j])
+                        for j in V if j != i)
+            self.m.addConstr(lhs == rhs, name=f"BattFlow[{i}]")
+
+        # return battery requirement at depot
+        self.m.addConstrs(
+            (
+                self.v[i, j] + (a[j,0]/EV_velocity) * (gamma * self.x[i, j] + gamma_l * self.f[i, j])
+                <= (1 - battery_threshold) * self.x[i, j]            
+            )
+            for i in V for j in V if i != j
+        )
+
 
         # Objective
         self.m.setObjective(
@@ -514,15 +522,15 @@ class prize_collecting_tsp:
             + (theta-self.dual_values_subsidy)* quicksum(260*EV_cost*(a[i,j]/EV_velocity)*(gamma*self.x[i,j]+gamma_l*(self.f[i,j])) for i in N for j in V if i!=j) + (theta-self.dual_values_subsidy)*quicksum(260*EV_cost*(a[0,j]/EV_velocity)*gamma*self.x[0,j] for j in N)
             - quicksum(self.dual_values_delta[i]*self.y[i] for i in N)
             - self.dual_values_vehicle
-            - quicksum(self.dual_values_IR[i]*self.y[i]*(a[i,0]*GV_cost*q[i]+a[i,0]*GV_cost) for i in N)
-            - 0.0001*(self.b['t']),     # to encourage the correct battery level at depot, otherwise Gurobi may set it to artificially small value to reduce cost
+            - quicksum(self.dual_values_IR[i]*self.y[i]*(a[i,0]*GV_cost*q[i]+a[i,0]*GV_cost) for i in N),
+            #- 0.0001*(self.b['t']),     # to encourage the correct battery level at depot, otherwise Gurobi may set it to artificially small value to reduce cost
             GRB.MINIMIZE
         )
         self.m.update()
         
 
         # show/dont show log
-        self.m.Params.OutputFlag = 0
+        self.m.Params.OutputFlag = 1
     
         #self.m.Params.PoolSearchMode = 1     # find multiple solutions
         #self.m.Params.PoolSolutions = 100    # maximum number of solutions to keep
@@ -555,7 +563,7 @@ class prize_collecting_tsp:
                         current = nxt
 
                     if len(tour) > 3:
-                        results.append(tour)
+                        results.append(tuple(tour))
 
         return results
 
@@ -587,7 +595,7 @@ class prize_collecting_tsp:
         #self.m.Params.PoolSearchMode = 1
         #self.m.Params.PoolSolutions = 100
 
-        self.m.Params.OutputFlag = 0
+        self.m.Params.OutputFlag = 1
 
         self.m.optimize()
 

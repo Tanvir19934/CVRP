@@ -5,8 +5,8 @@ rand_seed = 111
 rnd.seed(42)
 
 
-NODES = 29
-num_neighbors = min(round(NODES*0.2),40)
+NODES = 100
+num_neighbors = min(round(NODES*0.2),10)
 SEARCH_MODE = "heap"
 run_dp = False
 k = min(round(NODES*0.5),2)
@@ -38,10 +38,10 @@ col_dp_cutoff = 1000
 
 #use_column_heuristic = False
 #always_generate_rows = True
-#use_column_heuristic = False
-#always_generate_rows = False
-use_column_heuristic = True
+use_column_heuristic = False
 always_generate_rows = False
+#use_column_heuristic = True
+#always_generate_rows = False
 
 dom_heuristic = False
 plot_enabled = 0

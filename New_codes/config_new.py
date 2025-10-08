@@ -5,8 +5,8 @@ rand_seed = 111
 rnd.seed(42)
 
 
-NODES = 20
-num_neighbors = min(round(NODES*0.5),10)
+NODES = 30
+num_neighbors = min(round(NODES*0.2),10)
 SEARCH_MODE = "heap"                                                         #options are: lifo, fifo, mixed, heap
 run_dp = False
 k = min(round(NODES*0.5),2)
@@ -19,7 +19,7 @@ yc[0]=0
 w_dv = 1.2
 w_ev = 1
 theta = 0.3
-tol = 1e-4
+tol = 1e-3
 N = [i for i in range(1,NODES+1)]                                            #set of customer nodes
 V = [0] + N                                                                  #set of all nodes (customer+depot)
 

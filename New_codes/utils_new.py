@@ -262,7 +262,7 @@ def update_plot(outer_iter, lp_gap, iterations, lp_gaps):
     plt.draw()
     plt.pause(0.01)  # Pause for smooth updating
 
-def make_stack(search_mode="fifo"):
+def make_stack(stack = [], search_mode="fifo"):
     """
     Create a stack structure based on the specified search mode.
     Returns
@@ -278,12 +278,10 @@ def make_stack(search_mode="fifo"):
         def pop():  return stack.popleft()
 
     elif search_mode == "heap":
-        stack = []
         def push(x): heapq.heappush(stack, x)
         def pop():  return heapq.heappop(stack)
 
     elif search_mode == "mixed":
-        stack = []
         def push(x): heapq.heappush(stack, x)
         def pop():
             # 80% best-first, 20% random (same behavior as before)
@@ -296,7 +294,6 @@ def make_stack(search_mode="fifo"):
             heapq.heapify(stack)
             return node
     elif search_mode == "lifo":
-        stack = []
         def push(x): stack.append(x)
         def pop():  return stack.pop()
     else:
@@ -487,13 +484,6 @@ class prize_collecting_tsp:
         # v_ij represents the fraction of usable battery consumed on arc (i,j)
         self.v = self.m.addVars(V, V, vtype=GRB.CONTINUOUS, lb=0.0, ub = 1, name="v")
 
-        # add arcs i → 't'. This is needed to track the remaining battery upon arrival at depot node 0 to avoid conflict with starting battery level at depot node 0
-        #for i in N:
-        #    self.x[i, 't'] = self.m.addVar(vtype=GRB.BINARY, name=f"x[{i},t]")
-
-        # make 't' and 0 equivalent
-        #self.m.addConstrs(self.x[i,'t'] == self.x[i,0] for i in N)  
-
         # forbid certain arcs
         self.m.addConstrs((self.x[i, j] == 0 for (i, j) in self.forbidden_set), name="forbidden_arcs")
                  
@@ -524,7 +514,6 @@ class prize_collecting_tsp:
             - quicksum(self.dual_values_delta[i]*self.y[i] for i in N)
             - self.dual_values_vehicle
             - quicksum(self.dual_values_IR[i]*self.y[i]*(a[i,0]*GV_cost*q[i]+a[i,0]*GV_cost) for i in N),
-            #- 0.0001*(self.b['t']),     # to encourage the correct battery level at depot, otherwise Gurobi may set it to artificially small value to reduce cost
             GRB.MINIMIZE
         )
         self.m.update()

@@ -95,7 +95,7 @@ def branching() -> None:
     root_node.model = root_master_prob_model
     root_node.constraints = root_constraints
 
-    stack, push, pop = make_stack(SEARCH_MODE)
+    stack, push, pop = make_stack(search_mode=SEARCH_MODE)
 
     def _process_child(status, obj_val, not_fractional, model, solution, node):
         """

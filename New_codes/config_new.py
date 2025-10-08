@@ -5,9 +5,9 @@ rand_seed = 111
 rnd.seed(42)
 
 
-NODES = 30
-num_neighbors = min(round(NODES*0.2),40)
-SEARCH_MODE = "heap"
+NODES = 20
+num_neighbors = min(round(NODES*0.5),10)
+SEARCH_MODE = "heap"                                                         #options are: lifo, fifo, mixed, heap
 run_dp = False
 k = min(round(NODES*0.5),2)
 grid_size = 50                                                               #number of clients
@@ -24,12 +24,12 @@ N = [i for i in range(1,NODES+1)]                                            #se
 V = [0] + N                                                                  #set of all nodes (customer+depot)
 
 # Demands and capacities
-Q_EV = 10                                                                      #capacity of each EV
-Q_GV = 10                                                                      #capacity of each GV
-max_load = 2 # takes 1 hr for 25 nodes
+Q_EV = 10                                                                    #capacity of each EV
+Q_GV = 10                                                                    #capacity of each GV
+#max_load = 2 # takes 1 hr for 25 nodes
 max_load = 7
 min_load = 1
-q = {i: rnd.randint(min_load,max_load) for i in N}                                         #demand for customers
+q = {i: rnd.randint(min_load,max_load) for i in N}                           #demand for customers
 total_dem = sum(q)                                                           #total demand
 
 #Other parameters

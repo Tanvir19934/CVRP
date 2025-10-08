@@ -476,6 +476,7 @@ class prize_collecting_tsp:
                 - quicksum(self.f[j, i] for j in V if j != i)
                 == q[i] * self.y[i]
             )
+        self.m.setParam('MIPGap', 0.001)
         self.m.update()
         return self.m
 

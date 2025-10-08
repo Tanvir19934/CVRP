@@ -40,6 +40,7 @@ def run_CGSP(master_prob, sub_problem, new_columns_to_add, feasibility_memo,
 
     # this means even though ng did not find column, we found columns in the certificate (which is exact dp or pctsp)
     if new_columns_certificate:
+        print(f"\033[1mCertificate of optimality found {len(new_columns_certificate)} columns. Solution still not optimal.\033[0m")
         new_columns.extend(new_columns_certificate)
 
     

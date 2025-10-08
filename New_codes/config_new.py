@@ -11,7 +11,7 @@ SEARCH_MODE = "heap"
 run_dp = False
 k = min(round(NODES*0.5),2)
 grid_size = 50                                                               #number of clients
-timer = 1000000 #min(round(NODES*1),30)
+timer = 10000000 #min(round(NODES*1),30)
 xc = np.random.uniform(low=- grid_size/2, high=grid_size/2, size=NODES+1)
 yc = np.random.uniform(low=-grid_size/2, high=grid_size/2, size= NODES+1)
 xc[0]=0
@@ -34,7 +34,7 @@ total_dem = sum(q)                                                           #to
 #Other parameters
 num_EV = math.ceil(NODES*0.3)
 unlimited_EV = False
-col_dp_cutoff = 1000
+col_dp_cutoff = 1000000000000000
 
 #use_column_heuristic = False
 #always_generate_rows = True

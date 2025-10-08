@@ -374,7 +374,7 @@ class SubProblem:
 
             dp_time = time.perf_counter() - start
             
-            if dp_time > timer or neg_count >= 10000 or (IFB and neg_count >= col_dp_cutoff):
+            if dp_time > timer or neg_count >= 100000000000 or (IFB and neg_count >= col_dp_cutoff):
                 break
                              
         sink_node = 't'

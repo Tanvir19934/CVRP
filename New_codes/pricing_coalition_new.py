@@ -31,12 +31,12 @@ def run_CGSP(master_prob, sub_problem, new_columns_to_add, feasibility_memo,
     # certificate of ng optimality
     new_columns_certificate = []
     if not new_columns:
-        cg_pctsp_obj = prize_collecting_tsp(None, forbidden_set, dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle)
-        new_columns_certificate = cg_pctsp_obj.cg_pctsp()
-        #new_columns_certificate, feasibility_memo = sub_problem.dy_prog(
-        #    dual_values_delta, dual_values_subsidy, dual_values_IR,
-        #    dual_values_vehicle, feasibility_memo, stats["CG_iteration"] == 1
-        #)
+        #cg_pctsp_obj = prize_collecting_tsp(None, forbidden_set, dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle)
+        #new_columns_certificate = cg_pctsp_obj.cg_pctsp()
+        new_columns_certificate, feasibility_memo = sub_problem.dy_prog(
+            dual_values_delta, dual_values_subsidy, dual_values_IR,
+            dual_values_vehicle, feasibility_memo
+        )
 
     # this means even though ng did not find column, we found columns in the certificate (which is exact dp or pctsp)
     if new_columns_certificate:

@@ -5,7 +5,7 @@ rand_seed = 111
 rnd.seed(42)
 
 
-NODES = 29
+NODES = 28
 num_neighbors = min(round(NODES*0.2),10)
 SEARCH_MODE = "heap"                                                         #options are: lifo, fifo, mixed, heap
 run_dp = False
@@ -35,7 +35,7 @@ total_dem = sum(q)                                                           #to
 #Other parameters
 num_EV = math.ceil(NODES*0.3)
 unlimited_EV = False
-col_dp_cutoff = 1000
+col_dp_cutoff = 100000000000
 
 #use_column_heuristic = False
 #always_generate_rows = True

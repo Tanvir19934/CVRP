@@ -277,9 +277,7 @@ class SubProblem:
                         neg_count += 1
 
             ng_dp_time = time.perf_counter() - start
-            
-            if ng_dp_time > timer or neg_count >= 10000 or (IFB and neg_count >= col_dp_cutoff):
-                break
+
 
         # Gather negative columns at sink (unchanged)
         sink_node = 't'

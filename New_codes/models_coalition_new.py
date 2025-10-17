@@ -371,9 +371,6 @@ class SubProblem:
                                 neg_count+=1   
 
             dp_time = time.perf_counter() - start
-            
-            if dp_time > timer or neg_count >= 100000000000 or (IFB and neg_count >= col_dp_cutoff):
-                break
                              
         sink_node = 't'
         new_routes = {}

@@ -573,6 +573,7 @@ class prize_collecting_tsp:
         Flow-based formulation (no big-M load variables).
         Collects all negative-valued solutions.
         """
+        print("\n Executing pctsp for RG... \n")
 
         # Map prizes to nodes
         prizes = {i: self.p_result.get(f"p_{i}", 0.0) for i in N}

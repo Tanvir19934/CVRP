@@ -142,6 +142,7 @@ def main():
             #"TSP cache time": [tsp_cache_time],
             "Total LP relaxation time": [Total_LP_time],
             "Root node time": [root_node_time],
+            "Root gap": [((obj-root_obj_val)/obj)*100],
             "Total execution time": [end-start],
             "Total number of LPs solved": [Total_num_lp],
             "code": [code]

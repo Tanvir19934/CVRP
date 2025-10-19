@@ -5,7 +5,7 @@ rand_seed = 111
 rnd.seed(42)
 
 
-NODES = 20
+NODES = 50
 num_neighbors = min(round(NODES*0.2),4)
 SEARCH_MODE = "heap"
 run_dp = False
@@ -48,7 +48,7 @@ plot_enabled = 0
 
 if unlimited_EV:
     num_EV = NODES
-num_clusters = int(0.5*(total_dem/(num_EV*Q_EV)))
+num_clusters = num_EV #int(0.5*(total_dem/(num_EV*Q_EV)))
 num_GV = len(N)
 num_TV = num_EV+num_GV
 K = [i for i in range(1,num_TV+1)]                                           #Set of all vehicles 

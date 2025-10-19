@@ -31,6 +31,17 @@ def ev_travel_cost(route):
     cost = 260*EV_cost*(1-b)
     return cost
 
+def battery_feasibility(route):
+    q[0]=0
+    b = 1
+    l = 0
+    for i in range(len(route)-1):
+        l+=q[route[i]]
+        b = b - (a[route[i],route[i+1]]/EV_velocity)*(gamma+gamma_l*l) 
+        if b < battery_threshold:
+            return False
+    return True
+
 def gv_tsp_cost(route):
     cost_GV = a[(route[0],route[1])]*GV_cost
     l = 0
@@ -140,7 +151,7 @@ def print_solution(final_model) -> None:
     print(f"Total miles cost (ev+dv): {total_dv_miles_traveled*w_dv + total_ev_miles_traveled*w_ev}")
     print(f"Total EV miles traveled: {total_ev_miles_traveled}")
     print(f"Total DV miles traveled: {total_dv_miles_traveled}")
-    print(f"Total mniles traveled: {total_dv_miles_traveled + total_ev_miles_traveled}")
+    print(f"Total miles traveled: {total_dv_miles_traveled + total_ev_miles_traveled}")
     print(f"Objective value: {final_model.getObjective().getValue()}")
     print(f"Objective value (manual): {total_dv_miles_traveled*w_dv + total_ev_miles_traveled*w_ev+theta*(sum(c_r.values())-sum(payments.values()))}")
     print("Total payment received:", sum(payments.values()))
@@ -320,7 +331,7 @@ def generate_all_possible_routes(N):
         all_routes.extend(generate_k_degree_coalition(N, item))
     
     return all_routes
-def tsp_tour(route):
+def tsp_tour(route, type='GV'):
     
     if len(route) == 3 and route[0]==0:
         return route, a[(0,route[1])]* GV_cost * q[route[1]] + a[(route[1],0)] * GV_cost
@@ -329,8 +340,16 @@ def tsp_tour(route):
     all_routes = [[0] + list(p) + [0] for p in permutations(intermediate_nodes)]
     routes_list = [tuple(all_routes) for all_routes in all_routes]
     route_cost = {}
-    for item in routes_list:
-        route_cost[tuple(item)] = gv_tsp_cost(item)
+    routes_list_copy = routes_list.copy()
+
+    for item in routes_list_copy:
+        if type=='EV':
+            if battery_feasibility(item):
+                route_cost[tuple(item)] = ev_travel_cost(item)
+            else:
+                routes_list.remove(item)
+        else:
+            route_cost[tuple(item)] = gv_tsp_cost(item)
 
     model = Model("TSP")
     x = model.addVars(routes_list, vtype=GRB.BINARY, name="x")

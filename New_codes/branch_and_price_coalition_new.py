@@ -76,7 +76,7 @@ def branching() -> None:
 
     [
         result, not_fractional, model, obj_val, status, CG_iteration, RG_iteration, RG_time, CG_time, 
-        CG_DP_time, RG_DP_time, LP_time, tsp_memo, feasibility_memo, global_tsp_memo, num_lp, right_constraints, columns
+        CG_DP_time, RG_DP_time, LP_time, tsp_memo, feasibility_memo, global_tsp_memo, num_lp, constraints, columns
     ] = unpack_result(
             column_generation(
             None, forbidden_set={}, tsp_memo=tsp_memo, L=None, feasibility_memo=feasibility_memo, global_tsp_memo=global_tsp_memo, 

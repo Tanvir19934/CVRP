@@ -473,14 +473,13 @@ class prize_collecting_tsp:
                 - quicksum(self.f[j, i] for j in V if j != i)
                 == q[i] * self.y[i]
             )
-        self.m.setParam('MIPGap', 0.001)
         self.m.update()
         return self.m
 
     def cg_pctsp(self):
         print("\n Executing pctsp for CG... \n")
         self.m = self.pctsp()
-        
+
         # v_ij represents the fraction of usable battery consumed on arc (i,j)
         self.v = self.m.addVars(V, V, vtype=GRB.CONTINUOUS, lb=0.0, ub = 1, name="v")
 
@@ -506,7 +505,6 @@ class prize_collecting_tsp:
             for i in V for j in V if i != j
         )
 
-
         # Objective
         self.m.setObjective(
             quicksum(w_ev*a[i,j]*self.x[i,j]  for i in V for j in V if i != j)   # base distance cost
@@ -514,47 +512,16 @@ class prize_collecting_tsp:
             - quicksum(self.dual_values_delta[i]*self.y[i] for i in N)
             - self.dual_values_vehicle
             - quicksum(self.dual_values_IR[i]*self.y[i]*(a[i,0]*GV_cost*q[i]+a[i,0]*GV_cost) for i in N),
+            #- 0.0001*(self.b['t']),     # to encourage the correct battery level at depot, otherwise Gurobi may set it to artificially small value to reduce cost
             GRB.MINIMIZE
         )
-        self.m.update()
         
-
         # show/dont show log
         self.m.Params.OutputFlag = 1
-    
         #self.m.Params.PoolSearchMode = 1     # find multiple solutions
         #self.m.Params.PoolSolutions = 100    # maximum number of solutions to keep
-
-
-        self.m.optimize()
-        if self.m.Status == GRB.INFEASIBLE:
-            print("Model is infeasible; computing IIS...")
-            self.m.computeIIS()
-            self.m.write("model.ilp")
-
-        results = []
-
-        if self.m.SolCount > 0:
-            for k in range(self.m.SolCount):
-                self.m.setParam(GRB.Param.SolutionNumber, k)    # Select solution k
-                obj_val = self.m.PoolObjVal
-                if obj_val < -tol and abs(obj_val) > 0.001:
-                    # Extract tour
-                    tour = [0]
-                    current = 0
-                    while True:
-                        next_nodes = [j for j in V if j != current and self.x[current, j].Xn > 0.5]  # Use Xn for solution pool
-                        if not next_nodes:
-                            break
-                        nxt = next_nodes[0]
-                        tour.append(nxt)
-                        if nxt == 0:
-                            break
-                        current = nxt
-
-                    if len(tour) > 3:
-                        results.append(tuple(tour))
-
+        self.update_optimize_check_feasibility(self.m, iis_path="model.ilp")
+        results = self.extract_solution_pool_tours(self.m, V, self.x)
         return results
 
     def rg_pctsp(self):
@@ -563,13 +530,13 @@ class prize_collecting_tsp:
         Flow-based formulation (no big-M load variables).
         Collects all negative-valued solutions.
         """
+        print("\n Executing pctsp (arc-based) for RG... \n")
 
         # Map prizes to nodes
         prizes = {i: self.p_result.get(f"p_{i}", 0.0) for i in N}
         prizes[0] = 0.0  # depot has no prize
 
         self.m = self.pctsp()
-
 
         # Objective = base distance cost + load*distance cost – collected prizes
         self.m.setObjective(
@@ -578,42 +545,125 @@ class prize_collecting_tsp:
             - quicksum(prizes[i] * self.y[i] for i in V),                                # collected prizes
             GRB.MINIMIZE
         )
+        
+        self.m.Params.OutputFlag = 1
 
-        self.m.update()
-
-        # Allow Gurobi to search for multiple solutions
-        self.m.setParam("OutputFlag", 1)
-
-        self.m.Params.OutputFlag = 0
-
-        self.m.optimize()
-
-        results = []
-
-        if self.m.SolCount > 0:
-            for k in range(self.m.SolCount):
-                self.m.setParam(GRB.Param.SolutionNumber, k)
-                obj_val = self.m.PoolObjVal
-                if (obj_val < -tol and abs(obj_val) > 0.001):
-                    # Extract tour
-                    tour = [0]
-                    current = 0
-                    while True:
-                        next_nodes = [j for j in V if j != current and self.x[current, j].Xn > 0.5]
-                        if not next_nodes:
-                            break
-                        nxt = next_nodes[0]
-                        tour.append(nxt)
-                        if nxt == 0:
-                            break
-                        current = nxt
-
-                    travel_cost = gv_tsp_cost(tour)
-                    collected_prizes = sum(prizes[i] for i in tour) 
-
-                    results.append((tour, obj_val, travel_cost, collected_prizes))
+        self.update_optimize_check_feasibility(self.m, iis_path="model.ilp")
+        results = self.extract_solution_pool_tours(
+            self.m, V, self.x,
+            compute_details=True,
+            cost_func=gv_tsp_cost,
+            prizes=prizes
+        )
 
         return results
+
+    def cg_pctsp_node_based(self):
+        """
+        Prize-Collecting TSP with load-dependent travel costs.
+        Node-based formulation (big-M load variables).
+        Collects all negative-valued solutions.
+        """
+        print("\n Executing pctsp (node-based) for CG... \n")
+
+        self.m = self.pctsp()
+        self.b = self.m.addVars(V + ['t'], vtype=GRB.CONTINUOUS, ub = 1, lb = 0, name="b")         # battery level
+        self.m.addConstr(self.b[0] == 1, name="DepotBatteryFull")                          # depot starts with full battery
+        self.m.addConstrs(self.b[i] >= battery_threshold for i in V + ['t'])                       # min battery at customers
+        self.m.addConstrs(
+            self.b[j] <= self.b[i] - (a.get((i,j),a[i,0])/EV_velocity)*(gamma+gamma_l*self.f.get((i,j),self.f[i,0])) + (1-self.x[i,j])
+            for i in V for j in N + ['t'] if (i != j and (i!=0 and j!='t'))
+            )  # battery depletion
+        
+        self.m.setObjective(
+            quicksum(w_ev*a[i,j]*self.x[i,j]  for i in V for j in V if i != j)   # base distance cost
+            + (theta-self.dual_values_subsidy)* quicksum(260*EV_cost*(a[i,j]/EV_velocity)*(gamma+gamma_l*(self.f[i,j])) for i in V for j in V if i != j)
+            - quicksum(self.dual_values_delta[i]*self.y[i] for i in N)
+            - self.dual_values_vehicle
+            - quicksum(self.dual_values_IR[i]*self.y[i]* (a[i,0]*GV_cost*q[i]+a[i,0]*GV_cost) for i in N)
+            + - tol*(self.b['t']),     # to encourage the correct battery level at depot, otherwise Gurobi may set it to artificially small value to reduce cost
+            GRB.MINIMIZE
+        )
+        
+        self.m.setParam("OutputFlag", 1)
+
+        self.update_optimize_check_feasibility(self.m, iis_path="model.ilp")
+        results = self.extract_solution_pool_tours(self.m, V, self.x)
+        return results
+
+    @staticmethod
+    def extract_solution_pool_tours(model, V, x, tol=1e-6,
+                                    compute_details=False,
+                                    cost_func=None,
+                                    prizes=None):
+        """
+        Extract tours from Gurobi solution pool.
+
+        Parameters
+        ----------
+        model : gurobipy.Model
+            The solved model.
+        V : iterable
+            Set/list of nodes.
+        x : dict or tuple-indexed Gurobi Var
+            Edge decision variables (x[i, j]).
+        tol : float, optional
+            Tolerance for positive edge selection (default = 1e-6).
+        compute_details : bool, optional
+            If True, also compute (travel_cost, collected_prizes) for each tour.
+        cost_func : callable, optional
+            Function like gv_tsp_cost(tour), required if compute_details=True.
+        prizes : dict, optional
+            Node → prize mapping, required if compute_details=True.
+
+        Returns
+        -------
+        results : list
+            If compute_details=False: [(tour,), ...]
+            If compute_details=True:  [(tour, obj_val, travel_cost, collected_prizes), ...]
+        """
+        results = []
+
+        if model.SolCount == 0:
+            return results
+
+        for k in range(model.SolCount):
+            model.setParam(GRB.Param.SolutionNumber, k)
+            obj_val = model.PoolObjVal
+
+            if obj_val < -tol and abs(obj_val) > 0.001:
+                tour = [0]
+                current = 0
+
+                while True:
+                    next_nodes = [j for j in V if j != current and x[current, j].Xn > 0.5]
+                    if not next_nodes:
+                        break
+                    nxt = next_nodes[0]
+                    tour.append(nxt)
+                    if nxt == 0:
+                        break
+                    current = nxt
+
+                if len(tour) > 3:
+                    if compute_details:
+                        travel_cost = cost_func(tour) if cost_func else None
+                        collected_prizes_val = sum(prizes[i] for i in tour) if prizes else None
+                        results.append((tour, obj_val, travel_cost, collected_prizes_val))
+                    else:
+                        results.append(tuple(tour))
+
+        return results
+
+    @staticmethod
+    def update_optimize_check_feasibility(model, iis_path="model.ilp"):
+        model.update()
+        model.optimize()
+        if model.status == GRB.INFEASIBLE:
+            print("Model is infeasible. Computing IIS...")
+            model.computeIIS()
+            model.write(iis_path)
+            print(f"IIS written to {iis_path}")
 
 @dataclass
 class CGResult:

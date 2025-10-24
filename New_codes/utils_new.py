@@ -451,10 +451,10 @@ def create_excel_for_log_file(log_file):
 
     print(f"Data successfully saved to {excel_filename}")
 
-def compute_bigM(a_ij, c_e, v_e, gamma_o, gamma_l, max_load=10, eps=1e-3):
+def compute_bigM(a_ij, c_e, v_e, gamma_o, gamma_l, max_load, eps):
     C_max = max((c_e * a / v_e) * (gamma_o + gamma_l * max_load) for a in a_ij.values())
     return (1 - eps) + C_max
-big_M = compute_bigM(a, c_e=EV_cost, v_e=EV_velocity, gamma_o=gamma, gamma_l=gamma_l, max_load=10, eps=battery_threshold)
+big_M = compute_bigM(a, c_e=EV_cost, v_e=EV_velocity, gamma_o=gamma, gamma_l=gamma_l, max_load=Q_EV, eps=battery_threshold)
 
 class prize_collecting_tsp:
     def __init__(self, p_result=None, forbidden_set=None, dual_values_delta=None, dual_values_subsidy=None, dual_values_IR=None, dual_values_vehicle=None):
@@ -540,7 +540,6 @@ class prize_collecting_tsp:
             - quicksum(self.dual_values_delta[i]*self.y[i] for i in N)
             - self.dual_values_vehicle
             - quicksum(self.dual_values_IR[i]*self.y[i]*(a[i,0]*GV_cost*q[i]+a[i,0]*GV_cost) for i in N),
-            #- 0.0001*(self.b['t']),     # to encourage the correct battery level at depot, otherwise Gurobi may set it to artificially small value to reduce cost
             GRB.MINIMIZE
         )
         
@@ -605,11 +604,11 @@ class prize_collecting_tsp:
         
         self.m.setObjective(
             quicksum(w_ev*a[i,j]*self.x[i,j]  for i in V for j in V if i != j)   # base distance cost
-            + (theta-self.dual_values_subsidy)* quicksum(260*EV_cost*(a[i,j]/EV_velocity)*(gamma+gamma_l*(self.f[i,j])) for i in V for j in V if i != j)
+            + (theta-self.dual_values_subsidy)* quicksum(260*EV_cost*(a[i,j]/EV_velocity)*(gamma*self.x[i,j]+gamma_l*(self.f[i,j])) for i in N for j in V if i!=j) + (theta-self.dual_values_subsidy)*quicksum(260*EV_cost*(a[0,j]/EV_velocity)*gamma*self.x[0,j] for j in N)
             - quicksum(self.dual_values_delta[i]*self.y[i] for i in N)
             - self.dual_values_vehicle
             - quicksum(self.dual_values_IR[i]*self.y[i]* (a[i,0]*GV_cost*q[i]+a[i,0]*GV_cost) for i in N)
-            + - tol*(self.b['t']),     # to encourage the correct battery level at depot, otherwise Gurobi may set it to artificially small value to reduce cost
+            + - tol*0.001*(self.b['t']),     # to encourage the correct battery level at depot, otherwise Gurobi may set it to artificially small value to reduce cost
             GRB.MINIMIZE
         )
         

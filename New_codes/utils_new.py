@@ -429,6 +429,11 @@ def create_excel_for_log_file(log_file):
 
     print(f"Data successfully saved to {excel_filename}")
 
+def compute_bigM(a_ij, c_e, v_e, gamma_o, gamma_l, max_load=10, eps=1e-3):
+    C_max = max((c_e * a / v_e) * (gamma_o + gamma_l * max_load) for a in a_ij.values())
+    return (1 - eps) + C_max
+big_M = compute_bigM(a, c_e=EV_cost, v_e=EV_velocity, gamma_o=gamma, gamma_l=gamma_l, max_load=10, eps=battery_threshold)
+
 class prize_collecting_tsp:
     def __init__(self, p_result=None, forbidden_set=None, dual_values_delta=None, dual_values_subsidy=None, dual_values_IR=None, dual_values_vehicle=None):
         self.p_result = p_result
@@ -437,6 +442,7 @@ class prize_collecting_tsp:
         self.dual_values_subsidy = dual_values_subsidy
         self.dual_values_IR = dual_values_IR
         self.dual_values_vehicle = dual_values_vehicle
+        self.big_M = big_M
 
     def pctsp(self):
         # Decision variables
@@ -571,7 +577,7 @@ class prize_collecting_tsp:
         self.m.addConstr(self.b[0] == 1, name="DepotBatteryFull")                          # depot starts with full battery
         self.m.addConstrs(self.b[i] >= battery_threshold for i in V + ['t'])                       # min battery at customers
         self.m.addConstrs(
-            self.b[j] <= self.b[i] - (a.get((i,j),a[i,0])/EV_velocity)*(gamma+gamma_l*self.f.get((i,j),self.f[i,0])) + (1-self.x[i,j])
+            self.b[j] <= self.b[i] - (a.get((i,j),a[i,0])/EV_velocity)*(gamma+gamma_l*self.f.get((i,j),self.f[i,0])) + self.big_M * (1-self.x[i,j])
             for i in V for j in N + ['t'] if (i != j and (i!=0 and j!='t'))
             )  # battery depletion
         

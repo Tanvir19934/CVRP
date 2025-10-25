@@ -7,12 +7,11 @@ import random
 
 random.seed(rand_seed)
 
-def run_CGSP(master_prob, sub_problem, new_columns_to_add, feasibility_memo,
-             new_constraints, stats, status, forbidden_set, NG):
+def run_CGSP(master_prob, sub_problem, new_columns_to_add, feasibility_memo, stats, status, forbidden_set, NG):
     """Run Column Generation Subproblem once (dual extraction + dy_prog)."""
     dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle = master_prob.getDuals()
     if dual_values_delta is None:
-        return None, feasibility_memo, stats["CG_DP_time"], status, new_columns_to_add, new_constraints
+        return None, feasibility_memo, stats["CG_DP_time"], status, new_columns_to_add
 
     start_2 = time.perf_counter()
 
@@ -32,8 +31,8 @@ def run_CGSP(master_prob, sub_problem, new_columns_to_add, feasibility_memo,
     new_columns_certificate = []
     if not new_columns:
         cg_pctsp_obj = prize_collecting_tsp(None, forbidden_set, dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle)
-        #new_columns_certificate = cg_pctsp_obj.cg_pctsp()
-        new_columns_certificate = cg_pctsp_obj.cg_pctsp_node_based()
+        new_columns_certificate = cg_pctsp_obj.cg_pctsp()
+        #new_columns_certificate = cg_pctsp_obj.cg_pctsp_node_based()
         #new_columns_certificate, feasibility_memo = sub_problem.dy_prog(
         #    dual_values_delta, dual_values_subsidy, dual_values_IR,
         #    dual_values_vehicle, feasibility_memo
@@ -49,7 +48,7 @@ def run_CGSP(master_prob, sub_problem, new_columns_to_add, feasibility_memo,
     for array in new_columns:
         new_columns_to_add.add(tuple(array))
 
-    return new_columns, feasibility_memo, stats["CG_DP_time"], status, new_columns_to_add, new_constraints
+    return new_columns, feasibility_memo, stats["CG_DP_time"], status, new_columns_to_add
 
 
 def apply_column_heuristic(new_columns_to_add, global_tsp_memo, new_constraints):
@@ -146,9 +145,9 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None,
                 stats, tsp_memo, feasibility_memo, global_tsp_memo
             )
 
-            new_columns, feasibility_memo, stats["CG_DP_time"], status, new_columns_to_add, new_constraints = run_CGSP(
+            new_columns, feasibility_memo, stats["CG_DP_time"], status, new_columns_to_add = run_CGSP(
                 master_prob, sub_problem, new_columns_to_add, feasibility_memo,
-                new_constraints, stats, status, forbidden_set, NG
+                stats, status, forbidden_set, NG
             )
 
             if not new_columns:  # stop if no new columns
@@ -179,9 +178,9 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None,
                     new_constraints=new_constraints, **stats
                 )
 
-            new_columns, feasibility_memo, stats["CG_DP_time"], status, new_columns_to_add, new_constraints = run_CGSP(
+            new_columns, feasibility_memo, stats["CG_DP_time"], status, new_columns_to_add = run_CGSP(
                 master_prob, sub_problem, new_columns_to_add, feasibility_memo, 
-                new_constraints, stats, status, forbidden_set, NG
+                stats, status, forbidden_set, NG
                 )
 
             if not new_columns:

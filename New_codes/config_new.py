@@ -5,7 +5,7 @@ rand_seed = 111
 rnd.seed(42)
 
 
-NODES = 27
+NODES = 25
 num_neighbors = min(round(NODES*0.2),10)
 SEARCH_MODE = "heap"                                                         #options are: lifo, fifo, mixed, heap
 run_dp = False

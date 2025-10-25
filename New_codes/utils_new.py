@@ -451,10 +451,10 @@ def create_excel_for_log_file(log_file):
 
     print(f"Data successfully saved to {excel_filename}")
 
-def compute_bigM(a_ij, c_e, v_e, gamma_o, gamma_l, max_load, eps):
+def compute_bigM(a_ij, c_e, v_e, gamma_o, gamma_l, max_load=10, eps=1e-3):
     C_max = max((c_e * a / v_e) * (gamma_o + gamma_l * max_load) for a in a_ij.values())
     return (1 - eps) + C_max
-big_M = compute_bigM(a, c_e=EV_cost, v_e=EV_velocity, gamma_o=gamma, gamma_l=gamma_l, max_load=Q_EV, eps=battery_threshold)
+big_M = compute_bigM(a, c_e=EV_cost, v_e=EV_velocity, gamma_o=gamma, gamma_l=gamma_l, max_load=max_load, eps=battery_threshold)
 
 class prize_collecting_tsp:
     def __init__(self, p_result=None, forbidden_set=None, dual_values_delta=None, dual_values_subsidy=None, dual_values_IR=None, dual_values_vehicle=None):
@@ -514,11 +514,6 @@ class prize_collecting_tsp:
         # forbid certain arcs
         self.m.addConstrs((self.x[i, j] == 0 for (i, j) in self.forbidden_set), name="forbidden_arcs")
                  
-        # Link energy flow to arc usage: prevents "phantom" battery flow on unused arcs
-        # (v_ij = 0 if x_ij = 0; ensures battery consumption only occurs along active routes)
-        self.m.addConstrs(self.v[i,j] <= (1 - battery_threshold) * self.x[i,j]
-                        for i in V for j in V if i != j)
-
         # battery initialization
         self.m.addConstrs(self.v[0, j] == ((a[0,j]/EV_velocity)) * gamma * self.x[0, j] for j in N)
 
@@ -528,6 +523,11 @@ class prize_collecting_tsp:
             rhs = quicksum((a[i,j]/EV_velocity) * (gamma * self.x[i, j] + gamma_l * self.f[i, j])
                         for j in V if j != i)
             self.m.addConstr(lhs == rhs, name=f"BattFlow[{i}]")
+
+        # Link energy flow to arc usage: prevents "phantom" battery flow on unused arcs
+        # (v_ij = 0 if x_ij = 0; ensures battery consumption only occurs along active routes)
+        self.m.addConstrs(self.v[i,j] <= (1 - battery_threshold) * self.x[i,j]
+                        for i in V for j in V if i != j)
 
         # return battery requirement at depot
         self.m.addConstrs(
@@ -603,14 +603,13 @@ class prize_collecting_tsp:
         self.m.addConstr(self.b[0] == 1, name="DepotBatteryFull")                          # depot starts with full battery
         self.m.addConstrs(self.b[i] >= battery_threshold for i in V + ['t'])                       # min battery at customers
         self.m.addConstrs(
-            self.b[j] <= self.b[i] - (a.get((i,j),a[i,0])/EV_velocity)*(gamma+gamma_l*self.f.get((i,j),self.f[i,0])) + self.big_M * (1-self.x[i,j])
+            self.b[j] <= self.b[i] - (a.get((i,j),a[i,0])/EV_velocity)*(gamma*self.x[i,j]+gamma_l*self.f.get((i,j),self.f[i,0])) + self.big_M * (1-self.x[i,j])
             for i in V for j in N + ['t'] if (i != j and (i!=0 and j!='t'))
             )  # battery depletion
         
         self.m.setObjective(
             quicksum(w_ev*a[i,j]*self.x[i,j]  for i in V for j in V if i != j)   # base distance cost
-            + (theta-self.dual_values_subsidy)* quicksum(260*EV_cost*(a[i,j]/EV_velocity)*(gamma*self.x[i,j]+gamma_l*(self.f[i,j])) for i in N for j in V if i!=j) + (theta-self.dual_values_subsidy)*quicksum(260*EV_cost*(a[0,j]/EV_velocity)*gamma*self.x[0,j] for j in N)
-            - quicksum(self.dual_values_delta[i]*self.y[i] for i in N)
+            + (theta-self.dual_values_subsidy)* quicksum(260*EV_cost*(a[i,j]/EV_velocity)*(gamma*self.x[i,j]+gamma_l*(self.f[i,j])) for i in V for j in V if i != j)
             - self.dual_values_vehicle
             - quicksum(self.dual_values_IR[i]*self.y[i]* (a[i,0]*GV_cost*q[i]+a[i,0]*GV_cost) for i in N)
             + - tol*0.001*(self.b['t']),     # to encourage the correct battery level at depot, otherwise Gurobi may set it to artificially small value to reduce cost

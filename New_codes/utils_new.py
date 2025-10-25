@@ -432,7 +432,7 @@ def create_excel_for_log_file(log_file):
 def compute_bigM(a_ij, c_e, v_e, gamma_o, gamma_l, max_load=10, eps=1e-3):
     C_max = max((c_e * a / v_e) * (gamma_o + gamma_l * max_load) for a in a_ij.values())
     return (1 - eps) + C_max
-big_M = compute_bigM(a, c_e=EV_cost, v_e=EV_velocity, gamma_o=gamma, gamma_l=gamma_l, max_load=max_load, eps=battery_threshold)
+big_M = compute_bigM(a, c_e=EV_cost, v_e=EV_velocity, gamma_o=gamma, gamma_l=gamma_l, max_load=Q_EV eps=battery_threshold)
 
 class prize_collecting_tsp:
     def __init__(self, p_result=None, forbidden_set=None, dual_values_delta=None, dual_values_subsidy=None, dual_values_IR=None, dual_values_vehicle=None):

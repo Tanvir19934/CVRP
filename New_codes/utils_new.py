@@ -514,6 +514,11 @@ class prize_collecting_tsp:
         # forbid certain arcs
         self.m.addConstrs((self.x[i, j] == 0 for (i, j) in self.forbidden_set), name="forbidden_arcs")
                  
+        # Link energy flow to arc usage: prevents "phantom" battery flow on unused arcs
+        # (v_ij = 0 if x_ij = 0; ensures battery consumption only occurs along active routes)
+        self.m.addConstrs(self.v[i,j] <= (1 - battery_threshold) * self.x[i,j]
+                        for i in V for j in V if i != j)
+
         # battery initialization
         self.m.addConstrs(self.v[0, j] == ((a[0,j]/EV_velocity)) * gamma * self.x[0, j] for j in N)
 

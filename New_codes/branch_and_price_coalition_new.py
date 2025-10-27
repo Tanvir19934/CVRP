@@ -7,8 +7,6 @@ import time
 import random
 from utils_new import (
     print_solution, save_to_excel, print_metadata, unpack_result,
-
-    
     generate_tsp_cache, code_status, validate_solution
     )
 import pandas as pd

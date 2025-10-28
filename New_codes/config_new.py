@@ -5,7 +5,7 @@ rand_seed = 111
 rnd.seed(42)
 
 
-NODES = 150
+NODES = 15
 num_neighbors = min(round(NODES*0.2),4)
 SEARCH_MODE = "heap"
 run_dp = False

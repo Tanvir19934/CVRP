@@ -541,7 +541,7 @@ class prize_collecting_tsp:
         # Objective
         self.m.setObjective(
             quicksum(w_ev*a[i,j]*self.x[i,j]  for i in V for j in V if i != j)   # base distance cost
-            + (theta-self.dual_values_subsidy)* quicksum(260*EV_cost*(a[i,j]/EV_velocity)*(gamma*self.x[i,j]+gamma_l*(self.f[i,j])) for i in N for j in V if i!=j) + (theta-self.dual_values_subsidy)*quicksum(260*EV_cost*(a[0,j]/EV_velocity)*gamma*self.x[0,j] for j in N)
+            + (theta-self.dual_values_subsidy)* quicksum(260*EV_cost*(a[i,j]/EV_velocity)*(gamma*self.x[i,j]+gamma_l*(self.f[i,j])) for i in V for j in V if i != j)
             - quicksum(self.dual_values_delta[i]*self.y[i] for i in N)
             - self.dual_values_vehicle
             - quicksum(self.dual_values_IR[i]*self.y[i]*(a[i,0]*GV_cost*q[i]+a[i,0]*GV_cost) for i in N),
@@ -611,11 +611,12 @@ class prize_collecting_tsp:
             quicksum(w_ev*a[i,j]*self.x[i,j]  for i in V for j in V if i != j)   # base distance cost
             + (theta-self.dual_values_subsidy)* quicksum(260*EV_cost*(a[i,j]/EV_velocity)*(gamma*self.x[i,j]+gamma_l*(self.f[i,j])) for i in V for j in V if i != j)
             - self.dual_values_vehicle
+            - quicksum(self.dual_values_delta[i]*self.y[i] for i in N)
             - quicksum(self.dual_values_IR[i]*self.y[i]* (a[i,0]*GV_cost*q[i]+a[i,0]*GV_cost) for i in N)
             + - tol*0.001*(self.b['t']),     # to encourage the correct battery level at depot, otherwise Gurobi may set it to artificially small value to reduce cost
             GRB.MINIMIZE
         )
-        
+
         self.m.setParam("OutputFlag", 1)
 
         self.update_optimize_check_feasibility(self.m, iis_path="model.ilp")

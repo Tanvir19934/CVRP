@@ -207,7 +207,10 @@ class prize_collecting_tsp:
             self.b[j] <= self.b[i] - (a.get((i,j),a[i,0])/EV_velocity)*(gamma*self.x[i,j]+gamma_l*self.f.get((i,j),self.f[i,0])) + self.big_M * (1-self.x[i,j])
             for i in V for j in N + ['t'] if (i != j and (i!=0 and j!='t'))
             )  # battery depletion
-        
+
+        # forbid certain arcs
+        self.m.addConstrs((self.x[i, j] == 0 for (i, j) in self.forbidden_set), name="forbidden_arcs")
+
         self.m.setObjective(
             quicksum(w_ev*a[i,j]*self.x[i,j]  for i in V for j in V if i != j)   # base distance cost
             + (theta-self.dual_values_subsidy)* quicksum(260*EV_cost*(a[i,j]/EV_velocity)*(gamma*self.x[i,j]+gamma_l*(self.f[i,j])) for i in V for j in V if i != j)

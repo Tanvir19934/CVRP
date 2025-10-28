@@ -192,58 +192,40 @@ class prize_collecting_tsp:
         return results
 
     def cg_pctsp_node_based(self):
+        """
+        Prize-Collecting TSP with load-dependent travel costs.
+        Node-based formulation (big-M load variables).
+        Collects all negative-valued solutions.
+        """
         print("\n Executing pctsp (node-based) for CG... \n")
+
         self.m = self.pctsp()
-
-        # Battery at nodes (remove 't')
-        self.b = self.m.addVars(V, vtype=GRB.CONTINUOUS, lb=0.0, ub=1.0, name="b")
-        self.m.addConstr(self.b[0] == 1.0, name="DepotBatteryFull")
-
-        # Conditional minimum battery only if node is visited
-        self.m.addConstrs(self.b[i] >= battery_threshold * self.y[i] for i in V)
-
-        # Precompute per-arc consumption (only for defined arcs i!=j)
-        def cons(i, j):
-            return (a[i, j] / EV_velocity) * (gamma * self.x[i, j] + gamma_l * self.f[i, j])
-
-        # Big-M
-        M = self.big_M 
-
-        # Enforce battery transition equality via two inequalities
+        self.b = self.m.addVars(V + ['t'], vtype=GRB.CONTINUOUS, ub = 1, lb = 0, name="b")         # battery level
+        self.m.addConstr(self.b[0] == 1, name="DepotBatteryFull")                          # depot starts with full battery
+        self.m.addConstrs(self.b[i] >= battery_threshold for i in V + ['t'])                       # min battery at customers
         self.m.addConstrs(
-            (self.b[j] <= self.b[i] - cons(i, j) + M * (1 - self.x[i, j]))
-            for i in V for j in V if i != j
-        )
-        self.m.addConstrs(
-            (self.b[j] >= self.b[i] - cons(i, j) - M * (1 - self.x[i, j]))
-            for i in V for j in V if i != j
-        )
+            self.b[j] <= self.b[i] - (a.get((i,j),a[i,0])/EV_velocity)*(gamma*self.x[i,j]+gamma_l*self.f.get((i,j),self.f[i,0])) + self.big_M * (1-self.x[i,j])
+            for i in V for j in N + ['t'] if (i != j and (i!=0 and j!='t'))
+            )  # battery depletion
 
-        # Return-to-depot feasibility: if i->0 is used, battery after that leg >= threshold
-        self.m.addConstrs(
-            ( self.b[i] - (a[i,0]/EV_velocity) * (gamma * self.x[i,0] + gamma_l * self.f[i,0])
-            >= battery_threshold - M * (1 - self.x[i,0]) )
-            for i in V if i != 0
-        )
+        # forbid certain arcs
+        self.m.addConstrs((self.x[i, j] == 0 for (i, j) in self.forbidden_set), name="forbidden_arcs")
 
-        # Objective (same as cg_pctsp, no b['t'] term)
         self.m.setObjective(
-            quicksum(w_ev * a[i, j] * self.x[i, j] for i in V for j in V if i != j)
-            + (theta - self.dual_values_subsidy) * quicksum(
-                260 * EV_cost * (a[i, j] / EV_velocity) * (gamma * self.x[i, j] + gamma_l * self.f[i, j])
-                for i in V for j in V if i != j
-            )
-            - quicksum(self.dual_values_delta[i] * self.y[i] for i in N)
+            quicksum(w_ev*a[i,j]*self.x[i,j]  for i in V for j in V if i != j)   # base distance cost
+            + (theta-self.dual_values_subsidy)* quicksum(260*EV_cost*(a[i,j]/EV_velocity)*(gamma*self.x[i,j]+gamma_l*(self.f[i,j])) for i in V for j in V if i != j)
             - self.dual_values_vehicle
-            - quicksum(self.dual_values_IR[i] * self.y[i] * (a[i,0] * GV_cost * q[i] + a[i,0] * GV_cost) for i in N),
+            - quicksum(self.dual_values_delta[i]*self.y[i] for i in N)
+            - quicksum(self.dual_values_IR[i]*self.y[i]* (a[i,0]*GV_cost*q[i]+a[i,0]*GV_cost) for i in N)
+            + - tol*0.001*(self.b['t']),     # to encourage the correct battery level at depot, otherwise Gurobi may set it to artificially small value to reduce cost
             GRB.MINIMIZE
         )
 
         self.m.setParam("OutputFlag", 1)
+
         self.update_optimize_check_feasibility(self.m, iis_path="model.ilp")
         results = self.extract_solution_pool_tours(self.m, V, self.x)
         return results
-
 
     @staticmethod
     def extract_solution_pool_tours(model, V, x, tol=1e-6,

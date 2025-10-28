@@ -13,3 +13,5 @@ untitled.py
 *.pyc
 __pycache__/
 pricing_coalition_notstable.py
+config_new.py 
+MIP_simplified.py

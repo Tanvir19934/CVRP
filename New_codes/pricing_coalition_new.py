@@ -1,9 +1,10 @@
 from models_coalition_new import SubProblem, MasterProblem
-from utils_new import check_values, tsp_tour, prize_collecting_tsp, CGResult, build_NG
+from utils_new import check_values, CGResult, build_NG
 from config_new import always_generate_rows, use_column_heuristic, rand_seed, run_dp, num_neighbors, a, N
 import time
 import copy
 import random
+from tsp_formulations import prize_collecting_tsp, tsp_tour
 
 random.seed(rand_seed)
 

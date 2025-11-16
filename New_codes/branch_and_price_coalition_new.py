@@ -7,6 +7,7 @@ from collections import defaultdict
 import copy
 import time
 import random
+import sys
 from utils_new import (
     print_solution, save_to_excel, print_metadata, unpack_result,
     generate_tsp_cache, update_plot, make_stack, code_status, validate_solution
@@ -318,3 +319,7 @@ if __name__ == "__main__":
     if plot_enabled:
         plt.show()
         input("Press Enter to exit...")
+    
+    if len(sys.argv) > 2:
+        for arg in sys.argv[1:]:
+            print(arg)

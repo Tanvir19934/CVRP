@@ -83,7 +83,7 @@ def branching() -> None:
         obj, total_miles, EV_miles, Total_payments, Subsidy, payments, solution_routes = print_solution(root_master_prob_model)
         print_metadata(Total_CG_iteration, Total_RG_iteration, num_nodes_explored,
               Total_RG_time, Total_CG_time, Total_RG_DP_time, Total_CG_DP_time,
-              Total_LP_time, tsp_cache_time, obj, root_obj_val, Total_num_lp)
+              Total_LP_time, tsp_cache_time, obj, root_obj_val, Total_num_lp, root_node_time)
 
         return obj, total_miles, EV_miles, Total_payments, Subsidy, payments, solution_routes, root_obj_val, num_nodes_explored, tsp_cache_time, Total_num_lp, tsp_memo
     

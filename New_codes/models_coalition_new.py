@@ -454,7 +454,9 @@ class MasterProblem:
                 self.model.update()
 
         #SET OBJECTIVE
-        self.model.setObjective((quicksum(a_r[route]*self.y_r[route] for route in self.r_set if len(route)==3))*w_dv + (quicksum(a_r[route]*self.y_r[route] for route in self.r_set if len(route)>3))*w_ev +  theta*(quicksum(c_r[route]*self.y_r[route] for route in self.r_set if len(route)>3) - quicksum(self.p[i] for i in N)))
+        self.model.setObjective((quicksum(a_r[route]*self.y_r[route] for route in self.r_set if len(route)==3))*w_dv + \
+                                (quicksum(a_r[route]*self.y_r[route] for route in self.r_set if len(route)>3))*w_ev +  \
+                                theta*(quicksum(c_r[route]*self.y_r[route] for route in self.r_set if len(route)>3) - quicksum(self.p[i] for i in N)))
         self.model.update()
 
         self.model.modelSense = GRB.MINIMIZE

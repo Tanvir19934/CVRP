@@ -135,7 +135,7 @@ def print_solution(final_model) -> None:
     print("Total Subsidy:", sum(c_r.values())-sum(payments.values()))
     print(f"Payments: {payments}")
 
-    return final_model.getObjective().getValue(), total_dv_miles_traveled*w_dv + total_ev_miles_traveled*w_ev \
+    return final_model.getObjective().getValue(), total_dv_miles_traveled + total_ev_miles_traveled \
         , total_ev_miles_traveled, sum(payments.values()), sum(c_r.values())-sum(payments.values()), payments, solution_routes
 
 def print_metadata(Total_CG_iteration, Total_RG_iteration, num_nodes_explored,

@@ -139,6 +139,9 @@ class prize_collecting_tsp:
             for i in V for j in V if i != j
         )
 
+        # no [0, n, 0] type routes
+        self.m.addConstrs(self.x[0, j] + self.x[j, 0] <= 1 for j in V if j != 0)
+
         # Objective
         self.m.setObjective(
             quicksum(w_ev*a[i,j]*self.x[i,j]  for i in V for j in V if i != j)   # base distance cost
@@ -210,6 +213,9 @@ class prize_collecting_tsp:
 
         # forbid certain arcs
         self.m.addConstrs((self.x[i, j] == 0 for (i, j) in self.forbidden_set), name="forbidden_arcs")
+
+        # no [0, n, 0] type routes
+        self.m.addConstrs(self.x[0, j] + self.x[j, 0] <= 1 for j in V if j != 0)
 
         self.m.setObjective(
             quicksum(w_ev*a[i,j]*self.x[i,j]  for i in V for j in V if i != j)   # base distance cost

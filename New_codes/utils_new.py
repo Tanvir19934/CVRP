@@ -127,7 +127,7 @@ def print_solution(final_model) -> None:
     print(f"Total miles cost (ev+dv): {total_dv_miles_traveled*w_dv + total_ev_miles_traveled*w_ev}")
     print(f"Total EV miles traveled: {total_ev_miles_traveled}")
     print(f"Total DV miles traveled: {total_dv_miles_traveled}")
-    print(f"Total mniles traveled: {total_dv_miles_traveled + total_ev_miles_traveled}")
+    print(f"Total miles traveled: {total_dv_miles_traveled + total_ev_miles_traveled}")
     print(f"Objective value: {final_model.getObjective().getValue()}")
     print(f"Objective value (manual): {total_dv_miles_traveled*w_dv + total_ev_miles_traveled*w_ev+theta*(sum(c_r.values())-sum(payments.values()))}")
     print("Total payment received:", sum(payments.values()))

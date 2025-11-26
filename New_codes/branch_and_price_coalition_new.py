@@ -311,6 +311,7 @@ def main():
         df = pd.DataFrame(data)
         file_name = "Results/results.xlsx"
         save_to_excel(file_name, "Sheet2", df)
+        time.sleep(5)  # to ensure that the file is saved properly before any further operations
 
 
 if __name__ == "__main__":

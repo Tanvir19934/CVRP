@@ -20,14 +20,12 @@ def run_CGSP(master_prob, sub_problem, new_columns_to_add, feasibility_memo, sta
         dual_values_delta, dual_values_subsidy, dual_values_IR,
         dual_values_vehicle, feasibility_memo, stats["CG_iteration"] == 1, NG
     )
-
     # filter for elementary
     new_columns = [
         route
         for route, rc in new_columns.items()
         if len(set(route[1:-1])) == len(route[1:-1])
     ]
-    
     # certificate of ng optimality
     new_columns_certificate = []
     if not new_columns:
@@ -42,8 +40,6 @@ def run_CGSP(master_prob, sub_problem, new_columns_to_add, feasibility_memo, sta
     if new_columns_certificate:
         print(f"\033[1mCertificate of optimality found {len(new_columns_certificate)} columns. Solution still not optimal.\033[0m")
         new_columns.extend(new_columns_certificate)
-
-    
     stats["CG_DP_time"] += time.perf_counter() - start_2
 
     for array in new_columns:
@@ -103,7 +99,6 @@ def run_RGSP(master_prob, branching_arc, new_columns_to_add, new_constraints,
         rg_pctsp_obj = prize_collecting_tsp(p_result)
         new_route = rg_pctsp_obj.rg_pctsp()
         stats["RG_DP_time"] += time.perf_counter() - start_5
-
         if not new_route:
             break
         for item in new_route:
@@ -145,7 +140,6 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None,
                 master_prob, branching_arc, new_columns_to_add, new_constraints,
                 stats, tsp_memo, feasibility_memo, global_tsp_memo
             )
-
             new_columns, feasibility_memo, stats["CG_DP_time"], status, new_columns_to_add = run_CGSP(
                 master_prob, sub_problem, new_columns_to_add, feasibility_memo,
                 stats, status, forbidden_set, NG

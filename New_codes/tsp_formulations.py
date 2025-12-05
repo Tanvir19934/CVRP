@@ -196,34 +196,103 @@ class prize_collecting_tsp:
 
     def cg_pctsp_node_based(self):
         """
-        Prize-Collecting TSP with load-dependent travel costs.
-        Node-based formulation (big-M load variables).
+        Prize-Collecting TSP with load-dependent travel costs and EV battery.
+        Node-based formulation.
         Collects all negative-valued solutions.
+
         """
-        print("\n Executing pctsp (node-based) for CG... \n")
+        print("\n Executing pctsp (node-based EVRP) for CG... \n")
 
+        # ------------------------------------------------------------
+        # Build base model: x, y, f, flow constraints, depot rules
+        # ------------------------------------------------------------
         self.m = self.pctsp()
-        self.b = self.m.addVars(V + ['t'], vtype=GRB.CONTINUOUS, ub = 1, lb = 0, name="b")         # battery level
-        self.m.addConstr(self.b[0] == 1, name="DepotBatteryFull")                          # depot starts with full battery
-        self.m.addConstrs(self.b[i] >= battery_threshold for i in V + ['t'])                       # min battery at customers
+
+        # ------------------------------------------------------------
+        # Battery variables for each node + return battery
+        # ------------------------------------------------------------
+        self.b = self.m.addVars(V, vtype=GRB.CONTINUOUS, lb=0.0, ub=1.0, name="b")
+        self.b_ret = self.m.addVar(vtype=GRB.CONTINUOUS, lb=0.0, ub=1.0, name="b_ret")
+
+        # Depot starts fully charged
+        self.m.addConstr(self.b[0] == 1, name="DepotBatteryFull")
+
+        # Minimum battery at all visited nodes
         self.m.addConstrs(
-            self.b[j] <= self.b[i] - (a.get((i,j),a[i,0])/EV_velocity)*(gamma*self.x[i,j]+gamma_l*self.f.get((i,j),self.f[i,0])) + self.big_M * (1-self.x[i,j])
-            for i in V for j in N + ['t'] if (i != j and (i!=0 and j!='t'))
-            )  # battery depletion
+            (self.b[i] >= battery_threshold for i in V),
+            name="MinBattery"
+        )
+        self.m.addConstr(self.b_ret >= battery_threshold, name="MinBatteryReturn")
 
-        # forbid certain arcs
-        self.m.addConstrs((self.x[i, j] == 0 for (i, j) in self.forbidden_set), name="forbidden_arcs")
+        # ------------------------------------------------------------
+        # Battery depletion for all arcs i→j, except return to depot
+        # ------------------------------------------------------------
+        self.m.addConstrs(
+            (
+                self.b[j] <= self.b[i]
+                - (a[i, j] / EV_velocity)
+                * (gamma * self.x[i, j] + gamma_l * self.f[i, j])
+                + self.big_M * (1 - self.x[i, j])
 
-        # no [0, n, 0] type routes
-        self.m.addConstrs(self.x[0, j] + self.x[j, 0] <= 1 for j in V if j != 0)
+                for i in V for j in V
+                if i != j and j != 0
+            ),
+            name="BatteryDepletion"
+        )
+
+        # ------------------------------------------------------------
+        # Battery depletion when returning to depot (i → 0)
+        # b_ret = battery when finishing the route
+        # ------------------------------------------------------------
+        self.m.addConstrs(
+            (
+                self.b_ret <= self.b[i]
+                - (a[i, 0] / EV_velocity)
+                * (gamma * self.x[i, 0] + gamma_l * self.f[i, 0])
+                + self.big_M * (1 - self.x[i, 0])
+
+                for i in V if i != 0
+            ),
+            name="BatteryReturn"
+        )
+
+        # ------------------------------------------------------------
+        # Routing constraints on top of pctsp base
+        # ------------------------------------------------------------
+
+        # No singleton route 0→i→0
+        self.m.addConstrs(
+            (self.x[0, j] + self.x[j, 0] <= 1 for j in V if j != 0),
+            name="NoSingletonRoute"
+        )
+
+        # Exactly one departure from depot
+        self.m.addConstr(
+            quicksum(self.x[0, j] for j in V if j != 0) == 1,
+            name="LeaveDepotOnce"
+        )
+
+        # Exactly one return to depot
+        self.m.addConstr(
+            quicksum(self.x[i, 0] for i in V if i != 0) == 1,
+            name="ReturnDepotOnce"
+        )
+
+        # Forbid any arcs the user specified
+        self.m.addConstrs(
+            (self.x[i, j] == 0 for (i, j) in self.forbidden_set),
+            name="ForbiddenArcs"
+        )
+
+        self.m.update()
 
         self.m.setObjective(
             quicksum(w_ev*a[i,j]*self.x[i,j]  for i in V for j in V if i != j)   # base distance cost
             + (theta-self.dual_values_subsidy)* quicksum(260*EV_cost*(a[i,j]/EV_velocity)*(gamma*self.x[i,j]+gamma_l*(self.f[i,j])) for i in V for j in V if i != j)
             - self.dual_values_vehicle
             - quicksum(self.dual_values_delta[i]*self.y[i] for i in N)
-            - quicksum(self.dual_values_IR[i]*self.y[i]* (a[i,0]*GV_cost*q[i]+a[i,0]*GV_cost) for i in N)
-            + - tol*0.001*(self.b['t']),     # to encourage the correct battery level at depot, otherwise Gurobi may set it to artificially small value to reduce cost
+            - quicksum(self.dual_values_IR[i]*self.y[i]* (a[i,0]*GV_cost*q[i]+a[i,0]*GV_cost) for i in N),
+            #+ - tol*0.001*(self.b['t']),     # to encourage the correct battery level at depot, otherwise Gurobi may set it to artificially small value to reduce cost
             GRB.MINIMIZE
         )
 
@@ -233,69 +302,6 @@ class prize_collecting_tsp:
         results = self.extract_solution_pool_tours(self.m, V, self.x)
         return results
 
-    @staticmethod
-    def extract_solution_pool_tours(model, V, x, tol=1e-6,
-                                    compute_details=False,
-                                    cost_func=None,
-                                    prizes=None):
-        """
-        Extract tours from Gurobi solution pool.
-
-        Parameters
-        ----------
-        model : gurobipy.Model
-            The solved model.
-        V : iterable
-            Set/list of nodes.
-        x : dict or tuple-indexed Gurobi Var
-            Edge decision variables (x[i, j]).
-        tol : float, optional
-            Tolerance for positive edge selection (default = 1e-6).
-        compute_details : bool, optional
-            If True, also compute (travel_cost, collected_prizes) for each tour.
-        cost_func : callable, optional
-            Function like gv_tsp_cost(tour), required if compute_details=True.
-        prizes : dict, optional
-            Node → prize mapping, required if compute_details=True.
-
-        Returns
-        -------
-        results : list
-            If compute_details=False: [(tour,), ...]
-            If compute_details=True:  [(tour, obj_val, travel_cost, collected_prizes), ...]
-        """
-        results = []
-
-        if model.SolCount == 0:
-            return results
-
-        for k in range(model.SolCount):
-            model.setParam(GRB.Param.SolutionNumber, k)
-            obj_val = model.PoolObjVal
-
-            if obj_val < -tol and abs(obj_val) > 0.001:
-                tour = [0]
-                current = 0
-
-                while True:
-                    next_nodes = [j for j in V if j != current and x[current, j].Xn > 0.5]
-                    if not next_nodes:
-                        break
-                    nxt = next_nodes[0]
-                    tour.append(nxt)
-                    if nxt == 0:
-                        break
-                    current = nxt
-
-                if len(tour) > 3:
-                    if compute_details:
-                        travel_cost = cost_func(tour) if cost_func else None
-                        collected_prizes_val = sum(prizes[i] for i in tour) if prizes else None
-                        results.append((tour, obj_val, travel_cost, collected_prizes_val))
-                    else:
-                        results.append(tuple(tour))
-
-        return results
 
     @staticmethod
     def extract_solution_pool_tours(model, V, x, tol=1e-6,

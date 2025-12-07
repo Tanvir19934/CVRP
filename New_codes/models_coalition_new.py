@@ -8,7 +8,7 @@ import time
 from utils_new import ev_travel_cost, reconstruct_path
 from config_new import (
     col_dp_cutoff, battery_threshold, N, V, Q_EV, q, a, w_dv, w_ev, theta, tol, num_EV, gamma, 
-    gamma_l, EV_velocity, GV_cost, unlimited_EV, timer, rand_seed, best_obj, GV_cost, EV_cost
+    gamma_l, EV_velocity, GV_cost, unlimited_EV, rand_seed, best_obj, GV_cost, EV_cost
 )
 import random
 random.seed(rand_seed)

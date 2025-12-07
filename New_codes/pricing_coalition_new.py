@@ -1,10 +1,12 @@
 from models_coalition_new import SubProblem, MasterProblem
+import timer
 from utils_new import check_values, CGResult, build_NG
 from config_new import always_generate_rows, use_column_heuristic, rand_seed, run_dp, num_neighbors, a, N
 import time
 import copy
 import random
 from tsp_formulations import prize_collecting_tsp, tsp_tour
+import timer
 
 random.seed(rand_seed)
 
@@ -145,7 +147,10 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None,
                 master_prob, branching_arc, new_columns_to_add, new_constraints,
                 stats, tsp_memo, feasibility_memo, global_tsp_memo, True
             )
-
+            if timer.expired():
+                print("⏰ Global time limit reached.")
+                #time.sleep(5)
+                break
             new_columns, feasibility_memo, stats["CG_DP_time"], status, new_columns_to_add, new_constraints = run_CGSP(
                 master_prob, sub_problem, new_columns_to_add, feasibility_memo,
                 new_constraints, stats, status, forbidden_set, NG

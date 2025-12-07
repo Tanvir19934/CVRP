@@ -1,9 +1,10 @@
 from pricing_coalition_new import column_generation
 from config_new import (
     V, Q_EV, q, NODES,k, plot_enabled, use_column_heuristic,
-    always_generate_rows, N, rand_seed
+    always_generate_rows, N, rand_seed, time_limit
     )
 import time
+import timer
 import random
 from utils_new import (
     print_solution, save_to_excel, print_metadata, unpack_result,
@@ -114,6 +115,7 @@ def track_time_iterations(CG_iteration, RG_iteration, RG_time, CG_time, RG_DP_ti
     Total_LP_time+=LP_time
 
 def main():
+        timer.start(time_limit)
         start = time.perf_counter()
         [
             obj, total_miles, EV_miles, Total_payments, Subsidy, payments, solution_routes, 

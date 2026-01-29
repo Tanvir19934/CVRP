@@ -556,7 +556,7 @@ class MasterProblem:
         
         #DECISION VARIABLES
         for item in self.r_set:
-            self.y_r[tuple(item)] = self.model.addVar(vtype=GRB.INTEGER, name=f"y_r_[{item}]", lb=0) #Integer here!
+            self.y_r[tuple(item)] = self.model.addVar(vtype=GRB.INTEGER, name=f"y_r_[{item}]", lb=0)                #Integer here!
         for i in N:
             self.p[i] = self.model.addVar(vtype=GRB.CONTINUOUS, name = f"p_{i}", lb=0)
         self.model.update()

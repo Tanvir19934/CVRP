@@ -429,5 +429,16 @@ def unpack_result(res: CGResult):
         res.global_tsp_memo, res.num_lp, res.new_constraints, res.columns
     )
 
+def create_columns_from_EV_dict(EV_dict):
+   routes = [element for item in EV_dict for element in EV_dict[item]["route"]]
+   optimized_routes = []
+   
+   for item in routes:
+      optimized_routes.append(tuple(tsp_tour(item)[0]))
+      #all_routes = [[0] + list(p) + [0] for p in permutations(item[1:-1])]
+      #optimized_routes.extend([tuple(route) for route in all_routes if battery_feasibility(route)])
 
-
+   columns = set((0,i,0) for i in range(1,len(N)+1))
+   for item in optimized_routes:
+      columns.add(item)
+   return columns

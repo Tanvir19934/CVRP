@@ -7,7 +7,7 @@ import random
 import time
 from config_new import *
 from gurobipy import Model, GRB, quicksum
-from utils_new import  unpack_result, print_solution, tsp_tour, battery_feasibility
+from utils_new import  unpack_result, print_solution, create_columns_from_EV_dict
 from pricing_coalition_new import  column_generation
 rnd = np.random
 from itertools import permutations
@@ -302,20 +302,6 @@ def IFB(labels, centroids, X, node_attr):
             element.append(0)
    2
    return EV_dict, unassigned_nodes, cluster_info, nodes_original
-
-def create_columns_from_EV_dict(EV_dict):
-   routes = [element for item in EV_dict for element in EV_dict[item]["route"]]
-   optimized_routes = []
-   
-   for item in routes:
-      optimized_routes.append(tuple(tsp_tour(item, type = 'EV')[0]))
-      #all_routes = [[0] + list(p) + [0] for p in permutations(item[1:-1])]
-      #optimized_routes.extend([tuple(route) for route in all_routes if battery_feasibility(route)])
-
-   columns = set((0,i,0) for i in range(1,len(N)+1))
-   for item in optimized_routes:
-      columns.add(item)
-   return columns
 
 if __name__ == "__main__":
    start = time.perf_counter()

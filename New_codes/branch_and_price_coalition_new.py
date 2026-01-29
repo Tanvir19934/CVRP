@@ -159,7 +159,6 @@ def main():
             "Solution routes": [solution_routes]
         }
         df = pd.DataFrame(data)
-        file_name = "Results/results.xlsx"
         save_to_excel(file_name, "Sheet2", df)
 
 

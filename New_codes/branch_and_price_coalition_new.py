@@ -4,7 +4,6 @@ from config_new import (
     always_generate_rows, N, rand_seed, time_limit
     )
 import time
-import timer
 import random
 from utils_new import (
     print_solution, save_to_excel, print_metadata, unpack_result,
@@ -13,7 +12,7 @@ from utils_new import (
 import pandas as pd
 import matplotlib.pyplot as plt
 from gurobipy import GRB
-
+import timerr
 random.seed(rand_seed)  
 class Node:  
     
@@ -115,7 +114,7 @@ def track_time_iterations(CG_iteration, RG_iteration, RG_time, CG_time, RG_DP_ti
     Total_LP_time+=LP_time
 
 def main():
-        timer.start(time_limit)
+        timerr.start(time_limit)
         start = time.perf_counter()
         [
             obj, total_miles, EV_miles, Total_payments, Subsidy, payments, solution_routes, 

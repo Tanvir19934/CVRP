@@ -42,3 +42,7 @@ scratch_treenode.py
 scratch_mpi.py
 tempCodeRunnerFile.py
 top_order.py
+.cache.sqlite
+*copy*
+!.gitignore
+.DS_Store

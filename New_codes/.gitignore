@@ -29,20 +29,3 @@ important_algos.py
 calibrate_ev_cost_factor
 plots.py
 scratch_treenode.py
-timer.py
-hsc copy 2.py
-hsc copy 3.py
-hsc copy.py
-DFS.py
-practice.py
-ta.py
-test.py
-test_c.py
-scratch_treenode.py
-scratch_mpi.py
-tempCodeRunnerFile.py
-top_order.py
-.cache.sqlite
-*copy*
-!.gitignore
-.DS_Store

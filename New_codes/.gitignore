@@ -9,6 +9,9 @@ New_codes/
 *.log
 *.json
 *.ipynb
+*.pkl
+*.png
+*.c
 leet.py
 scratch.py
 untitled.py

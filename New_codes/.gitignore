@@ -1,5 +1,6 @@
 Results/
 New_codes/
+data/
 *.xlsx
 *.xls
 *.csv
@@ -11,12 +12,16 @@ New_codes/
 *.ipynb
 *.pkl
 *.png
+*.pdf
 *.c
+*.txt
+*.pyc
+__pycache__/
 leet.py
 scratch.py
 untitled.py
-*.pyc
-__pycache__/
+Untitled.ipynb
+Untitled.py
 pricing_coalition_notstable.py
 hsc_ALNS_IFB_comparison.py
 hsc_ALNS_IFB.py
@@ -25,3 +30,11 @@ calibrate_ev_cost_factor
 plots.py
 scratch_treenode.py
 timer.py
+hsc copy 2.py
+hsc copy 3.py
+hsc copy.py
+DFS.py
+practice.py
+ta.py
+scratch_treenode.py
+scratch_mpi.py

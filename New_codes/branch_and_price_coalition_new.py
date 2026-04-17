@@ -14,6 +14,7 @@ from utils_new import (
 import pandas as pd
 import matplotlib.pyplot as plt
 from gurobipy import GRB
+import os
 
 random.seed(rand_seed)  
 class Node:  
@@ -294,7 +295,8 @@ def main():
         }
         
         df = pd.DataFrame(data)
-        file_name = "Results/results.xlsx" 
+        file_name = "Results/results.xlsx"
+        os.makedirs("Results", exist_ok=True) 
         save_to_excel(file_name, "Sheet1", df)
         data = {
             "Nodes": [NODES],

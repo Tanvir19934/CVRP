@@ -129,11 +129,10 @@ class prize_collecting_tsp:
         # (v_ij = 0 if x_ij = 0; ensures battery consumption only occurs along active routes)
         self.m.addConstrs(self.v[i,j] <= (1 - battery_threshold) * self.x[i,j]
                         for i in V for j in V if i != j)
-
         # return battery requirement at depot
         self.m.addConstrs(
             (
-                self.v[i, j] + (a[j,0]/EV_velocity) * (gamma * self.x[i, j] + gamma_l * self.f[i, j])
+                self.v[i, j] + (a[j,0]/EV_velocity) * (gamma * self.x[i, j] + gamma_l * (self.f[i, j]+self.x[i,j]*q[j]))
                 <= (1 - battery_threshold) * self.x[i, j]            
             )
             for i in V for j in V if i != j

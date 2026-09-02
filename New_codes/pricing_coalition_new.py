@@ -178,9 +178,6 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None,
                 stats, status, forbidden_set, NG
                 )
 
-            if not new_columns:
-                break
-
             new_constraints, global_tsp_memo = apply_column_heuristic(
                 new_columns_to_add, global_tsp_memo, new_constraints
             )
@@ -193,6 +190,9 @@ def column_generation(branching_arc, forbidden_set=[], tsp_memo={}, L=None,
                     master_prob, branching_arc, new_columns_to_add, new_constraints,
                     stats, tsp_memo, feasibility_memo, global_tsp_memo
                 )
+
+            if not new_columns:
+                break
 
     if check_values(y_r_result):
         print("All non-zero values are 1")

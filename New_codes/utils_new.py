@@ -335,7 +335,7 @@ def save_to_excel(file_name, sheet_name, data):
 
 def update_config(node_value):
     # Path to the config_new.py file
-    config_file = "New_codes/config_new.py"
+    config_file = "/Users/tanvirkaisar/CVRP/New_codes/config_new.py"
 
     # Step 1: Update the NODES value in the config_new.py file
     with open(config_file, "r") as f:
@@ -350,7 +350,7 @@ def update_config(node_value):
 
     # Step 3: Re-execute the rest of the code in the config_new module
     # This will execute the entire code from config_new.py again
-    os.system('python3 New_codes/config_new.py')  # Executes the script after updating NODES
+    os.system('python3 /Users/tanvirkaisar/CVRP/New_codes/config_new.py')  # Executes the script after updating NODES
 
 
 def create_excel_for_log_file(log_file):

@@ -1,7 +1,7 @@
 from pricing_coalition_new import column_generation
 from config_new import (
     V, Q_EV, q, NODES,k, plot_enabled, use_column_heuristic,
-    always_generate_rows, N, rand_seed, best_obj, SEARCH_MODE
+    always_generate_rows, N, rand_seed, best_obj, SEARCH_MODE, path_to_save
     )
 from collections import defaultdict
 import copy
@@ -301,7 +301,7 @@ def main():
         }
         
         df = pd.DataFrame(data)
-        file_name = "/Users/tanvirkaisar/CVRP/New_codes/Results/results.xlsx" 
+        file_name = f"{path_to_save}/results.xlsx" 
         save_to_excel(file_name, "Sheet1", df)
         data = {
             "Nodes": [NODES],
@@ -309,7 +309,7 @@ def main():
             "Solution routes": [solution_routes]
         }
         df = pd.DataFrame(data)
-        file_name = "/Users/tanvirkaisar/CVRP/New_codes/Results/results.xlsx"
+        file_name = f"{path_to_save}/results.xlsx"
         save_to_excel(file_name, "Sheet2", df)
         time.sleep(5)  # to ensure that the file is saved properly before any further operations
 

@@ -5,7 +5,7 @@ import time
 rnd = np.random
 rand_seed = 111
 rnd.seed(42)
-
+path_to_save = "/Users/tanvirkaisar/CVRP/New_codes/Results"
 NODES = 10
 
 num_neighbors = min(round(NODES*0.2),4)
@@ -13,7 +13,7 @@ SEARCH_MODE = "heap"
 run_dp = False
 k = min(round(NODES*0.5),2)
 grid_size = 50                                                               #number of clients
-time_limit = 3600
+time_limit = 60000
 xc = np.random.uniform(low=- grid_size/2, high=grid_size/2, size=NODES+1)
 yc = np.random.uniform(low=-grid_size/2, high=grid_size/2, size= NODES+1)
 xc[0]=0
@@ -172,4 +172,7 @@ for NODES in $(seq 50 25 225); do
     python hsc_ALNS.py NODES $NODES
 done
 
+for NODES in $(seq 50 25 225); do
+    python New_codes/branch_and_price_coalition_new.py NODES $NODES
+done
 """

@@ -8,7 +8,7 @@ import time
 from utils_new import ev_travel_cost, reconstruct_path
 from config_new import (
     col_dp_cutoff, battery_threshold, N, V, Q_EV, q, a, w_dv, w_ev, theta, tol, num_EV, gamma, 
-    gamma_l, EV_velocity, GV_cost, unlimited_EV, rand_seed, best_obj, GV_cost, EV_cost
+    gamma_l, EV_velocity, GV_cost, unlimited_EV, rand_seed, best_obj, GV_cost, EV_cost, path_to_save
 )
 import random
 random.seed(rand_seed)
@@ -460,13 +460,13 @@ class MasterProblem:
 
         self.model.modelSense = GRB.MINIMIZE
         self.model.Params.OutputFlag = 0
-        self.model.write("/Users/tanvirkaisar/Library/CloudStorage/OneDrive-UniversityofSouthernCalifornia/CVRP/Codes/New_codes/master_prob.lp")
+        self.model.write(f"{path_to_save}/master_prob.lp")
         self.model.optimize()
 
         if self.model.status == GRB.INFEASIBLE:
             print("Model is infeasible. Computing IIS...")
             self.model.computeIIS()
-            self.model.write("/Users/tanvirkaisar/Library/CloudStorage/OneDrive-UniversityofSouthernCalifornia/CVRP/Codes/New_codes/master_prob_iis.ilp")
+            self.model.write(f"{path_to_save}/master_prob_iis.ilp")
   
         if self.model.status!=GRB.OPTIMAL:
             return None, None, self.model, self.model.status
@@ -582,7 +582,7 @@ class MasterProblem:
 
         self.model.modelSense = GRB.MINIMIZE
         self.model.Params.OutputFlag = 1
-        #self.model.write("/Users/tanvirkaisar/Library/CloudStorage/OneDrive-UniversityofSouthernCalifornia/CVRP/Codes/New_codes/master_prob.lp")
+        #self.model.write(f"{path_to_save}/master_prob.lp")
         self.model.optimize()
   
         if self.model.status!=GRB.OPTIMAL:

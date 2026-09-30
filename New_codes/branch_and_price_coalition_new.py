@@ -1,7 +1,7 @@
 from pricing_coalition_new import column_generation
 from config_new import (
     V, Q_EV, q, NODES,k, plot_enabled, use_column_heuristic,
-    always_generate_rows, N, rand_seed, time_limit
+    always_generate_rows, N, rand_seed, time_limit, path_to_save
     )
 import time
 import random
@@ -150,7 +150,7 @@ def main():
         }
         
         df = pd.DataFrame(data)
-        file_name = "New_codes/Results/results.xlsx" 
+        file_name = f"{path_to_save}/results.xlsx" 
         save_to_excel(file_name, "Sheet1", df)
         data = {
             "Nodes": [NODES],

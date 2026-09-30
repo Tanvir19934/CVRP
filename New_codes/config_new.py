@@ -11,10 +11,11 @@ rnd.seed(42)
 # BASE / DEFAULT PARAMETERS
 # ============================================================
 
-NODES = 20
+NODES = 10
 
 SEARCH_MODE = "heap"
 run_dp = False
+path_to_save = "/Users/tanvirkaisar/CVRP/New_codes/Results"
 
 grid_size = 50
 

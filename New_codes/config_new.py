@@ -5,7 +5,7 @@ import time
 rnd = np.random
 rand_seed = 111
 rnd.seed(42)
-
+path_to_save = "/Users/tanvirkaisar/CVRP/New_codes/Results"
 NODES = 10
 
 num_neighbors = min(round(NODES*0.2),4)

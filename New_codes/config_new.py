@@ -11,10 +11,11 @@ rnd.seed(42)
 # BASE / DEFAULT PARAMETERS
 # ============================================================
 
-NODES = 20
+NODES = 10
 
 SEARCH_MODE = "heap"
 run_dp = False
+path_to_save = "/Users/tanvirkaisar/CVRP/New_codes/Results"
 
 grid_size = 50
 
@@ -366,7 +367,7 @@ done
 # NODES
 # ----------------------------------------------------------
 
-for NODES in $(seq 5 5 30); do
+for NODES in $(seq 5 5 25); do
     python New_codes/branch_and_price_coalition_new.py NODES $NODES
 done
 

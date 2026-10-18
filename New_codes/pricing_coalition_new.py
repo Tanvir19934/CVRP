@@ -1,6 +1,6 @@
 from models_coalition_new import SubProblem, MasterProblem
 from utils_new import check_values, CGResult, build_NG
-from config_new import always_generate_rows, use_column_heuristic, rand_seed, run_dp, num_neighbors, a, N
+from config_new import always_generate_rows, use_column_heuristic, rand_seed, run_dp, run_pctsp, num_neighbors, a, N
 import time
 import copy
 import random
@@ -16,30 +16,39 @@ def run_CGSP(master_prob, sub_problem, new_columns_to_add, feasibility_memo, sta
 
     start_2 = time.perf_counter()
 
-    new_columns, feasibility_memo = sub_problem.dy_prog_ng(
-        dual_values_delta, dual_values_subsidy, dual_values_IR,
-        dual_values_vehicle, feasibility_memo, stats["CG_iteration"] == 1, NG
-    )
-    # filter for elementary
-    new_columns = [
-        route
-        for route, rc in new_columns.items()
-        if len(set(route[1:-1])) == len(route[1:-1])
-    ]
-    # certificate of ng optimality
-    new_columns_certificate = []
-    if not new_columns:
+    if run_dp:
+        new_columns, feasibility_memo = sub_problem.dy_prog(
+            dual_values_delta, dual_values_subsidy, dual_values_IR,
+            dual_values_vehicle, feasibility_memo, stats["CG_iteration"] == 1
+        )
+    elif run_pctsp:
         cg_pctsp_obj = prize_collecting_tsp(None, forbidden_set, dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle)
-        new_columns_certificate = cg_pctsp_obj.cg_pctsp()
-        #new_columns_certificate = cg_pctsp_obj.cg_pctsp_node_based()
-        #new_columns_certificate, feasibility_memo = sub_problem.dy_prog(
-        #    dual_values_delta, dual_values_subsidy, dual_values_IR,
-        #    dual_values_vehicle, feasibility_memo
-        #)
-    # this means even though ng did not find column, we found columns in the certificate (which is exact dp or pctsp)
-    if new_columns_certificate:
-        print(f"\033[1mCertificate of optimality found {len(new_columns_certificate)} columns. Solution still not optimal.\033[0m")
-        new_columns.extend(new_columns_certificate)
+        new_columns = cg_pctsp_obj.cg_pctsp()
+    else:
+        new_columns, feasibility_memo = sub_problem.dy_prog_ng(
+            dual_values_delta, dual_values_subsidy, dual_values_IR,
+            dual_values_vehicle, feasibility_memo, stats["CG_iteration"] == 1, NG
+        )
+        # filter for elementary
+        new_columns = [
+            route
+            for route, rc in new_columns.items()
+            if len(set(route[1:-1])) == len(route[1:-1])
+        ]
+        # certificate of ng optimality
+        new_columns_certificate = []
+        if not new_columns:
+            cg_pctsp_obj = prize_collecting_tsp(None, forbidden_set, dual_values_delta, dual_values_subsidy, dual_values_IR, dual_values_vehicle)
+            new_columns_certificate = cg_pctsp_obj.cg_pctsp()
+            #new_columns_certificate = cg_pctsp_obj.cg_pctsp_node_based()
+            #new_columns_certificate, feasibility_memo = sub_problem.dy_prog(
+            #    dual_values_delta, dual_values_subsidy, dual_values_IR,
+            #    dual_values_vehicle, feasibility_memo
+            #)
+        # this means even though ng did not find column, we found columns in the certificate (which is exact dp or pctsp)
+        if new_columns_certificate:
+            print(f"\033[1mCertificate of optimality found {len(new_columns_certificate)} columns. Solution still not optimal.\033[0m")
+            new_columns.extend(new_columns_certificate)
     stats["CG_DP_time"] += time.perf_counter() - start_2
 
     for array in new_columns:

@@ -15,6 +15,7 @@ NODES = 10
 
 SEARCH_MODE = "heap"
 run_dp = False
+run_pctsp = False
 path_to_save = "/Users/tanvirkaisar/CVRP/New_codes/Results"
 
 grid_size = 50

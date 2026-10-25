@@ -7,11 +7,11 @@ import random
 import time
 from config_new import *
 from gurobipy import Model, GRB, quicksum
-from utils_new import  unpack_result, print_solution, create_columns_from_EV_dict
+from utils_new import  unpack_result, print_solution, create_columns_from_EV_dict, save_to_excel
 from pricing_coalition_new import  column_generation
 rnd = np.random
 from itertools import permutations
-
+import pandas as pd
 rand_seed = 111
 rnd.seed(42)
 
@@ -325,3 +325,13 @@ if __name__ == "__main__":
    end = time.perf_counter()
    print_solution(model)
    print(f"Execution time for IFB heuristic node {NODES}: {end - start}")
+   file_name = f"{path_to_save}/results.xlsx" 
+   print(f"Results saved to {file_name}")
+   data = {
+      "Nodes": [NODES],
+      "Obj": [model.getObjective().getValue()],
+      "Total execution time": [end-start],
+   }
+        
+   df = pd.DataFrame(data)
+   save_to_excel(file_name, "heuristic", df)

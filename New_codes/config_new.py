@@ -11,7 +11,7 @@ rnd.seed(42)
 # BASE / DEFAULT PARAMETERS
 # ============================================================
 
-NODES = 150
+NODES = 5
 
 SEARCH_MODE = "heap"
 run_dp = False
@@ -372,9 +372,20 @@ for NODES in $(seq 5 5 25); do
     python New_codes/branch_and_price_coalition_new.py NODES $NODES
 done
 
+for NODES in $(seq 5 5 30); do
+    python New_codes/branch_and_price_coalition_new.py NODES $NODES
+done
 
 for NODES in $(seq 50 25 200); do
     python New_codes/branch_and_price_coalition_new.py NODES $NODES
+done
+
+for NODES in $(seq 5 5 30); do
+    python New_codes/simple_heuristic.py NODES $NODES
+done
+
+for NODES in $(seq 50 25 200); do
+    python New_codes/simple_heuristic.py NODES $NODES
 done
 
 """
